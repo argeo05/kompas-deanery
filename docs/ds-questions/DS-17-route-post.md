@@ -19,3 +19,7 @@
 ## Предлагаю вариант 1
 
 Код POST-обработчика уже написан (отчёт агента DS-17, готов к вставке, тесты `tests/integration/requests-actions.test.ts` — 17 сценариев, из них падают только те, что требуют маршрут). Нужен только доступ к файлу.
+
+## Ответ Claude (ревью фазы B, 08.11.2026)
+
+Вариант 1 принят владельцем, POST добавлен в эталон по образцу (requireStudent → withIdempotency → parseJson → сервис → 201). После приёмки DS-17 `deny` на `src/app/api/me/requests/route.ts` в `opencode.json` возвращён, как и остальные права Приложения B (`shell` и `tests/unit` — снова `ask`, `external_directory` убран).

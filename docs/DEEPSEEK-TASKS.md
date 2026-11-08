@@ -489,6 +489,36 @@ interface MessageDTO { id: UUID; author: 'student' | 'staff'; authorName: string
 
 ---
 
+### Прогон 2 (по итогам приёмки фазы B, 08.11.2026)
+
+Заблокированных тикетов в прогоне 1 нет. Ниже — хвосты аудита, у которых есть готовый образец в коде.
+Каждый тикет — своя ветка `ds/DS-5X` через `scripts/ds-worktree.sh`, работа не в `main`.
+
+#### DS-50. notify: получатели вне видимости сотрудника
+
+`src/server/services/notify.ts`. Сейчас комментарий «RLS фильтрует, кого не видно» неверен: при INSERT нарушение `WITH CHECK` роняет всю транзакцию (500).
+- В `notify()` до вставки отфильтровать `targets`: для сотрудника — только студенты его факультета (тот же критерий, что `staffScopeCondition` в `repositories/staff-requests.ts`), для студента — только он сам.
+- Исправить комментарий.
+- Тест в `tests/integration/notifications.test.ts`: вызов `notify` из staff-транзакции Олега со студентом другого факультета не бросает, уведомление не создано.
+- Проверка: `pnpm vitest run tests/integration/notifications.test.ts`, затем `pnpm verify:ds`.
+
+#### DS-51. Блокировки в мутациях студента: обращения и дедлайны
+
+Образец — `lockTicketRow` (`repositories/staff-tickets.ts`) и `lockRequestRow` (`repositories/requests.ts`), правило 8 AGENTS.md.
+- `services/tickets.ts`: ответ студента в обращение — сначала блокировка строки обращения, потом проверка `closed` (409).
+- Тест: после закрытия сотрудником ответ студента → 409, статус остаётся `closed`.
+- Проверка: `pnpm vitest run tests/integration/tickets.test.ts tests/integration/staff-tickets.test.ts`.
+
+#### DS-52. Квота заявок — в БД, а не в памяти процесса
+
+`services/requests.ts`, `consumeRequestQuota`: `RateLimiterMemory` сбрасывается при рестарте и не делится между экземплярами.
+- Заменить на подсчёт внутри той же транзакции: `count(*) from requests where student_id = :id and created_at > now() - 1 hour` (время — через `now()` из `src/lib/clock.ts`); ≥ 10 → 429 `RATE_LIMITED`.
+- Сигнатура меняется (нужен `tx`) — поправить три вызова (create, resubmit, data-fix).
+- Существующий тест «лимит 10 заявок в час» в `tests/integration/requests-actions.test.ts` должен остаться зелёным без правок.
+- Проверка: `pnpm vitest run tests/integration/requests-actions.test.ts`, затем `pnpm verify:ds`.
+
+Решения Claude, которые прогон 2 **не** трогает (см. DECISIONS.md D-006): доверенный IP-заголовок для `/api/verify`, scope «подразделение = факультет», списки обращений без пагинации, мутации в GET (`/api/me/ics`, карточка обращения), отложенная доставка уведомлений при будущем `publishAt`.
+
 ## 5. Когда остановиться и спросить (а не придумывать)
 
 Остановиться, создать файл `docs/ds-questions/DS-XX.md` (что неясно, какие варианты, что предлагаешь) и **закончить сессию**, если:
@@ -557,6 +587,18 @@ interface MessageDTO { id: UUID; author: 'student' | 'staff'; authorName: string
 5. Вход — через Zod-схему из src/server/schemas.
 6. Время — через now() из src/lib/clock.ts, пояс Europe/Moscow.
 7. Ответ — через ok()/fail() из src/server/http.ts и тип из src/contracts/api.ts.
+
+## Типовые ошибки фазы B (ревью Claude, docs/ai-log/errors.md C1–C16)
+8. Мутация статуса: сначала заблокировать строку (lockRequestRow / lockTicketRow — SELECT … FOR UPDATE), потом проверить статус, потом UPDATE.
+9. Область видимости сотрудника хранится в данных и проверяется при КАЖДОМ чтении, а не только при создании и в notify. Критерии аудитории пересекаются (факультет ∧ курс ∧ группа).
+10. Токены и секреты в БД — только хешем. Служебные таблицы (idempotency_keys и др.) под чужие данные не занимать. Секрет — через serverSecret(), без фолбэка в production.
+11. Сначала проверка формата входа, потом лимит и запросы к БД. Ключ лимита — нормализованное значение.
+12. Каждое поле из тела, которое попадает в payload (и при повторной подаче), проверяется по formSchema (requestFieldIssues).
+13. POST, создающий сущность, — через withIdempotency, если манифест шлёт ключ.
+14. Курсор сравнивается теми же выражениями, что и ORDER BY.
+15. Выборки по времени учитывают переносы: «исходное ИЛИ новое время в диапазоне».
+16. Сид согласован с правилами видимости: не создавай данных, которые никто не увидит.
+17. В коде и комментариях — только русский и английский. Перед коммитом проверь, что нет иероглифов.
 
 ## Если что-то неясно
 Создай docs/ds-questions/DS-XX.md и остановись. Не придумывай.
