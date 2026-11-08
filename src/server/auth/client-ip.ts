@@ -24,6 +24,7 @@ export function assertTrustedProxy(): void {
 
 /** IP клиента из доверенного заголовка; нет заголовка → "unknown" (общий bucket, безопасная сторона). */
 export function getClientIp(headers: Headers): string {
+  assertTrustedProxy();
   const value = headers.get(ipHeaderName())?.trim();
   return value ? value.slice(0, 64) : "unknown";
 }

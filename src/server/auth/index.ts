@@ -42,6 +42,24 @@ const DISABLED_PATHS = [
   "/change-email",
   "/request-password-reset",
   "/reset-password",
+  // Сессии: хеш токена в БД (session-token-hash.ts) несовместим со списком и точечным отзывом
+  // по токену; «выйти везде» делает наш код через deleteUserSessions. Админ-маршруты не нужны.
+  "/list-sessions",
+  "/revoke-session",
+  "/revoke-sessions",
+  "/revoke-other-sessions",
+  "/admin/list-users",
+  "/admin/create-user",
+  "/admin/set-role",
+  "/admin/set-user-password",
+  "/admin/ban-user",
+  "/admin/unban-user",
+  "/admin/impersonate-user",
+  "/admin/stop-impersonating",
+  "/admin/remove-user",
+  "/admin/list-user-sessions",
+  "/admin/revoke-user-session",
+  "/admin/revoke-user-sessions",
 ];
 
 /** Демо-аккаунтам смену пароля не даём: иначе один эксперт закроет вход остальным (SPEC §6.1 «Тонкости»). */
@@ -70,29 +88,27 @@ const loginKey = (ctx: { body?: unknown }) => {
 const limitLoginByUsername = async (ctx: HookCtx) => {
   if (ctx.path !== "/sign-in/username") return;
   const key = loginKey(ctx);
-  const state = key ? await usernameFailures.get(key) : null;
-  if (state && state.remainingPoints <= 0) {
-    throw new APIError("TOO_MANY_REQUESTS", {
-      code: "RATE_LIMITED",
-      message: "RATE_LIMITED",
-    });
+  if (!key) return;
+  // Попытка резервируется ДО проверки пароля: параллельный пакет не проскочит мимо лимита.
+  try {
+    await usernameFailures.consume(key);
+  } catch {
+    throw new APIError("TOO_MANY_REQUESTS", { code: "RATE_LIMITED", message: "RATE_LIMITED" });
   }
 };
 
-const countLoginFailure = async (ctx: HookCtx) => {
+/** Успешный вход возвращает зарезервированную попытку: считаются только неудачи. */
+const refundLoginSuccess = async (ctx: HookCtx) => {
   if (ctx.path !== "/sign-in/username") return;
   const key = loginKey(ctx);
-  if (key && ctx.context.returned instanceof APIError) {
-    await usernameFailures.consume(key).catch(() => undefined);
-  }
+  if (key && !(ctx.context.returned instanceof APIError)) await usernameFailures.reward(key);
 };
 
 /** IP в sessions храним как HMAC — для отладки сессий хватает, а утечка БД не раскрывает адреса. */
 function hashIp(ip: string): string {
-  return createHmac("sha256", process.env.BETTER_AUTH_SECRET ?? "")
-    .update(ip)
-    .digest("hex")
-    .slice(0, 32);
+  const secret = process.env.BETTER_AUTH_SECRET;
+  if (!secret) throw new Error("BETTER_AUTH_SECRET не задан");
+  return createHmac("sha256", secret).update(ip).digest("hex").slice(0, 32);
 }
 
 function createAuth() {
@@ -108,7 +124,7 @@ function createAuth() {
         await lockDemoPassword(ctx);
         await limitLoginByUsername(ctx);
       }),
-      after: createAuthMiddleware(countLoginFailure),
+      after: createAuthMiddleware(refundLoginSuccess),
     },
     // Токен сессии в БД хранится хешем (session-token-hash.ts).
     database: (options: Parameters<ReturnType<typeof drizzleAdapter>>[0]) =>

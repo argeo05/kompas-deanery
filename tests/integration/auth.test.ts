@@ -156,4 +156,12 @@ describe("Better Auth", () => {
     }
     expect(statuses).toEqual([401, 401, 401, 401, 401, 429]);
   });
+
+  it("маршруты списка и отзыва сессий закрыты (токены в БД хешированы)", async () => {
+    const opts = { headers: { "x-real-ip": nextIp() } };
+    for (const path of ["/list-sessions", "/revoke-session", "/revoke-other-sessions"]) {
+      const res = await apiAs("anna").post(`/api/auth${path}`, { token: "x" }, opts);
+      expect(res.status, path).toBe(404);
+    }
+  });
 });

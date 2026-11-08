@@ -13,12 +13,14 @@ import {
   type ApiRouteSpec,
   type RouteCase,
 } from "./manifest";
+import { notImplementedRoutes } from "./not-implemented";
 
 // Матрица изоляции (SPEC §9.3) по манифесту:
 //   гость → 401; роль не та → 403;
 //   студент: чужой (Максим) → 404 на ресурс Ани или не видит его в списке, даже с подставленным studentId;
 //   сотрудник: чужой факультет (Олег) → 404 или не видит; свой (Елена) — видит.
-// Маршрут из манифеста с `pending` проверяется, как только появился route.ts с нужным методом.
+// Каждый маршрут манифеста обязан существовать; ещё не реализованные лежат в not-implemented.ts.
+// Пропусков (skip) в наборе нет: проверка, неприменимая к маршруту, не регистрируется.
 
 const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
 
@@ -50,9 +52,16 @@ describe("манифест", () => {
     ).toEqual([]);
   });
 
-  it("маршруты без pending существуют", () => {
-    const absent = apiRoutes.filter((r) => !r.pending && !isLive(r)).map(keyOf);
+  it("все маршруты манифеста существуют", () => {
+    const absent = apiRoutes.filter((r) => !isLive(r)).map(keyOf);
     expect(absent).toEqual([]);
+  });
+
+  it("not-implemented.ts: route.ts этих маршрутов нет (появился — перенеси в манифест)", () => {
+    const early = notImplementedRoutes
+      .filter((r) => implemented.has(`${r.method} ${normalizePath(r.path)}`))
+      .map((r) => `${r.method} ${r.path}`);
+    expect(early).toEqual([]);
   });
 
   it("в манифесте нет дублей", () => {
@@ -60,6 +69,9 @@ describe("манифест", () => {
     expect(keys.length).toBe(new Set(keys).size);
   });
 });
+
+/** Маршрут возвращает список: его фабрика case отдаёт ownerIds (определяем по тексту, fx до beforeAll нет). */
+const hasOwnerIds = (route: ApiRouteSpec) => /\bownerIds\b/.test(String(route.case));
 
 const INJECT = (fx: Fixtures) => ({ studentId: fx.users.anna, userId: fx.users.anna });
 
@@ -78,12 +90,9 @@ const roles = {
 
 for (const route of apiRoutes) {
   const title = `${route.method} ${route.path} [${route.ticket}]`;
-  const live = isLive(route);
-  const suite = live ? describe : describe.skip;
-  const label = live ? title : `${title} — ожидает route.ts`;
 
   if (route.access === "public") {
-    suite(label, () => {
+    describe(title, () => {
       it("гость с несуществующим токеном: не 401 и не 5xx", async () => {
         const { res } = await send(route, "guest");
         expect([200, 404]).toContain(res.status);
@@ -93,7 +102,7 @@ for (const route of apiRoutes) {
   }
 
   const who = roles[route.access];
-  suite(label, () => {
+  describe(title, () => {
     it("гость → 401 UNAUTHORIZED", async () => {
       const { res } = await send(route, "guest");
       expect(res.status).toBe(401);
@@ -125,22 +134,24 @@ for (const route of apiRoutes) {
       });
     }
 
-    it(`${who.foreign} (чужой): в ответе нет ресурсов владельца`, async ({ skip }) => {
-      for (const extra of attempts()) {
-        const { res, ownerIds } = await send(route, who.foreign, extra);
-        if (!ownerIds) return skip("у маршрута нет списка ownerIds");
-        expect(ownerIds.length).toBeGreaterThan(0);
-        expect(res.status).toBe(200);
-        for (const id of ownerIds) expect(res.text).not.toContain(id);
-      }
-    });
+    // Списки (ownerIds в case): чужой не видит ресурсов владельца, владелец видит. Фабрика case
+    // чистая, поэтому наличие ownerIds известно до запроса.
+    if (hasOwnerIds(route)) {
+      it(`${who.foreign} (чужой): в ответе нет ресурсов владельца`, async () => {
+        for (const extra of attempts()) {
+          const { res, ownerIds } = await send(route, who.foreign, extra);
+          expect(ownerIds?.length).toBeGreaterThan(0);
+          expect(res.status).toBe(200);
+          for (const id of ownerIds ?? []) expect(res.text).not.toContain(id);
+        }
+      });
 
-    it(`${who.owner} (владелец) видит свои ресурсы`, async ({ skip }) => {
-      const { res, ownerIds } = await send(route, who.owner);
-      if (!ownerIds) return skip("у маршрута нет списка ownerIds");
-      expect(res.status).toBe(200);
-      for (const id of ownerIds) expect(res.text).toContain(id);
-    });
+      it(`${who.owner} (владелец) видит свои ресурсы`, async () => {
+        const { res, ownerIds } = await send(route, who.owner);
+        expect(res.status).toBe(200);
+        for (const id of ownerIds ?? []) expect(res.text).toContain(id);
+      });
+    }
   });
 }
 

@@ -22,12 +22,24 @@ const FORBIDDEN_HTML = `<!doctype html>
 </body>
 </html>`;
 
+/** Путь без повторных слэшей, в нижнем регистре и с раскодированными %-символами: обход по записи не работает. */
+function normalizedPath(req: NextRequest): string {
+  let path = req.nextUrl.pathname;
+  try {
+    path = decodeURIComponent(path);
+  } catch {
+    // Битая %-последовательность: оставляем как есть, ниже путь всё равно не совпадёт с /staff.
+  }
+  return path.replace(/\/{2,}/g, "/").toLowerCase();
+}
+
 /** Проверка доступа к /staff/*; null — пропустить дальше. */
 async function guardStaff(req: NextRequest): Promise<NextResponse | null> {
   const session = await getAuth().api.getSession({ headers: req.headers });
   if (!session) {
-    const login = new URL("/login", req.url);
-    login.searchParams.set("next", req.nextUrl.pathname);
+    // Адрес строим от BETTER_AUTH_URL, а не из req.url: за прокси внутренний хост контейнера не должен попасть в Location.
+    const login = new URL("/login", process.env.BETTER_AUTH_URL ?? req.url);
+    login.searchParams.set("next", normalizedPath(req));
     return NextResponse.redirect(login);
   }
   if (session.user.role !== "staff") {
@@ -54,7 +66,8 @@ export async function proxy(req: NextRequest) {
     return res;
   };
 
-  if (req.nextUrl.pathname === "/staff" || req.nextUrl.pathname.startsWith("/staff/")) {
+  const path = normalizedPath(req);
+  if (path === "/staff" || path.startsWith("/staff/")) {
     const denied = await guardStaff(req);
     if (denied) return withCsp(denied);
   }
@@ -71,7 +84,7 @@ export const config = {
     "/staff/:path*",
     {
       // Страницы, но не API и статика: у них CSP не нужен.
-      source: "/((?!api|_next/static|_next/image|favicon.ico).*)",
+      source: "/((?!api/|_next/static/|_next/image/|favicon\\.ico$).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },

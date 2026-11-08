@@ -5,8 +5,8 @@ import * as f from "./factories";
 // Реестр маршрутов для матрицы изоляции (SPEC §9.3, AC-5.3, AC-9.1). Его ведёт только Claude.
 // Здесь заранее перечислены ВСЕ маршруты DEEPSEEK-TASKS §4 (DS-10…DS-33), поэтому DeepSeek
 // tests/security не правит: как только появляется route.ts с нужным методом, его проверки
-// включаются сами (idor.spec.ts). Пока файла нет, проверки маршрута с `pending` пропускаются.
-// Маршрут без `pending` обязан существовать.
+// включаются сами (idor.spec.ts). Каждый маршрут из манифеста обязан существовать (0 skipped, C1).
+// Маршруты из SPEC, которых ещё нет, перечислены в not-implemented.ts: они обязаны отвечать 404.
 //
 // Имена параметров пути при сравнении с файлами не важны: `/api/me/plans/:id` совпадает
 // с src/app/api/me/plans/[planId]/route.ts.
@@ -34,8 +34,6 @@ export interface ApiRouteSpec {
   access: "student" | "staff" | "public";
   /** Тикет, в котором маршрут появляется (A2 — эталон Claude). */
   ticket: string;
-  /** Маршрута ещё нет: проверки пропускаются, пока не появится route.ts с этим методом. */
-  pending?: true;
   /**
    * Запрос ссылается на ресурс владельца (в пути или теле): чужой получает 404 NOT_FOUND,
    * владелец — 2xx.
@@ -508,6 +506,11 @@ export const staffPages = [
   "/staff/announcements",
   "/staff/announcements/new",
   "/staff/schedule",
+  // Варианты записи пути не должны обходить проверку (аудит C1).
+  "/staff/",
+  "/STAFF/queue",
+  "/%73taff/queue",
+  "/staff//queue",
 ];
 
 /** `/api/me/plans/:id` и `/api/me/plans/:planId` — один маршрут. */
