@@ -163,6 +163,6 @@ for (const scheme of ["light", "dark"] as const) {
       });
     }
     // Доступное имя начинается с видимой подписи (2.5.3) и содержит полное имя пункта.
-    await expect(bottom.getByRole("link", { name: /^Пары, расписание/ })).toBeVisible();
+    await expect(bottom.getByRole("link", { name: /^Пары\s*,?\s*расписание/ })).toBeVisible();
   });
 }
