@@ -25,7 +25,7 @@
 | @faker-js/faker            | 10.6.0 | MIT        | Вымышленные ФИО фоновой популяции сида, локаль ru (DS-40). Сид работает и в production       |
 | @fontsource-variable/onest | 5.3.1  | OFL-1.1    | Шрифт Onest (вариативный), кириллица и латиница из репозитория, без Google Fonts (SPEC §7.2) |
 | @fontsource/unbounded      | 5.3.0  | OFL-1.1    | Шрифт Unbounded 600 для H1 главной и крупных цифр (SPEC §7.2)                                |
-| Onest (статические TTF)    | 5.3.1  | OFL-1.1    | Шрифт PDF справок: latin + cyrillic в одном файле, `src/server/pdf/fonts`, лицензия OFL.txt |
+| Onest (статические TTF)    | 5.3.1  | OFL-1.1    | Шрифт PDF справок: latin + cyrillic в одном файле, `src/server/pdf/fonts`, лицензия OFL.txt  |
 | @react-pdf/renderer        | 4.9.0  | MIT        | PDF справок на сервере (SPEC §6.5 п.8)                                                       |
 | qrcode                     | 1.5.4  | MIT        | QR-код проверки подлинности в PDF (SPEC §6.5 п.9)                                            |
 
