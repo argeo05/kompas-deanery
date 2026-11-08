@@ -6,7 +6,7 @@ const url = process.env.DATABASE_URL;
 if (!url) throw new Error("DATABASE_URL не задан");
 if (process.env.NODE_ENV === "production") throw new Error("db:reset запрещён в production");
 
-const sql = postgres(url, { max: 1 });
+const sql = postgres(url, { max: 1, onnotice: () => {} });
 await sql`DROP SCHEMA IF EXISTS drizzle CASCADE`;
 await sql`DROP SCHEMA IF EXISTS public CASCADE`;
 await sql`CREATE SCHEMA public`;
