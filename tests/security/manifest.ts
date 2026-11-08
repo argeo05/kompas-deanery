@@ -285,6 +285,14 @@ export const apiRoutes: ApiRouteSpec[] = [
     ticket: "DS-19",
     case: async (fx) => ({ ownerIds: [await f.annaDocument(fx)] }),
   },
+  {
+    method: "GET",
+    path: "/api/me/documents/:id/file",
+    access: "student",
+    ticket: "C4",
+    owned: true,
+    case: async (fx) => ({ params: { id: await f.annaDocument(fx) } }),
+  },
 
   // ── DS-20. Главная ───────────────────────────────────────────────────────
   { method: "GET", path: "/api/me/today", access: "student", ticket: "DS-20" },

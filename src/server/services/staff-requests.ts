@@ -18,6 +18,7 @@ import { audit } from "../audit";
 import { HttpError } from "../http";
 import { requestEvents, requestMessages, requests } from "../../../db/schema";
 import { renderNotification, type RenderedNotification } from "../notify-templates";
+import { issueDocument } from "./documents";
 import { notify } from "./notify";
 import {
   findRequestForStaff,
@@ -322,8 +323,10 @@ export async function transitionStaffRequest(
     to,
   });
 
-  // Для ready электронных документов PDF собирает issueDocument (фаза C), notify тот же.
-  // TODO(Claude, фаза C): issueDocument(tx, requestId) при ready и delivery = "electronic".
+  // Электронная справка появляется вместе со статусом «Готова» (SPEC §6.5): студент сразу может скачать PDF.
+  if (body.action === "ready" && r.delivery === "electronic") {
+    await issueDocument(tx, { requestId, studentId: r.studentId });
+  }
   const rendered = notificationFor(body.action, {
     title: row.type.title,
     number: r.number,
