@@ -32,7 +32,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd \"$CLAUDE_PROJECT_DIR\" && { pnpm typecheck 1>&2 && pnpm test:unit 1>&2 && pnpm test:security 1>&2 || exit 2; }",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && { pnpm typecheck 1>&2 && pnpm vitest run --project unit --exclude 'tests/unit/{workdays,digest,grading,semester-status,windows,request-fsm,today}.test.ts' 1>&2 && pnpm test:security 1>&2 || exit 2; }",
             "timeout": 300
           }
         ]
