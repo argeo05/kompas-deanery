@@ -1,17 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { courseColorClass, courseColorIndex } from "@/lib/course-color";
+import { COURSE_COLOR_CLASSES, courseColorClass } from "@/lib/course-color";
 
 describe("цвет дисциплины", () => {
-  it("детерминирован и лежит в 0…9", () => {
-    const id = "6f1c2d3e-0000-4000-8000-000000000001";
-    expect(courseColorIndex(id)).toBe(courseColorIndex(id));
-    expect(courseColorClass(id)).toMatch(/^bg-course-\d$/);
+  it("берётся из colorIndex API, а не вычисляется по id", () => {
+    for (let i = 0; i < 10; i++) expect(courseColorClass(i)).toBe(`bg-course-${i}`);
   });
 
-  it("на сотне id используются все 10 цветов", () => {
-    const used = new Set(
-      Array.from({ length: 100 }, (_, i) => courseColorIndex(`course-${i}-${i * 7919}`)),
-    );
-    expect(used.size).toBe(10);
+  it("индекс вне 0…9 даёт нейтральный цвет", () => {
+    expect(courseColorClass(-1)).toBe("bg-course-9");
+    expect(courseColorClass(10)).toBe("bg-course-9");
+    expect(courseColorClass(1.5)).toBe("bg-course-9");
+    expect(COURSE_COLOR_CLASSES).toHaveLength(10);
   });
 });

@@ -11,8 +11,8 @@ import type { ThemePref } from "@/lib/theme";
 
 // Нижняя панель (SPEC §5.2, §7.4 BottomNav): < 1024 px, 5 пунктов с подписями, 64 px + safe-area.
 const itemClass = cn(
-  "relative flex min-h-11 flex-1 flex-col items-center justify-center gap-1 rounded-control px-0.5 pt-1 text-xs font-medium no-underline hyphens-none",
-  "text-ink-2 hover:text-ink aria-[current=page]:font-semibold aria-[current=page]:text-accent aria-expanded:text-accent",
+  "relative flex min-h-11 flex-1 flex-col items-center justify-center gap-1 rounded-control px-0.5 pt-1 no-underline hyphens-none",
+  "text-ink-2 hover:text-ink aria-[current=page]:text-accent aria-[current=page]:[&_.type-nav]:font-semibold aria-expanded:text-accent",
   // Активный пункт отмечен не только цветом: подложка под иконкой, как в боковой панели (1.4.1).
   "[&[aria-current=page]_.nav-icon]:bg-info-bg [&[data-active]_.nav-icon]:bg-info-bg",
 );
@@ -58,9 +58,11 @@ export function BottomNav({
                     />
                   )}
                 </span>
-                <span className="max-w-full text-center leading-tight">
+                {/* Короткая подпись видна, полное имя пункта читает экранный диктор (SPEC §7.5). */}
+                <span aria-hidden={item.short ? true : undefined} className="type-nav max-w-full text-center">
                   {item.short ?? item.label}
                 </span>
+                {item.short && <span className="sr-only">{item.label}</span>}
                 {item.badge && <NavBadgeText kind={item.badge} value={badges[item.badge]} />}
               </Link>
             </li>
@@ -74,7 +76,7 @@ export function BottomNav({
               aria-expanded={moreOpen}
               onClick={() => setMoreOpen(true)}
               data-active={moreActive || undefined}
-              className={cn(itemClass, moreActive && "font-semibold text-accent")}
+              className={cn(itemClass, moreActive && "text-accent [&_.type-nav]:font-semibold")}
             >
               <span className="nav-icon relative rounded-full px-3 py-0.5">
                 <MORE_TAB.icon
@@ -89,7 +91,7 @@ export function BottomNav({
                   className="absolute -top-1 left-7"
                 />
               </span>
-              <span>{MORE_TAB.label}</span>
+              <span className="type-nav">{MORE_TAB.label}</span>
               <NavBadgeText kind="more" value={badges.more} />
               {moreActive && <span className="sr-only">, открыт раздел из этого меню</span>}
             </button>

@@ -88,7 +88,7 @@ export function ClassCard({
     >
       <span
         aria-hidden
-        className={cn("w-1 shrink-0 self-stretch rounded-full", courseColorClass(cls.course.id))}
+        className={cn("w-1 shrink-0 self-stretch rounded-full", courseColorClass(cls.course.colorIndex))}
       />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-2">

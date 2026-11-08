@@ -23,7 +23,7 @@ export type NavBadgeKey = "schedule" | "study" | "requests" | "more" | "notifica
 export interface NavItem {
   href: string;
   label: string;
-  /** Короткая подпись для нижней панели на 360 px. */
+  /** Короткая подпись нижней панели (SPEC §7.5, AC-NAV.1): ≤ 7 букв, чтобы при 125% не обрезалась на 360 px. */
   short?: string;
   icon: LucideIcon;
   badge?: NavBadgeKey;
@@ -34,7 +34,13 @@ export interface NavItem {
 /** Нижняя панель студента: ровно 5 пунктов, последний открывает лист «Ещё». */
 export const STUDENT_TABS: NavItem[] = [
   { href: "/today", label: "Сегодня", icon: Sun },
-  { href: "/schedule", label: "Расписание", icon: CalendarDays, badge: "schedule" },
+  {
+    href: "/schedule",
+    label: "Расписание",
+    short: "Пары",
+    icon: CalendarDays,
+    badge: "schedule",
+  },
   { href: "/study", label: "Учёба", icon: GraduationCap, badge: "study" },
   { href: "/requests", label: "Заявки", icon: FileText, badge: "requests", match: ["/documents"] },
 ];
@@ -59,15 +65,15 @@ export const STAFF_NAV: NavItem[] = [
     icon: Inbox,
     match: ["/staff/requests"],
   },
-  { href: "/staff/tickets", label: "Обращения", icon: MessagesSquare },
-  { href: "/staff/announcements", label: "Объявления", icon: Megaphone },
+  { href: "/staff/tickets", label: "Обращения", short: "Связь", icon: MessagesSquare },
+  { href: "/staff/announcements", label: "Объявления", short: "Новости", icon: Megaphone },
   {
     href: "/staff/schedule",
     label: "Изменения расписания",
-    short: "Расписание",
+    short: "Пары",
     icon: CalendarClock,
   },
-  { href: "/profile", label: "Профиль", icon: UserRound },
+  { href: "/profile", label: "Профиль", short: "Профиль", icon: UserRound },
 ];
 
 export function isActive(pathname: string, item: Pick<NavItem, "href" | "match">): boolean {

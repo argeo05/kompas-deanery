@@ -4,11 +4,11 @@ import { cn } from "cn";
 import { Slot } from "radix-ui";
 import { LoaderCircle } from "lucide-react";
 
-// Кнопка (SPEC §7.4): primary / secondary / ghost / danger; sm / md / lg.
+// Кнопка (SPEC §7.4): primary / secondary / ghost / danger (--coral, не --alert: D-009); sm / md / lg.
 // Цель касания ≥ 44 px на мобильной; sm становится компактнее только на десктопе.
 const buttonVariants = cva(
   [
-    "relative inline-flex shrink-0 items-center justify-center gap-2 rounded-control text-center font-medium select-none",
+    "relative inline-flex shrink-0 items-center justify-center gap-2 rounded-control text-center select-none",
     "transition-[background-color,color,border-color,opacity,transform] duration-150 ease-ink",
     "active:not-aria-disabled:scale-98 motion-reduce:active:not-aria-disabled:scale-100",
     "disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-60",
@@ -22,14 +22,14 @@ const buttonVariants = cva(
           "border border-line-strong bg-surface text-ink hover:not-aria-disabled:bg-surface-2",
         ghost: "text-ink hover:not-aria-disabled:bg-surface-2",
         danger:
-          "border border-alert bg-surface text-alert hover:not-aria-disabled:bg-alert-bg hover:not-aria-disabled:text-alert-fg",
+          "border border-coral bg-surface text-coral hover:not-aria-disabled:bg-coral-bg hover:not-aria-disabled:text-coral-fg",
         link: "px-0 text-accent underline hover:not-aria-disabled:text-accent-hover",
       },
       size: {
-        sm: "min-h-11 px-3 text-sm lg:min-h-9",
-        md: "min-h-11 px-4 text-base",
-        lg: "min-h-12 px-6 text-base",
-        icon: "size-11",
+        sm: "type-button-sm min-h-11 px-3 lg:min-h-9",
+        md: "type-button min-h-11 px-4",
+        lg: "type-button min-h-12 px-6",
+        icon: "type-button size-11",
       },
     },
     // Отдельная ссылка-кнопка держит 44 px на мобильной; внутри текста используйте обычный <a>.

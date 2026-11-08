@@ -70,7 +70,7 @@
 
   /* ── Цвета дисциплин ─────────────────────────────────────────────── */
   /* Приглушённые «закладки»: полоса слева у карточки пары, точка в неделе. Смысла не несут,
-     смысл — в тексте. Индекс 0…9 назначает courseColorIndex() (src/lib/course-color.ts). */
+     смысл — в тексте. Индекс 0…9 отдаёт API (course.colorIndex), см. src/lib/course-color.ts. */
   --course-0: light-dark(#5a7bc2, #86a3ea);
   --course-1: light-dark(#3f8f86, #6cc0b5);
   --course-2: light-dark(#7a9a3f, #a9c66e);

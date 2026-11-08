@@ -3,6 +3,7 @@
 @import "shadcn/tailwind.css";
 @import "../styles/fonts.css";
 @import "../styles/tokens.css";
+@import "../styles/typography.css";
 
 /* Тёмный вариант Tailwind: явная тёмная тема или системная при тёмной настройке устройства.
    Компонентам он почти не нужен — цвета переключаются в токенах. */

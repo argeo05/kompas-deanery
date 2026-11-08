@@ -1,0 +1,103 @@
+/*
+ * Роли типографики (SPEC §7.2 «Типографика», v1.3): единственное место, где размер, высота строки,
+ * вес и межбуквенное расстояние задаются вместе. Экраны берут роль целиком (`type-h1`),
+ * а не собирают её из text-* и font-*. Мобильный / десктопный размер — в самой роли.
+ * Меняем роль здесь и сверяем таблицу в SPEC.
+ */
+
+/* display — Unbounded, только особняком: время в hero, балл в карточке дисциплины. */
+@utility type-display {
+  @apply font-display;
+  font-size: 2rem;
+  line-height: 1.1;
+  font-weight: 600;
+  @apply tracking-display;
+  font-variant-numeric: tabular-nums;
+  @media (width >= 64rem) {
+    font-size: 2.5rem;
+  }
+}
+
+@utility type-h1 {
+  font-size: 1.5rem;
+  line-height: 1.25;
+  font-weight: 600;
+  @apply tracking-heading;
+  @media (width >= 64rem) {
+    font-size: 2rem;
+    line-height: 1.2;
+  }
+}
+
+@utility type-h2 {
+  font-size: 1.25rem;
+  line-height: 1.3;
+  font-weight: 600;
+  @media (width >= 64rem) {
+    font-size: 1.5rem;
+  }
+}
+
+@utility type-h3 {
+  font-size: 1.125rem;
+  line-height: 1.35;
+  font-weight: 600;
+  @media (width >= 64rem) {
+    font-size: 1.25rem;
+  }
+}
+
+@utility type-body {
+  font-size: 1rem;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+@utility type-body-strong {
+  font-size: 1rem;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+@utility type-caption {
+  font-size: 0.875rem;
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+/* Метка статуса: «ПЕРЕНОС», «СЕЙЧАС». Только короткие слова. */
+@utility type-label {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  font-weight: 600;
+  @apply tracking-caps uppercase;
+}
+
+/* Подпись навигации: 12 px в нижней панели, 16 px в боковой. Активный пункт — 600. */
+@utility type-nav {
+  font-size: 0.75rem;
+  line-height: 1.2;
+  font-weight: 500;
+  @media (width >= 64rem) {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+}
+
+@utility type-button {
+  font-size: 1rem;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+@utility type-button-sm {
+  font-size: 0.875rem;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+/* Цифры в списках и таблицах: Onest, моноширинные разряды. Размер задаёт строка. */
+@utility type-num {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
