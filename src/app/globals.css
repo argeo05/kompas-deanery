@@ -1,130 +1,263 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "../styles/fonts.css";
+@import "../styles/tokens.css";
 
-@custom-variant dark (&:is(.dark *));
+/* Тёмный вариант Tailwind: явная тёмная тема или системная при тёмной настройке устройства.
+   Компонентам он почти не нужен — цвета переключаются в токенах. */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where([data-theme="system"], [data-theme="system"] *) {
+      @slot;
+    }
+  }
+}
 
+/*
+ * Тема Tailwind строится только из токенов (src/styles/tokens.css). Стандартная палитра
+ * и шкала размеров шрифта отключены: bg-red-500 или text-5xl просто не соберутся.
+ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
+  --color-*: initial;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
   --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-focus: var(--focus);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-alert: var(--alert);
+  --color-info: var(--info);
+  --color-coral: var(--coral);
+  --color-ok-bg: var(--ok-bg);
+  --color-ok-fg: var(--ok-fg);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-fg: var(--warn-fg);
+  --color-alert-bg: var(--alert-bg);
+  --color-alert-fg: var(--alert-fg);
+  --color-info-bg: var(--info-bg);
+  --color-info-fg: var(--info-fg);
+  --color-coral-bg: var(--coral-bg);
+  --color-coral-fg: var(--coral-fg);
+  --color-neutral-bg: var(--neutral-bg);
+  --color-neutral-fg: var(--neutral-fg);
+  --color-scrim: var(--scrim);
+  --color-course-0: var(--course-0);
+  --color-course-1: var(--course-1);
+  --color-course-2: var(--course-2);
+  --color-course-3: var(--course-3);
+  --color-course-4: var(--course-4);
+  --color-course-5: var(--course-5);
+  --color-course-6: var(--course-6);
+  --color-course-7: var(--course-7);
+  --color-course-8: var(--course-8);
+  --color-course-9: var(--course-9);
+
+  /* Имена shadcn/ui — чтобы скопированные компоненты сразу брали наши токены. */
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--ink);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--ink);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-ink);
+  --color-secondary: var(--surface-2);
+  --color-secondary-foreground: var(--ink);
+  --color-muted: var(--surface-2);
+  --color-muted-foreground: var(--ink-2);
+  --color-destructive: var(--alert);
+  --color-border: var(--line);
+  --color-input: var(--line-strong);
+  --color-ring: var(--focus);
+
+  /* Типографика (§7.2): Onest — интерфейс, Unbounded — только H1 главной и крупные цифры. */
+  --font-sans: "Onest", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Unbounded", "Onest", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  /* Шкала 12 / 14 / 16 / 18 / 20 / 24 / 32 / 40, высота строки 1,4–1,5 (крупные — плотнее). */
+  --text-*: initial;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.4;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.45;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.45;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.4;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 1.3;
+  --text-3xl: 2rem;
+  --text-3xl--line-height: 1.2;
+  --text-4xl: 2.5rem;
+  --text-4xl--line-height: 1.15;
+
+  /* Радиусы: карточка, кнопка/поле; чип — rounded-full. */
+  --radius-card: var(--radius-card);
+  --radius-control: var(--radius-control);
+  /* shadcn-компоненты используют rounded-lg/md — сводим их к нашей шкале. */
+  --radius-sm: calc(var(--radius-control) * 0.5);
+  --radius-md: calc(var(--radius-control) * 0.75);
+  --radius-lg: var(--radius-control);
+  --radius-xl: var(--radius-card);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-raised: var(--shadow-raised);
+
+  --ease-ink: var(--ease-ink);
+  --default-transition-duration: var(--duration-base);
+  --default-transition-timing-function: var(--ease-ink);
+
+  --animate-ink-in: ink-in var(--duration-slow) var(--ease-ink) both;
+  --animate-pulse-soft: pulse-soft 2s var(--ease-ink) infinite;
+  --animate-shimmer: shimmer 1.4s linear infinite;
+
+  @keyframes ink-in {
+    from {
+      opacity: 0;
+      transform: translateY(var(--motion-shift));
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes pulse-soft {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.55;
+    }
+  }
+  @keyframes shimmer {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: -100% 0;
+    }
+  }
 }
 
 :root {
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  /* Сдвиг для появления карточек; при reduced motion — 0, остаётся только прозрачность. */
+  --motion-shift: 0.5rem;
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-shift: 0;
+  }
+  *,
+  ::before,
+  ::after {
+    scroll-behavior: auto !important;
+    /* Перемещения отключаем, смена прозрачности и цвета остаётся (§7.2). */
+    --tw-enter-translate-x: 0 !important;
+    --tw-enter-translate-y: 0 !important;
+    --tw-exit-translate-x: 0 !important;
+    --tw-exit-translate-y: 0 !important;
+    --tw-enter-scale: 1 !important;
+    --tw-exit-scale: 1 !important;
+  }
+  .animate-shimmer,
+  .animate-pulse-soft {
+    animation: none;
+  }
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-line;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
+
   html {
-    @apply font-sans;
+    @apply bg-bg font-sans text-ink antialiased;
+    font-synthesis-weight: none;
+    -webkit-text-size-adjust: 100%;
+    /* Фокус не уходит под шапку и нижнюю панель (WCAG 2.4.11). */
+    scroll-padding-top: calc(var(--header-h) + 0.5rem);
+    scroll-padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 0.5rem);
   }
+  @media (min-width: 64rem) {
+    html {
+      scroll-padding-bottom: 1rem;
+    }
+  }
+
+  body {
+    @apply bg-bg text-base text-ink;
+    min-height: 100dvh;
+  }
+
+  /* Пока открыт модальный лист, страница под ним не прокручивается. */
+  html:has(dialog[open][data-modal]) {
+    overflow: hidden;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p,
+  li,
+  dd {
+    text-wrap: pretty;
+  }
+  /* Русские слова длинные: переносы по словарю, а если слово не помещается — разрыв, но не вылезание. */
+  h1,
+  h2,
+  h3,
+  p,
+  li,
+  dd,
+  dt,
+  td,
+  th {
+    hyphens: auto;
+    /* Не переносим короткие слова («обыч-но»): слово ≥ 10 букв, по 4 с каждой стороны. */
+    hyphenate-limit-chars: 10 4 4;
+    overflow-wrap: break-word;
+  }
+
+  a {
+    text-underline-offset: 0.2em;
+  }
+
+  /* Кольцо фокуса 2 px + отступ 2 px (§7.2), только при клавиатурной навигации. */
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--info-bg);
+    color: var(--ink);
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Безопасные отступы под вырез и жест «домой» на телефонах. */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
 }

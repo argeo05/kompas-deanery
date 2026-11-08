@@ -1,30 +1,40 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { connection } from "next/server";
-import { Geist, Geist_Mono } from "next/font/google";
+import { cookies } from "next/headers";
+import { ConceptBar } from "@/components/shell/concept-bar";
+import { SkipLink } from "@/components/shell/skip-link";
+import { THEME_COOKIE, parseTheme } from "@/lib/theme";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Компас",
   description: "Личный кабинет студента — концепт",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  // Цвет строки состояния браузера = --bg (значения дублируют tokens.css: meta не читает CSS-переменные).
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7f5f0" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1420" },
+  ],
+};
+
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   // Все страницы рендерятся на запрос: nonce из CSP (proxy.ts) подставляется только при динамическом
   // рендеринге, статический HTML собирается без заголовков и его скрипты CSP бы заблокировал (D-005).
   await connection();
+  // Тему сервер берёт из cookie и сразу ставит data-theme: без мигания и без inline-скрипта (D-007).
+  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
   return (
-    <html lang="ru" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col">{children}</body>
+    <html lang="ru" data-theme={theme} className="h-full">
+      <body className="flex min-h-full flex-col">
+        <SkipLink />
+        <ConceptBar />
+        {children}
+      </body>
     </html>
   );
 }

@@ -1,0 +1,110 @@
+/*
+ * Токены «Бумага и чернила» (SPEC §7.2). Единственное место, где живут сырые значения цветов:
+ * компоненты берут только токены (через утилиты Tailwind из globals.css @theme).
+ *
+ * Каждый цвет записан один раз парой light-dark(светлая, тёмная). Какая половина действует,
+ * решает color-scheme: атрибут data-theme на <html> ставит сервер из cookie (light | dark | system),
+ * поэтому inline-скрипт темы не нужен (CSP с nonce, D-005). system = настройка устройства.
+ *
+ * Контраст пар «текст / фон» проверяет tests/unit/contrast.test.ts (входит в pnpm verify);
+ * сводка: `pnpm tsx scripts/check-contrast.ts`. Отличия от значений SPEC — в D-007.
+ */
+
+:root,
+[data-theme="system"] {
+  color-scheme: light dark;
+}
+[data-theme="light"] {
+  color-scheme: light;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+:root {
+  /* ── Поверхности и текст ─────────────────────────────────────────── */
+  --bg: light-dark(#f7f5f0, #0f1420);
+  --surface: light-dark(#ffffff, #171e2e);
+  --surface-2: light-dark(#efebe3, #1f2840);
+  --ink: light-dark(#14213d, #e8ecf5);
+  --ink-2: light-dark(#4a5672, #a7b1c8);
+  --line: light-dark(#e2dcd0, #2a3550);
+  /* Границы полей и контуры элементов: ≥ 3:1 к фону (WCAG 1.4.11). */
+  --line-strong: light-dark(#8a8374, #6a7698);
+
+  /* ── Акцент и фокус ──────────────────────────────────────────────── */
+  --accent: light-dark(#2f5bea, #7c9bff);
+  --accent-hover: light-dark(#2448c8, #9db4ff);
+  --accent-ink: light-dark(#ffffff, #0f1420);
+  --focus: light-dark(#2f5bea, #7c9bff);
+
+  /* ── Статусы ─────────────────────────────────────────────────────── */
+  /* Базовый цвет статуса: иконки, линии, текст на --surface и --bg. Светлые --ok и --warn
+     темнее, чем в SPEC: исходные не дают 4,5:1 на --surface-2 и --bg (D-007). */
+  --ok: light-dark(#1a7353, #4cc79a);
+  --warn: light-dark(#8f5500, #f2b45a);
+  --alert: light-dark(#b0362f, #ff8a80);
+  /* Информационный статус (пока совпадает с акцентом; отдельный токен — под правку SPEC 1.3). */
+  --info: light-dark(#2f5bea, #7c9bff);
+  /* Коралловый — «нужно действовать» и «отклонена»: не красный цвет-паника (§6.4), --alert — только ошибки системы. */
+  --coral: light-dark(#a8432c, #ff9e7a);
+
+  /* Пары «фон / текст» для бейджей и плашек. Компоненты используют только их,
+     поэтому смена палитры — это замена значений здесь. */
+  --ok-bg: light-dark(#e3f1ea, #16352c);
+  --ok-fg: light-dark(#1a7353, #4cc79a);
+  --warn-bg: light-dark(#fbebd3, #3a2d16);
+  --warn-fg: light-dark(#8f5500, #f2b45a);
+  --alert-bg: light-dark(#fbe6e4, #3f2124);
+  --alert-fg: light-dark(#b0362f, #ff8a80);
+  --info-bg: light-dark(#e6ecfd, #1f2d57);
+  --info-fg: light-dark(#2f5bea, #7c9bff);
+  --coral-bg: light-dark(#fce9e2, #3d241b);
+  --coral-fg: light-dark(#a8432c, #ff9e7a);
+  --neutral-bg: light-dark(#efebe3, #1f2840);
+  --neutral-fg: light-dark(#4a5672, #a7b1c8);
+
+  /* Затемнение под листом и модальными окнами. */
+  --scrim: light-dark(rgb(20 33 61 / 0.4), rgb(0 0 0 / 0.6));
+
+  /* ── Цвета дисциплин ─────────────────────────────────────────────── */
+  /* Приглушённые «закладки»: полоса слева у карточки пары, точка в неделе. Смысла не несут,
+     смысл — в тексте. Индекс 0…9 назначает courseColorIndex() (src/lib/course-color.ts). */
+  --course-0: light-dark(#5b7fbf, #86a6e6);
+  --course-1: light-dark(#3f8f86, #6cc0b5);
+  --course-2: light-dark(#7a9a3f, #a9c66e);
+  --course-3: light-dark(#b5853a, #e0b36a);
+  --course-4: light-dark(#c0674b, #ee9478);
+  --course-5: light-dark(#b05a7a, #e08aaa);
+  --course-6: light-dark(#8467b5, #b297e3);
+  --course-7: light-dark(#4f8fb0, #7fbcdd);
+  --course-8: light-dark(#8a7a5e, #bba987);
+  --course-9: light-dark(#5f7a8c, #91aabb);
+
+  /* ── Тени ────────────────────────────────────────────────────────── */
+  /* Одна мягкая тень (§7.2); в тёмной теме тень прозрачна, а её роль играет обводка --line. */
+  --shadow-color: light-dark(rgb(20 33 61 / 0.06), transparent);
+  --shadow-card: 0 1px 2px var(--shadow-color), 0 4px 16px var(--shadow-color);
+  --shadow-raised:
+    0 2px 4px light-dark(rgb(20 33 61 / 0.08), transparent),
+    0 12px 32px light-dark(rgb(20 33 61 / 0.12), rgb(0 0 0 / 0.5));
+  --card-border: light-dark(transparent, #2a3550);
+
+  /* ── Формы (§7.2) ────────────────────────────────────────────────── */
+  /* Карточки 16 px, кнопки и поля 12 px, чипы — полный радиус. */
+  --radius-card: 1rem;
+  --radius-control: 0.75rem;
+
+  /* ── Движение (§7.2) ─────────────────────────────────────────────── */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 250ms;
+  --ease-ink: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* ── Размеры оболочки (§7.5) ─────────────────────────────────────── */
+  --concept-bar-h: 2rem;
+  --header-h: 3.5rem;
+  --bottom-nav-h: 4rem;
+  --sidebar-w: 15rem;
+  --content-max: 75rem;
+}
