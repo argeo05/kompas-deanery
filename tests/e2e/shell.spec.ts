@@ -162,7 +162,7 @@ for (const scheme of ["light", "dark"] as const) {
         overflowsCell: false,
       });
     }
-    // Полное имя пункта для экранного диктора остаётся «Расписание».
-    await expect(bottom.getByRole("link", { name: /Расписание/ })).toBeVisible();
+    // Доступное имя начинается с видимой подписи (2.5.3) и содержит полное имя пункта.
+    await expect(bottom.getByRole("link", { name: /^Пары, расписание/ })).toBeVisible();
   });
 }

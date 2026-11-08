@@ -8,7 +8,7 @@ import { LoaderCircle } from "lucide-react";
 // Цель касания ≥ 44 px на мобильной; sm становится компактнее только на десктопе.
 const buttonVariants = cva(
   [
-    "relative inline-flex shrink-0 items-center justify-center gap-2 rounded-control text-center select-none",
+    "relative inline-flex shrink-0 items-center justify-center gap-2 rounded-control text-center whitespace-nowrap select-none",
     "transition-[background-color,color,border-color,opacity,transform] duration-150 ease-ink",
     "active:not-aria-disabled:scale-98 motion-reduce:active:not-aria-disabled:scale-100",
     "disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-60",

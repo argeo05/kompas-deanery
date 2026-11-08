@@ -58,14 +58,11 @@ export function BottomNav({
                     />
                   )}
                 </span>
-                {/* Короткая подпись видна, полное имя пункта читает экранный диктор (SPEC §7.5). */}
-                <span
-                  aria-hidden={item.short ? true : undefined}
-                  className="max-w-full text-center type-nav"
-                >
-                  {item.short ?? item.label}
-                </span>
-                {item.short && <span className="sr-only">{item.label}</span>}
+                {/* WCAG 2.5.3: доступное имя начинается с видимой подписи; полное имя пункта идёт следом («Пары, расписание»). */}
+                <span className="max-w-full text-center type-nav">{item.short ?? item.label}</span>
+                {item.short && !item.label.startsWith(item.short) && (
+                  <span className="sr-only">, {item.label.toLowerCase()}</span>
+                )}
                 {item.badge && <NavBadgeText kind={item.badge} value={badges[item.badge]} />}
               </Link>
             </li>
