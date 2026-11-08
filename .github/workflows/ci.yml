@@ -31,6 +31,20 @@ jobs:
 
   checks:
     runs-on: ubuntu-latest
+    # Матрица изоляции и интеграционные тесты идут на настоящей PostgreSQL с RLS.
+    services:
+      db:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: kompas
+          POSTGRES_USER: kompas
+          POSTGRES_PASSWORD: ci-only-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U kompas -d kompas" --health-interval 2s --health-timeout 3s --health-retries 30
+    env:
+      DATABASE_URL: postgres://kompas:ci-only-password@localhost:5432/kompas
+      BETTER_AUTH_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -45,8 +59,12 @@ jobs:
         run: pnpm typecheck
       - name: Unit
         run: pnpm test:unit
+      - name: Миграции
+        run: pnpm db:migrate
       - name: Security (матрица изоляции)
         run: pnpm test:security
+      - name: Integration
+        run: pnpm test:integration
 
   e2e:
     runs-on: ubuntu-latest
