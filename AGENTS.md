@@ -1,4 +1,4 @@
-# Компас — правила для DeepSeek (OpenCode)
+# Компас — правила для GLM 5.3 Flash (OpenCode)
 
 Ты выполняешь бэкенд-тикеты из docs/DEEPSEEK-TASKS.md. Один тикет за сессию.
 Источник правды о продукте — docs/SPEC.md. Контракты API — src/contracts/api.ts (не менять).
