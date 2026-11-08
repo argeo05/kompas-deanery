@@ -1,0 +1,6 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Шаблон без значений и сгенерированные файлы"
+paths = ['''\.env\.example$''', '''pnpm-lock\.yaml$''']

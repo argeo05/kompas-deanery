@@ -1,0 +1,8 @@
+# Исходные документы — не переформатируем
+docs/SPEC.md
+docs/DEEPSEEK-TASKS.md
+pnpm-lock.yaml
+db/migrations/
+docs/process/shots/
+playwright-report/
+test-results/
