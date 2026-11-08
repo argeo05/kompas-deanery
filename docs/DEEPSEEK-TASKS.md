@@ -219,7 +219,7 @@ pnpm typecheck && pnpm lint && pnpm vitest run <файлы тестов тике
   export function canTransition(from: RequestStatus, action: RequestAction, actor: 'student' | 'staff'): boolean;
   export function nextStatus(from: RequestStatus, action: RequestAction): RequestStatus; // бросает ошибку при недопустимом переходе
   ```
-- **Правила:** схема статусов SPEC §6.5. `cancel` — только студент и только из `submitted`; `student_reply` — только студент и только из `needs_info`; остальные — только сотрудник.
+- **Правила:** схема статусов SPEC §6.5. `cancel` — только студент и только из `submitted`; `student_reply` — только студент и только из `needs_info`; остальные — только сотрудник. Недопустимый переход — `InvalidTransitionError` из того же файла.
 
 #### DS-07. Главный блок «Сегодня» (логика выбора hero-карточки)
 
@@ -234,7 +234,7 @@ pnpm typecheck && pnpm lint && pnpm vitest run <файлы тестов тике
     | { kind: 'day_off'; nextClassAt: ISODateTime | null };
   export function pickHero(now: ISODateTime, todayClasses: ClassDTO[], unseenChanges: ScheduleChangeDTO[], nextClassAt: ISODateTime | null): Hero;
   ```
-- **Правила:** порядок приоритета SPEC §6.2. Типы `ClassDTO` и `ScheduleChangeDTO` — из `src/contracts/api.ts`.
+- **Правила:** порядок приоритета SPEC §6.2. Типы `ClassDTO` и `ScheduleChangeDTO` — из `src/contracts/api.ts`. Случай «пара сегодня позже чем через 3 ч» — `day_off` с началом этой пары (D-003); точные правила веток — в шапке `tests/unit/today.test.ts`.
 - **Сложность:** средняя. Если два прогона подряд тесты не проходят — остановиться и написать вопрос (§5).
 
 ---
@@ -469,9 +469,10 @@ interface MessageDTO { id: UUID; author: 'student' | 'staff'; authorName: string
 #### DS-40. Генератор фоновой популяции
 
 - **Файлы:** `db/seed/population.ts`.
-- 3 факультета, 6 программ, 8 групп, 37 вымышленных студентов (без трёх демо — их делает Claude), 25 преподавателей, 30 аудиторий в 4 корпусах, 18 дисциплин, расписание семестра, 200+ оценок, 60 заявок во всех статусах, 30 объявлений.
+- 3 факультета, 6 программ, 8 групп, 34 фоновых вымышленных студента (демо-студентов и студентов очереди делает Claude), 25 преподавателей, 30 аудиторий в 4 корпусах, 18 дисциплин, расписание семестра, 200+ оценок, 60 заявок во всех статусах, 30 объявлений.
 - ФИО — только `@faker-js/faker` с локалью `ru` или списки распространённых имён в случайных сочетаниях; e-mail — `@example.edu`; номера — `DEMO-…`. **Все даты — относительно `today`** через `db/seed/dates.ts` (SPEC §11.3).
 - Сид детерминирован: `faker.seed(2026)`.
+- **Уточнение (Claude, D-003).** `db/seed/demo-accounts.ts` уже создаёт 2 демо-студентов, 4 студентов очереди Елены, 3 факультета, 3 программы, группы Б-ЭК-101 и М-ЦМ-11, 5 преподавателей, 5 аудиторий и 5 дисциплин. Популяция дополняет до объёмов выше: фоновых студентов 34, итого 40. Для групп Б-ЭК-101 и М-ЦМ-11 популяция не создаёт пары, оценки и экзамены. Фоновых студентов в эти группы добавлять можно. Заявки популяции — только в статусах `needs_info`, `ready`, `issued`, `rejected`, `cancelled`: точные счётчики очереди Елены (4 новых, 6 в работе, 1 просрочена) задаёт demo-accounts.ts.
 - **Готово, когда:** `pnpm db:reset && pnpm db:seed` проходит за ≤ 30 с; тест `tests/integration/seed.test.ts` проверяет объёмы и отсутствие e-mail вне `@example.edu`.
 
 #### DS-41. Справочник студента (25 статей)
@@ -621,13 +622,13 @@ interface MessageDTO { id: UUID; author: 'student' | 'staff'; authorName: string
 
 ## Приложение C. Чек-лист Claude перед стартом фазы B
 
-- [ ] `src/contracts/api.ts` содержит все типы из §4.
-- [ ] Эталон `GET /api/me/requests` и `GET /api/me/requests/:id` с интеграционными тестами и тестом изоляции.
-- [ ] `http.ts`, `guards.ts`, `db.ts` (`withUserTx`), `idempotency.ts`, `clock.ts`, `time.ts`, `audit.ts`, `notify-templates.ts`.
-- [ ] Падающие юнит-тесты для DS-01…DS-07.
-- [ ] `config/holidays.ts` и `config/grading.ts` заполнены.
-- [ ] Хелперы тестов: `apiAs`, `resetDb`, `freezeTime`, `countQueries`.
-- [ ] Схема БД со всеми таблицами SPEC §10.4 и RLS-политиками.
-- [ ] Установлены зависимости, нужные тикетам: `ics`, `ical.js` (dev), `@faker-js/faker`, `rate-limiter-flexible`.
-- [ ] Скрипт `pnpm verify:ds`.
-- [ ] `AGENTS.md` и `opencode.json` из приложений A и B закоммичены.
+- [x] `src/contracts/api.ts` содержит все типы из §4.
+- [x] Эталон `GET /api/me/requests` и `GET /api/me/requests/:id` с интеграционными тестами и тестом изоляции.
+- [x] `http.ts`, `guards.ts`, `db.ts` (`withUserTx`), `idempotency.ts`, `clock.ts`, `time.ts`, `audit.ts`, `notify-templates.ts`.
+- [x] Падающие юнит-тесты для DS-01…DS-07.
+- [x] `config/holidays.ts` и `config/grading.ts` заполнены.
+- [x] Хелперы тестов: `apiAs`, `resetDb`, `freezeTime`, `countQueries`.
+- [x] Схема БД со всеми таблицами SPEC §10.4 и RLS-политиками.
+- [x] Установлены зависимости, нужные тикетам: `ics`, `ical.js` (dev), `@faker-js/faker`, `rate-limiter-flexible`.
+- [x] Скрипт `pnpm verify:ds`.
+- [x] `AGENTS.md` и `opencode.json` из приложений A и B закоммичены.
