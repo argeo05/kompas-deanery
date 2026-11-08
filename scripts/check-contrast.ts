@@ -38,21 +38,26 @@ function deltaE(a: string, b: string): number {
 function printMarkdown() {
   const bgs = ["bg", "surface", "surface-2"];
   const rows: [string, 4.5 | 3][] = [
-    ...(["ink", "ink-2", "accent", "accent-hover", "ok", "warn", "alert", "info", "coral"].map(
+    ...["ink", "ink-2", "accent", "accent-hover", "ok", "warn", "alert", "info", "coral"].map(
       (t) => [t, 4.5] as [string, 4.5],
-    )),
+    ),
     ["focus", 3],
     ["line-strong", 3],
   ];
-  console.log("| Токен | Светлая | bg / surface / surface-2 | Тёмная | bg / surface / surface-2 | Порог |");
+  console.log(
+    "| Токен | Светлая | bg / surface / surface-2 | Тёмная | bg / surface / surface-2 | Порог |",
+  );
   console.log("|---|---|---|---|---|---|");
   for (const [t, min] of rows) {
     const cells = THEMES.map(
-      (th) => `\`${tokens[th][t].toUpperCase()}\` | ${bgs.map((b) => fmt(ratio(th, t, b))).join(" / ")}`,
+      (th) =>
+        `\`${tokens[th][t].toUpperCase()}\` | ${bgs.map((b) => fmt(ratio(th, t, b))).join(" / ")}`,
     );
     console.log(`| \`--${t}\` | ${cells.join(" | ")} | ${String(min).replace(".", ",")} |`);
   }
-  console.log(`| \`--accent-ink\` на \`--accent\` | | ${fmt(ratio("light", "accent-ink", "accent"))} | | ${fmt(ratio("dark", "accent-ink", "accent"))} | 4,5 |`);
+  console.log(
+    `| \`--accent-ink\` на \`--accent\` | | ${fmt(ratio("light", "accent-ink", "accent"))} | | ${fmt(ratio("dark", "accent-ink", "accent"))} | 4,5 |`,
+  );
 
   console.log("\n| Пара бейджа | Светлая -bg / -fg | Контраст | Тёмная -bg / -fg | Контраст |");
   console.log("|---|---|---|---|---|");
@@ -68,7 +73,9 @@ function printMarkdown() {
   console.log("|---|---|---|---|---|");
   const course = Array.from({ length: 10 }, (_, i) => `course-${i}`);
   for (const c of course) {
-    const cells = THEMES.map((th) => `\`${tokens[th][c].toUpperCase()}\` | ${fmt(ratio(th, c, "surface"))}`);
+    const cells = THEMES.map(
+      (th) => `\`${tokens[th][c].toUpperCase()}\` | ${fmt(ratio(th, c, "surface"))}`,
+    );
     console.log(`| \`--${c}\` | ${cells.join(" | ")} |`);
   }
   for (const th of THEMES) {
@@ -79,7 +86,9 @@ function printMarkdown() {
         const d = deltaE(tokens[th][a], tokens[th][b]);
         if (d < min.d) min = { d, a, b };
       }
-    console.log(`\n${th}: минимальное различие дисциплин ΔE = ${fmt(min.d)} (--${min.a} и --${min.b})`);
+    console.log(
+      `\n${th}: минимальное различие дисциплин ΔE = ${fmt(min.d)} (--${min.a} и --${min.b})`,
+    );
   }
 }
 
@@ -94,5 +103,6 @@ if (process.argv.includes("--md")) {
   }
 }
 console.log(`\n${results.length - failed.length}/${results.length} пар проходят WCAG 2.2 AA`);
-for (const r of failed) console.log(`FAIL ${r.theme} --${r.fg} на --${r.bg}: ${r.ratio.toFixed(2)} < ${r.min}`);
+for (const r of failed)
+  console.log(`FAIL ${r.theme} --${r.fg} на --${r.bg}: ${r.ratio.toFixed(2)} < ${r.min}`);
 process.exit(failed.length ? 1 : 0);
