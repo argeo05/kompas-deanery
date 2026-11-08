@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { defineConfig, devices } from "@playwright/test";
 
 const PORT = Number(process.env.E2E_PORT ?? 3100);
@@ -39,7 +40,15 @@ export default defineConfig({
     command: `pnpm build && node scripts/start-standalone.mjs`,
     url: baseURL,
     // TRUSTED_PROXY: production-сборка без доверенного прокси не стартует (D-005); здесь прокси играет сам тест.
-    env: { PORT: String(PORT), HOSTNAME: "127.0.0.1", TRUSTED_PROXY: "true" },
+    env: {
+      PORT: String(PORT),
+      HOSTNAME: "127.0.0.1",
+      TRUSTED_PROXY: "true",
+      // Секрет только для e2e; в production задаётся окружением хостинга.
+      BETTER_AUTH_SECRET:
+        process.env.BETTER_AUTH_SECRET ?? "e2e-only-insecure-secret-do-not-use-in-prod",
+      BETTER_AUTH_URL: baseURL,
+    },
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,
   },

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -17,7 +18,10 @@ export const metadata: Metadata = {
   description: "Личный кабинет студента — концепт",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // Все страницы рендерятся на запрос: nonce из CSP (proxy.ts) подставляется только при динамическом
+  // рендеринге, статический HTML собирается без заголовков и его скрипты CSP бы заблокировал (D-005).
+  await connection();
   return (
     <html lang="ru" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">{children}</body>
