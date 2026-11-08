@@ -31,20 +31,6 @@ jobs:
 
   checks:
     runs-on: ubuntu-latest
-    # Матрица изоляции и интеграционные тесты идут на настоящей PostgreSQL с RLS.
-    services:
-      db:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: kompas
-          POSTGRES_USER: kompas
-          POSTGRES_PASSWORD: ci-only-password
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U kompas -d kompas" --health-interval 2s --health-timeout 3s --health-retries 30
-    env:
-      DATABASE_URL: postgres://kompas:ci-only-password@localhost:5432/kompas
-      BETTER_AUTH_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -59,8 +45,35 @@ jobs:
         run: pnpm typecheck
       - name: Unit
         run: pnpm test:unit
-      - name: Миграции
-        run: pnpm db:migrate
+
+  db-tests:
+    name: integration + security
+    runs-on: ubuntu-latest
+    # Матрица изоляции и интеграционные тесты — на настоящей PostgreSQL с RLS, в отдельной базе kompas_test (D-004).
+    services:
+      db:
+        image: postgres:16
+        env:
+          POSTGRES_DB: kompas_test
+          POSTGRES_USER: kompas
+          POSTGRES_PASSWORD: ci-only-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U kompas -d kompas_test" --health-interval 2s --health-timeout 3s --health-retries 30
+    env:
+      # Рабочая база в CI не нужна, но guard требует, чтобы она отличалась от тестовой.
+      DATABASE_URL: postgres://kompas:ci-only-password@localhost:5432/kompas_dev
+      TEST_DATABASE_URL: postgres://kompas:ci-only-password@localhost:5432/kompas_test
+      BETTER_AUTH_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Миграции применяет globalSetup (tests/helpers/global-db.ts).
       - name: Security (матрица изоляции)
         run: pnpm test:security
       - name: Integration
@@ -68,7 +81,7 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
-    needs: checks
+    needs: [checks, db-tests]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
