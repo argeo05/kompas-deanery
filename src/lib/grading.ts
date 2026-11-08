@@ -1,5 +1,5 @@
+import { GRADE_BANDS } from "../../config/grading";
 import type { MarkDTO } from "@/contracts/api";
-import { notImplemented } from "./not-implemented";
 
 // DS-03. Математика оценок (SPEC §6.4, AC-4.2). Пороги — config/grading.ts. Тесты: tests/unit/grading.test.ts.
 
@@ -10,14 +10,23 @@ export interface Item {
   weight: number;
 }
 
+/** Округление до 1 знака после запятой. */
+const round1 = (v: number): number => Math.round(v * 10) / 10;
+
 /** Итог S = Σ wᵢ·sᵢ/mᵢ·100 по сданным элементам, 1 знак после запятой. */
 export function totalScore(items: Item[]): number {
-  return notImplemented("DS-03", items);
+  let sum = 0;
+  for (const { score, max, weight } of items) {
+    if (score === null) continue;
+    sum += ((weight * score) / max) * 100;
+  }
+  return round1(sum);
 }
 
 /** Оценка по итогу S: { mark, word, letter } из config/grading.ts. */
 export function markFor(total: number): { mark: MarkDTO["value"]; word: string; letter: string } {
-  return notImplemented("DS-03", total);
+  const band = GRADE_BANDS.find((b) => total >= b.min) ?? GRADE_BANDS[GRADE_BANDS.length - 1]!;
+  return { mark: band.mark, word: band.word, letter: band.letter };
 }
 
 /**
@@ -28,5 +37,10 @@ export function neededFor(
   items: Item[],
   targetTotal: number,
 ): { needed: number; achievable: boolean; maxPossible: number } {
-  return notImplemented("DS-03", items, targetTotal);
+  const current = totalScore(items);
+  const needed = round1(Math.max(0, targetTotal - current));
+  const maxPossible = round1(
+    items.reduce((sum, it) => (it.score === null ? sum + it.weight * 100 : sum), 0),
+  );
+  return { needed, achievable: needed <= maxPossible, maxPossible };
 }
