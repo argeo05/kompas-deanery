@@ -1,19 +1,32 @@
 import "server-only";
 import { createHmac } from "node:crypto";
 import { betterAuth } from "better-auth";
+import { RateLimiterMemory } from "rate-limiter-flexible";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { admin, username } from "better-auth/plugins";
 import { accounts, rateLimits, sessions, users, verifications } from "../../../db/schema";
 import { getDb } from "../db";
+import { assertTrustedProxy, ipHeaderName } from "./client-ip";
 import { hashPassword, verifyPassword } from "./password";
+import { withHashedSessionTokens } from "./session-token-hash";
 
 // Better Auth (SPEC §6.1 п.9, §9.2, D-002 в docs/DECISIONS.md).
 // Вход только по логину (плагин username), регистрации нет (disableSignUp): аккаунты создаёт сид или сервер.
 // Сессии — в БД, срок 30 дней со скользящим продлением; «выйти везде» = удалить строки sessions.
 
-/** Заголовок с IP клиента, который ставит НАШ прокси (а не подделываемый клиентом X-Forwarded-For). */
-const IP_HEADER = process.env.AUTH_IP_HEADER ?? "x-real-ip";
+type HookCtx = Parameters<Parameters<typeof createAuthMiddleware>[0]>[0];
+
+const isProduction = process.env.NODE_ENV === "production";
+
+/**
+ * Cookie сессии в production: префикс `__Host-` (Secure, Path=/, без Domain), SPEC §9.2.
+ * Встроенный префикс `__Secure-` отключён (useSecureCookies: false), имя задаём сами.
+ */
+const hostCookie = (name: string) => ({
+  name: `${isProduction ? "__Host-" : ""}kompas.${name}`,
+  attributes: { secure: isProduction },
+});
 
 const DAY = 60 * 60 * 24;
 
@@ -32,7 +45,7 @@ const DISABLED_PATHS = [
 ];
 
 /** Демо-аккаунтам смену пароля не даём: иначе один эксперт закроет вход остальным (SPEC §6.1 «Тонкости»). */
-const lockDemoPassword = createAuthMiddleware(async (ctx) => {
+const lockDemoPassword = async (ctx: HookCtx) => {
   if (ctx.path !== "/change-password") return;
   const session = await getSessionFromCtx(ctx);
   if ((session?.user as { isDemo?: boolean } | undefined)?.isDemo) {
@@ -41,7 +54,38 @@ const lockDemoPassword = createAuthMiddleware(async (ctx) => {
       message: "DEMO_PASSWORD_LOCKED",
     });
   }
-});
+};
+
+/**
+ * Лимит входа по логину (SPEC §9.7), отдельно от лимита по IP (customRules ниже, 5 за 30 с):
+ * 20 НЕУДАЧНЫХ попыток в час на логин. Считаем только неудачи, иначе эксперты жюри, входящие
+ * под одним демо-аккаунтом, блокировали бы друг друга. Счётчик в памяти процесса (контейнер один).
+ */
+const usernameFailures = new RateLimiterMemory({ points: 20, duration: 3600 });
+const loginKey = (ctx: { body?: unknown }) => {
+  const value = (ctx.body as { username?: unknown } | undefined)?.username;
+  return typeof value === "string" ? value.trim().toLowerCase().slice(0, 64) : null;
+};
+
+const limitLoginByUsername = async (ctx: HookCtx) => {
+  if (ctx.path !== "/sign-in/username") return;
+  const key = loginKey(ctx);
+  const state = key ? await usernameFailures.get(key) : null;
+  if (state && state.remainingPoints <= 0) {
+    throw new APIError("TOO_MANY_REQUESTS", {
+      code: "RATE_LIMITED",
+      message: "RATE_LIMITED",
+    });
+  }
+};
+
+const countLoginFailure = async (ctx: HookCtx) => {
+  if (ctx.path !== "/sign-in/username") return;
+  const key = loginKey(ctx);
+  if (key && ctx.context.returned instanceof APIError) {
+    await usernameFailures.consume(key).catch(() => undefined);
+  }
+};
 
 /** IP в sessions храним как HMAC — для отладки сессий хватает, а утечка БД не раскрывает адреса. */
 function hashIp(ip: string): string {
@@ -52,23 +96,34 @@ function hashIp(ip: string): string {
 }
 
 function createAuth() {
+  assertTrustedProxy();
   return betterAuth({
     appName: "Компас",
     baseURL: process.env.BETTER_AUTH_URL,
     secret: process.env.BETTER_AUTH_SECRET,
     trustedOrigins: process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : [],
     disabledPaths: DISABLED_PATHS,
-    hooks: { before: lockDemoPassword },
-    database: drizzleAdapter(getDb(), {
-      provider: "pg",
-      schema: {
-        user: users,
-        session: sessions,
-        account: accounts,
-        verification: verifications,
-        rateLimit: rateLimits,
-      },
-    }),
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        await lockDemoPassword(ctx);
+        await limitLoginByUsername(ctx);
+      }),
+      after: createAuthMiddleware(countLoginFailure),
+    },
+    // Токен сессии в БД хранится хешем (session-token-hash.ts).
+    database: (options: Parameters<ReturnType<typeof drizzleAdapter>>[0]) =>
+      withHashedSessionTokens(
+        drizzleAdapter(getDb(), {
+          provider: "pg",
+          schema: {
+            user: users,
+            session: sessions,
+            account: accounts,
+            verification: verifications,
+            rateLimit: rateLimits,
+          },
+        })(options),
+      ),
     emailAndPassword: {
       enabled: true,
       disableSignUp: true,
@@ -99,10 +154,15 @@ function createAuth() {
     },
     advanced: {
       cookiePrefix: "kompas",
-      useSecureCookies: process.env.NODE_ENV === "production",
+      useSecureCookies: false,
+      cookies: {
+        session_token: hostCookie("session_token"),
+        session_data: hostCookie("session_data"),
+        dont_remember: hostCookie("dont_remember"),
+      },
       defaultCookieAttributes: { httpOnly: true, sameSite: "lax", path: "/" },
       database: { generateId: "uuid" },
-      ipAddress: { ipAddressHeaders: [IP_HEADER] },
+      ipAddress: { ipAddressHeaders: [ipHeaderName()] },
     },
     databaseHooks: {
       session: {

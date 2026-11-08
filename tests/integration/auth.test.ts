@@ -2,6 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 import { accounts, sessions, users } from "@db/schema";
 import { DEMO_ACCOUNTS } from "@db/seed/demo-accounts";
+import { hashSessionToken } from "@/server/auth/session-token-hash";
 import { getDb } from "@/server/db";
 import { apiAs, resetDb } from "../helpers/api";
 import type { Fixtures } from "../helpers/fixtures";
@@ -114,5 +115,45 @@ describe("Better Auth", () => {
       sql`SELECT count(*)::int AS n FROM rate_limits WHERE key LIKE ${`%${ip}%`}`,
     );
     expect(n).toBe(1);
+  });
+  it("в БД лежит SHA-256 токена сессии, а не сам токен; по cookie сессия находится (SPEC §9.2)", async () => {
+    const res = await signIn("anna.demo", DEMO_ACCOUNTS.anna.password);
+    expect(res.status).toBe(200);
+    const raw = (res.body as { token: string }).token;
+    const cookie = res.headers.getSetCookie().map((c) => c.split(";")[0]);
+    const rows = await getDb().select({ token: sessions.token }).from(sessions);
+    const stored = rows.map((r) => r.token);
+    expect(stored).not.toContain(raw);
+    expect(stored).toContain(hashSessionToken(raw));
+    const me = await apiAs("guest").request("GET", "/api/auth/get-session", {
+      headers: { cookie: cookie.join("; ") },
+    });
+    expect(me.status).toBe(200);
+    expect(me.body).toMatchObject({ user: { id: fx.users.anna } });
+  });
+
+  it("лимит по логину: 21-я неудача с разных IP → 429, верный пароль тоже блокируется", async () => {
+    const login = "oleg.staff";
+    const statuses: number[] = [];
+    for (let i = 0; i < 21; i++) statuses.push((await signIn(login, "wrong-password-123")).status);
+    expect(statuses.slice(0, 20).every((s) => s === 401)).toBe(true);
+    expect(statuses[20]).toBe(429);
+    expect((await signIn(login, DEMO_ACCOUNTS.oleg.password)).status).toBe(429);
+    // Другой логин с нового IP не затронут.
+    expect((await signIn("anna.demo", DEMO_ACCOUNTS.anna.password)).status).toBe(200);
+  });
+
+  it("подмена X-Forwarded-For не обходит лимит по IP: ключ берётся из доверенного заголовка", async () => {
+    const ip = nextIp();
+    const statuses: number[] = [];
+    for (let i = 0; i < 6; i++) {
+      const res = await apiAs("guest").post(
+        "/api/auth/sign-in/username",
+        { username: "anna.demo", password: "wrong-password-123" },
+        { headers: { "x-real-ip": ip, "x-forwarded-for": `203.0.113.${i + 1}` } },
+      );
+      statuses.push(res.status);
+    }
+    expect(statuses).toEqual([401, 401, 401, 401, 401, 429]);
   });
 });

@@ -1,5 +1,6 @@
 import { RateLimiterMemory } from "rate-limiter-flexible";
 import type { VerifyDTO } from "@/contracts/api";
+import { getClientIp } from "@/server/auth/client-ip";
 import { getDb } from "@/server/db";
 import { fail, ok, route } from "@/server/http";
 import { checkVerifyCode } from "@/server/services/documents";
@@ -13,7 +14,7 @@ const limiter = new RateLimiterMemory({ points: 30, duration: 60 });
 
 /** GET /api/verify/:code → 200 VerifyDTO; перебор кодов — 429 RATE_LIMITED. */
 export const GET = route<{ code: string }>(async (req, { params }) => {
-  const ip = req.headers.get(process.env.AUTH_IP_HEADER ?? "x-real-ip") ?? "unknown";
+  const ip = getClientIp(req.headers);
   try {
     await limiter.consume(ip);
   } catch {

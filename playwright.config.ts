@@ -38,7 +38,8 @@ export default defineConfig({
   webServer: {
     command: `pnpm build && node scripts/start-standalone.mjs`,
     url: baseURL,
-    env: { PORT: String(PORT), HOSTNAME: "127.0.0.1" },
+    // TRUSTED_PROXY: production-сборка без доверенного прокси не стартует (D-005); здесь прокси играет сам тест.
+    env: { PORT: String(PORT), HOSTNAME: "127.0.0.1", TRUSTED_PROXY: "true" },
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,
   },
