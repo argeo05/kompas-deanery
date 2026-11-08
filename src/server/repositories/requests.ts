@@ -111,3 +111,71 @@ export async function findDocumentForStudentRequest(tx: Tx, studentId: string, r
     .limit(1);
   return row ?? null;
 }
+
+// ── DS-17. Создание, отмена, переписка ──────────────────────────────────────
+
+/** Тип справки по коду каталога; undefined — код не из каталога (обработчик отвечает 404). */
+export function findRequestType(tx: Tx, code: string) {
+  return tx.select().from(requestTypes).where(eq(requestTypes.code, code)).limit(1);
+}
+
+/** Порядковая часть номера: nextval из общей последовательности (SPEC §6.5 п.3; так же делает сид). */
+export async function nextRequestSeq(tx: Tx): Promise<number> {
+  const [{ seq }] = await tx.execute<{ seq: string }>(
+    sql`SELECT nextval('request_number_seq') AS seq`,
+  );
+  return Number(seq);
+}
+
+/**
+ * Создаёт заявку студента. Владелец задаётся параметром studentId из сессии (RLS
+ * requests_insert_own всё равно проверит student_id = app.user_id); номер уникален последовательностью.
+ */
+export function insertRequest(tx: Tx, values: typeof requests.$inferInsert) {
+  return tx.insert(requests).values(values).returning();
+}
+
+/** Дописывает событие заявки (таблица только дописывается; actorId — из сессии, RLS проверит). */
+export function insertRequestEvent(tx: Tx, values: typeof requestEvents.$inferInsert) {
+  return tx.insert(requestEvents).values(values);
+}
+
+/** Дописывает сообщение к заявке (authorId — из сессии, RLS request_messages_insert проверит). */
+export function insertRequestMessage(tx: Tx, values: typeof requestMessages.$inferInsert) {
+  return tx.insert(requestMessages).values(values).returning({
+    id: requestMessages.id,
+    body: requestMessages.body,
+    createdAt: requestMessages.createdAt,
+  });
+}
+
+/** Обновление заявки студента: владелец — условие по student_id. */
+export function updateRequestStatus(
+  tx: Tx,
+  params: {
+    requestId: string;
+    studentId: string;
+    status?: RequestStatus;
+    studentSeenAt?: Date;
+    updatedAt: Date;
+  },
+) {
+  const patch =
+    params.status !== undefined
+      ? { status: params.status, studentSeenAt: params.studentSeenAt, updatedAt: params.updatedAt }
+      : { studentSeenAt: params.studentSeenAt, updatedAt: params.updatedAt };
+  return tx
+    .update(requests)
+    .set(patch)
+    .where(and(eq(requests.id, params.requestId), eq(requests.studentId, params.studentId)));
+}
+
+/** Отображаемое имя студента — подпись автора сообщения. */
+export async function findStudentDisplayName(tx: Tx, userId: string): Promise<string | null> {
+  const [row] = await tx
+    .select({ displayName: studentProfiles.displayName })
+    .from(studentProfiles)
+    .where(eq(studentProfiles.userId, userId))
+    .limit(1);
+  return row?.displayName ?? null;
+}

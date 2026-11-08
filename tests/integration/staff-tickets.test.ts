@@ -77,10 +77,14 @@ describe("GET /api/staff/tickets", () => {
 
   it("фильтр status=open|answered|closed; неизвестный статус → 422", async () => {
     freezeTime("2026-11-12T12:05:00+03:00");
-    const created = await apiAs("anna").post<StudentTicketDTO>("/api/me/tickets", {
-      topic: "dorm",
-      body: "Для фильтра",
-    }, { headers: { "idempotency-key": randomUUID() } });
+    const created = await apiAs("anna").post<StudentTicketDTO>(
+      "/api/me/tickets",
+      {
+        topic: "dorm",
+        body: "Для фильтра",
+      },
+      { headers: { "idempotency-key": randomUUID() } },
+    );
     expect(created.status).toBe(201);
     freezeTime(NOW);
 
@@ -217,10 +221,14 @@ describe("POST /api/staff/tickets/:id/close", () => {
 
   beforeAll(async () => {
     freezeTime("2026-11-12T12:30:00+03:00");
-    const created = await apiAs("anna").post<StudentTicketDTO>("/api/me/tickets", {
-      topic: "scholarship",
-      body: "Обращение для закрытия",
-    }, { headers: { "idempotency-key": randomUUID() } });
+    const created = await apiAs("anna").post<StudentTicketDTO>(
+      "/api/me/tickets",
+      {
+        topic: "scholarship",
+        body: "Обращение для закрытия",
+      },
+      { headers: { "idempotency-key": randomUUID() } },
+    );
     expect(created.status).toBe(201);
     closeable = created.body.id;
     freezeTime(NOW);
