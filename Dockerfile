@@ -3,19 +3,20 @@
 
 ARG NODE_VERSION=24-alpine
 
-# 1. Зависимости
-FROM node:${NODE_VERSION} AS deps
+# 0. Общая база с pnpm
+FROM node:${NODE_VERSION} AS base
 WORKDIR /app
-RUN npm install -g pnpm@12.18.0
+RUN npm install -g --no-audit --no-fund pnpm@12.18.0
+
+# 1. Зависимости
+FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --ignore-scripts
 
 # 2. Сборка
-FROM node:${NODE_VERSION} AS build
-WORKDIR /app
+FROM base AS build
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm install -g pnpm@12.18.0
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build
