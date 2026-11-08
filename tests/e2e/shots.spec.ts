@@ -5,6 +5,7 @@ import { loginAs } from "./support/auth";
 // Не входит в pnpm test:e2e (фильтр по тегу @shots).
 const screens = [
   { name: "home", path: "/" },
+  { name: "login", path: "/login" },
   { name: "dev-ui", path: "/dev/ui" },
   { name: "dev-ui-staff", path: "/dev/ui/staff" },
 ];

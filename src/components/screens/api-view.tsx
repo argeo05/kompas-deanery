@@ -57,7 +57,7 @@ export function ApiView<T>({
         </InlineError>
       )}
       {api.error === "offline" && at && (
-        <p role="status" className="text-sm text-ink-2">
+        <p role="status" className="type-caption text-ink-2">
           Нет сети. Показаны данные от {at}.
         </p>
       )}

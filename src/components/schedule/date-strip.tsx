@@ -48,7 +48,7 @@ export function DateStrip({
               </span>
               <span
                 className={cn(
-                  "text-base font-semibold tabular",
+                  "text-base type-num",
                   iso === today && iso !== selected && "underline decoration-2 underline-offset-4",
                 )}
               >

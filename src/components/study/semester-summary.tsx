@@ -35,14 +35,14 @@ export function SemesterSummary({ grades }: { grades: GradesDTO }) {
           Итог семестра
         </h2>
         <StatusBadge kind="semester" status={grades.status.status} className="text-base" />
-        <p className="text-xl font-semibold">{headline(grades)}</p>
+        <p className="type-h2">{headline(grades)}</p>
       </CardHeader>
       {grades.status.reasons.length > 0 && (
         <CardContent>
           <ul className="flex flex-col gap-1.5">
             {grades.status.reasons.map((r) => (
-              <li key={`${r.courseId}-${r.reason}`} className="text-base">
-                <Link href={`/study/subjects/${r.courseId}`} className="font-medium">
+              <li key={`${r.courseId}-${r.reason}`} className="type-body">
+                <Link href={`/study/subjects/${r.courseId}`} className="type-body-strong">
                   {titles.get(r.courseId) ?? "Дисциплина"}
                 </Link>
                 : {REASON_LABEL[r.reason]}

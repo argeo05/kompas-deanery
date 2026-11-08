@@ -14,9 +14,9 @@ export function Stat({
 }) {
   return (
     <div data-slot="stat" className={cn("flex min-w-0 flex-col gap-0.5", className)}>
-      <dt className="text-sm text-ink-2">{label}</dt>
-      <dd className="font-display text-2xl tabular">{value}</dd>
-      {hint && <dd className="text-xs text-ink-2">{hint}</dd>}
+      <dt className="type-caption text-ink-2">{label}</dt>
+      <dd className="text-2xl type-num">{value}</dd>
+      {hint && <dd className="type-caption text-ink-2">{hint}</dd>}
     </div>
   );
 }

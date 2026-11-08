@@ -18,8 +18,8 @@ const PARITY = { odd: "числитель", even: "знаменатель" } as 
 function Row({ term, children }: { term: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="text-sm text-ink-2">{term}</dt>
-      <dd className="text-base">{children}</dd>
+      <dt className="type-caption text-ink-2">{term}</dt>
+      <dd className="type-body">{children}</dd>
     </div>
   );
 }
@@ -56,7 +56,7 @@ function NoteEditor({ cls, onSaved }: { cls: ClassDTO; onSaved: () => void }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <label htmlFor={id} className="text-sm text-ink-2">
+      <label htmlFor={id} className="type-caption text-ink-2">
         Личная заметка — её видите только вы
       </label>
       <textarea
@@ -72,7 +72,7 @@ function NoteEditor({ cls, onSaved }: { cls: ClassDTO; onSaved: () => void }) {
       </Button>
       <p
         role="status"
-        className={status?.ok === false ? "text-sm text-alert-fg" : "text-sm text-ink-2"}
+        className={status?.ok === false ? "type-caption text-alert-fg" : "type-caption text-ink-2"}
       >
         {status?.text}
       </p>
@@ -122,15 +122,17 @@ export function ClassSheet({
             <Row term="Где аудитория">
               {roomText(cls.room)}
               {cls.room.floor !== null && `, ${cls.room.floor}-й этаж`}
-              {cls.room.hint && <span className="block text-sm text-ink-2">{cls.room.hint}</span>}
+              {cls.room.hint && (
+                <span className="block type-caption text-ink-2">{cls.room.hint}</span>
+              )}
             </Row>
             <Row term="Преподаватель">
               {cls.teacher.fullName}
               {cls.teacher.email && (
-                <span className="block text-sm text-ink-2">Почта: {cls.teacher.email}</span>
+                <span className="block type-caption text-ink-2">Почта: {cls.teacher.email}</span>
               )}
               {cls.teacher.officeHours && (
-                <span className="block text-sm text-ink-2">
+                <span className="block type-caption text-ink-2">
                   Консультации: {cls.teacher.officeHours}
                 </span>
               )}

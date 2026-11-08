@@ -59,7 +59,10 @@ export function BottomNav({
                   )}
                 </span>
                 {/* Короткая подпись видна, полное имя пункта читает экранный диктор (SPEC §7.5). */}
-                <span aria-hidden={item.short ? true : undefined} className="type-nav max-w-full text-center">
+                <span
+                  aria-hidden={item.short ? true : undefined}
+                  className="max-w-full text-center type-nav"
+                >
                   {item.short ?? item.label}
                 </span>
                 {item.short && <span className="sr-only">{item.label}</span>}

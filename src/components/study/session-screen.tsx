@@ -34,7 +34,7 @@ function Admission({ item }: { item: SessionDTO["items"][number] }) {
         <Badge tone="coral" icon={CircleX}>
           Допуска пока нет
         </Badge>
-        {item.admissionReason && <p className="text-sm text-ink">{item.admissionReason}</p>}
+        {item.admissionReason && <p className="type-caption text-ink">{item.admissionReason}</p>}
       </div>
     );
   }
@@ -52,7 +52,7 @@ export function SessionScreen() {
   return (
     <>
       <header className="flex flex-col gap-3">
-        <h1 className="text-2xl font-semibold lg:text-3xl">Учёба</h1>
+        <h1 className="type-h1">Учёба</h1>
         <StudyTabs />
       </header>
       <ApiView
@@ -72,7 +72,7 @@ export function SessionScreen() {
           ) : (
             <div className="flex max-w-2xl flex-col gap-4">
               {session.startsOn && session.endsOn && (
-                <p className="text-lg font-medium">
+                <p className="type-body-strong">
                   Сессия: {formatDayMonthFull(session.startsOn + "T12:00:00+03:00")} —{" "}
                   {formatDayMonthFull(session.endsOn + "T12:00:00+03:00")}
                 </p>
@@ -82,18 +82,16 @@ export function SessionScreen() {
                   <li key={item.id}>
                     <Card>
                       <CardHeader>
-                        <p className="text-sm text-ink-2">{CONTROL_LABEL[item.type]}</p>
-                        <h2 className="text-lg font-semibold break-words hyphens-auto">
-                          {item.courseTitle}
-                        </h2>
+                        <p className="type-caption text-ink-2">{CONTROL_LABEL[item.type]}</p>
+                        <h2 className="type-h3 break-words hyphens-auto">{item.courseTitle}</h2>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-base">
+                        <p className="type-body">
                           {formatDateLong(item.startsAt)}, {formatTimeMsk(item.startsAt)} · ауд.{" "}
                           {item.room}
                         </p>
                         {item.consultationAt && (
-                          <p className="text-sm text-ink-2">
+                          <p className="type-caption text-ink-2">
                             Консультация: {formatWhen(item.consultationAt, now)}
                           </p>
                         )}

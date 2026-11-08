@@ -26,31 +26,28 @@ export function CourseRow({ course }: { course: Course }) {
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <CardLink
             href={`/study/subjects/${course.courseId}`}
-            className="text-lg break-words hyphens-auto"
+            className="type-h3 break-words hyphens-auto"
           >
             {course.title}
           </CardLink>
-          <p className="text-sm text-ink-2">{CONTROL_LABEL[course.control]}</p>
-          {course.mark ? (
-            <GradeScale total={course.total} mark={course.mark} />
-          ) : (
-            !isCredit && <p className="text-base text-ink-2">Оценки пока нет</p>
-          )}
+          <p className="type-caption text-ink-2">{CONTROL_LABEL[course.control]}</p>
+          {!course.mark && !isCredit && <p className="type-body text-ink-2">Оценки пока нет</p>}
           {course.risk && (
             <Badge tone="warn" icon={TriangleAlert}>
               Есть риск
             </Badge>
           )}
           {!isCredit && course.maxSoFar > 0 && (
-            <p className="text-sm text-ink-2">
+            <p className="type-caption text-ink-2">
               Набрано {course.total} из {course.maxSoFar} баллов на сегодня
             </p>
           )}
         </div>
+        {course.mark && <GradeScale total={course.total} mark={course.mark} className="shrink-0" />}
       </div>
       {course.credit && (
         <div className="flex flex-col gap-1.5">
-          <p className="text-sm font-medium">
+          <p className="type-body-strong">
             {course.credit.passed === true
               ? "Зачтено"
               : course.credit.passed === false
@@ -59,7 +56,7 @@ export function CourseRow({ course }: { course: Course }) {
           </p>
           <ul className="flex flex-col gap-1">
             {course.credit.conditions.map((c) => (
-              <li key={c.label} className="flex items-start gap-2 text-sm">
+              <li key={c.label} className="flex items-start gap-2 type-caption">
                 {c.met ? (
                   <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-ok" />
                 ) : (

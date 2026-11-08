@@ -6,9 +6,10 @@ import { classDate, overlaps } from "@/components/schedule/class-meta";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import type { ClassDTO, ScheduleDTO } from "@/contracts/api";
-import { formatDuration, formatTimeMsk, formatWeekdayLong, formatDayMonthFull } from "@/lib/format";
+import { formatDuration, formatWeekdayLong, formatDayMonthFull } from "@/lib/format";
 import { startOfDayMsk } from "@/lib/time";
 import Link from "next/link";
+import { NowLine } from "@/components/ui/now-line";
 
 // Вид «День» (SPEC §6.3 п.1): вертикальный список по реальным началам пар, призраки перенесённых
 // пар на старом месте, полоса «сейчас», окна между парами. Номер пары не показываем — важнее время.
@@ -58,7 +59,7 @@ export function DayView({
               {formatDayMonthFull(startOfDayMsk(nextDate))}
             </Button>
           ) : (
-            <Link href="/schedule?view=week" className="text-base">
+            <Link href="/schedule?view=week" className="type-body">
               Посмотреть всю неделю
             </Link>
           )
@@ -98,7 +99,7 @@ export function DayView({
       const gap = (e.at - prevEnd) / 60_000;
       if (gap > 90) {
         items.push(
-          <li key={`gap-${cls.id}`} className="px-1 text-sm text-ink-2">
+          <li key={`gap-${cls.id}`} className="px-1 type-caption text-ink-2">
             Окно {formatDuration(gap)}
           </li>,
         );
@@ -116,7 +117,7 @@ export function DayView({
           state={isToday && ended ? "past" : running ? "now" : "upcoming"}
         />
         {clash && (
-          <p className="px-1 text-sm">
+          <p className="px-1 type-caption">
             Пары пересекаются по времени. <Link href="/support">Сообщите в деканат</Link>, чтобы это
             исправили
           </p>
@@ -126,14 +127,4 @@ export function DayView({
   }
 
   return <ol className="flex flex-col gap-2">{items}</ol>;
-}
-
-function NowLine({ now }: { now: Date }) {
-  return (
-    <li className="flex items-center gap-2 text-sm font-medium text-accent" data-slot="now-line">
-      <span aria-hidden className="h-0.5 flex-1 rounded-full bg-accent" />
-      <span>Сейчас {formatTimeMsk(now)}</span>
-      <span aria-hidden className="h-0.5 flex-1 rounded-full bg-accent" />
-    </li>
-  );
 }

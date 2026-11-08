@@ -41,7 +41,7 @@ export function StudyScreen() {
   return (
     <>
       <header className="flex flex-col gap-3">
-        <h1 className="text-2xl font-semibold lg:text-3xl">Учёба</h1>
+        <h1 className="type-h1">Учёба</h1>
         <StudyTabs />
       </header>
       <ApiView api={api} skeleton={<StudySkeleton />}>
@@ -49,7 +49,7 @@ export function StudyScreen() {
           <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_22.5rem] lg:items-start lg:gap-8">
             <div className="flex min-w-0 flex-col gap-4">
               {grades.semesters.length > 1 && (
-                <label className="flex flex-wrap items-center gap-2 text-sm text-ink-2">
+                <label className="flex flex-wrap items-center gap-2 type-caption text-ink-2">
                   Семестр
                   <select
                     value={grades.semester}
@@ -74,7 +74,7 @@ export function StudyScreen() {
                 <>
                   <SemesterSummary grades={grades} />
                   <section aria-labelledby="courses-title" className="flex flex-col gap-3">
-                    <h2 id="courses-title" className="text-xl font-semibold">
+                    <h2 id="courses-title" className="type-h2">
                       Дисциплины
                     </h2>
                     <ul className="flex flex-col gap-2">

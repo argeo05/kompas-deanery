@@ -142,7 +142,7 @@ function Toast({ item, onClose }: { item: ToastItem; onClose: () => void }) {
       <Icon aria-hidden className={cn("mt-0.5 size-5 shrink-0", className)} />
       <div className="flex min-w-0 flex-1 flex-col gap-1 py-0.5">
         <p className="font-medium">{item.title}</p>
-        {item.description && <p className="text-sm text-ink-2">{item.description}</p>}
+        {item.description && <p className="type-caption text-ink-2">{item.description}</p>}
         {item.action && (
           <button
             type="button"

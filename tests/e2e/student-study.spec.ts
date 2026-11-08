@@ -13,8 +13,9 @@ const C1 = "11111111-1111-4111-8111-111111111111";
 test("шкала «98 / Отлично / A» и чек-лист зачёта", async ({ page }) => {
   await mockJson(page, "**/api/me/grades", makeGrades());
   await page.goto("/study");
-  await expect(page.locator("[data-slot=grade-scale]").first()).toContainText(
-    "98 баллов, оценка «Отлично», буква A",
+  await expect(page.locator("[data-slot=grade-scale]").first()).toHaveAttribute(
+    "aria-label",
+    "98 баллов, отлично, A",
   );
   await expect(page.getByText("Проект сдан")).toBeVisible();
   await expect(page.getByText("Условия зачёта")).toBeVisible();

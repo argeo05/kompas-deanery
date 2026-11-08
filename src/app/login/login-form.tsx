@@ -63,7 +63,7 @@ export function LoginForm({ next }: { next?: string }) {
   return (
     <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
       {error && <InlineError id="login-error">{error}</InlineError>}
-      <label className="flex flex-col gap-1.5 text-sm font-medium">
+      <label className="flex flex-col gap-1.5 type-body-strong">
         Логин
         <input
           ref={loginRef}
@@ -77,7 +77,7 @@ export function LoginForm({ next }: { next?: string }) {
           className={inputClass}
         />
       </label>
-      <label className="flex flex-col gap-1.5 text-sm font-medium">
+      <label className="flex flex-col gap-1.5 type-body-strong">
         Пароль
         <input
           ref={passwordRef}
@@ -92,7 +92,7 @@ export function LoginForm({ next }: { next?: string }) {
         Войти
       </Button>
       <div className="flex flex-col gap-2 border-t border-line pt-4">
-        <p className="text-sm text-ink-2">
+        <p className="type-caption text-ink-2">
           Все данные вымышленные. Для проверки можно войти под демо-аккаунтом Анны.
         </p>
         <Button

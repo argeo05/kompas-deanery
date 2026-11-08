@@ -14,10 +14,10 @@ export function HotList({ items, now }: { items: HotItem[]; now: Date }) {
   return (
     <section aria-labelledby="hot-title" className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-2">
-        <h2 id="hot-title" className="text-xl font-semibold">
+        <h2 id="hot-title" className="type-h2">
           Горит
         </h2>
-        <Link href="/study#deadlines" className="text-sm">
+        <Link href="/study#deadlines" className="type-caption">
           Все дедлайны
         </Link>
       </div>
@@ -26,10 +26,8 @@ export function HotList({ items, now }: { items: HotItem[]; now: Date }) {
           item.kind === "deadline" ? (
             <li key={item.deadline.id}>
               <Card className="gap-1 p-3">
-                <p className="text-base font-medium break-words hyphens-auto">
-                  {item.deadline.title}
-                </p>
-                <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-2">
+                <p className="type-body-strong break-words hyphens-auto">{item.deadline.title}</p>
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-1 type-caption text-ink-2">
                   <CalendarClock aria-hidden className="size-4" />
                   <span>{formatWhen(item.deadline.dueAt, now)}</span>
                   {item.deadline.courseTitle && <span>· {item.deadline.courseTitle}</span>}
@@ -46,7 +44,7 @@ export function HotList({ items, now }: { items: HotItem[]; now: Date }) {
               <Card variant="interactive" className="gap-1 p-3">
                 <Link
                   href={`/requests/${item.request.id}`}
-                  className="card-link text-base font-medium text-ink no-underline outline-none after:absolute after:inset-0 after:rounded-card"
+                  className="card-link type-body-strong text-ink no-underline outline-none after:absolute after:inset-0 after:rounded-card"
                 >
                   {item.request.type.title}
                 </Link>
@@ -74,15 +72,15 @@ export function NewsList({ items }: { items: TodayDTO["news"] }) {
   if (items.length === 0) return null;
   return (
     <section aria-labelledby="news-title" className="flex flex-col gap-3">
-      <h2 id="news-title" className="text-xl font-semibold">
+      <h2 id="news-title" className="type-h2">
         Новое от деканата
       </h2>
       <ul className="flex flex-col gap-2">
         {items.map((n) => (
           <li key={n.id}>
             <Card className="gap-1 p-3">
-              <p className="text-base font-medium break-words hyphens-auto">{n.title}</p>
-              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-2">
+              <p className="type-body-strong break-words hyphens-auto">{n.title}</p>
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 type-caption text-ink-2">
                 <span>{formatDayMonth(n.publishedAt)}</span>
                 {n.important && (
                   <Badge tone="warn" icon={Megaphone}>

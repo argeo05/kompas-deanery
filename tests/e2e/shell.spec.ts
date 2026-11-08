@@ -126,3 +126,43 @@ test("на 320 px нет горизонтальной прокрутки и по
     );
   expect(clipped).toEqual([]);
 });
+
+// AC-NAV.1 (SPEC §7.5): подписи нижней панели студента не обрезаются и не переносятся
+// на 360×740 при масштабе текста 125% в обеих темах.
+for (const scheme of ["light", "dark"] as const) {
+  test(`AC-NAV.1: подписи нижней панели помещаются при тексте 125%, тема ${scheme}`, async ({
+    page,
+  }) => {
+    test.skip(!isMobile(page), "нижняя панель только на мобильной");
+    await page.emulateMedia({ colorScheme: scheme });
+    // 125% от базового размера: все rem растут, как при настройке «крупный текст».
+    await page.evaluate(() => document.documentElement.style.setProperty("font-size", "125%"));
+    const bottom = page.getByRole("navigation", { name: "Основные разделы", exact: true });
+    const labels = bottom.locator("a .type-nav, button .type-nav");
+    await expect(labels).toHaveCount(5);
+    const texts = await labels.allTextContents();
+    expect(texts.map((t) => t.trim())).toEqual(["Сегодня", "Пары", "Учёба", "Заявки", "Ещё"]);
+    const metrics = await labels.evaluateAll((els) =>
+      els.map((el) => {
+        const r = el.getBoundingClientRect();
+        const lh = parseFloat(getComputedStyle(el).lineHeight);
+        return {
+          text: el.textContent,
+          clipped: el.scrollWidth > el.clientWidth,
+          // Одна строка: высота блока не больше одной строки с запасом на округление.
+          lines: Math.round(r.height / lh),
+          overflowsCell: r.width > (el.closest("li")?.getBoundingClientRect().width ?? 0),
+        };
+      }),
+    );
+    for (const m of metrics) {
+      expect(m, `подпись «${m.text}»`).toMatchObject({
+        clipped: false,
+        lines: 1,
+        overflowsCell: false,
+      });
+    }
+    // Полное имя пункта для экранного диктора остаётся «Расписание».
+    await expect(bottom.getByRole("link", { name: /Расписание/ })).toBeVisible();
+  });
+}

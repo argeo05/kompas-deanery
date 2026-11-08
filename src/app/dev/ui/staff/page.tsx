@@ -16,7 +16,7 @@ export default function DevUiStaffPage() {
   if (!devUiEnabled()) notFound();
   return (
     <AppShell role="staff" initials="ЕС">
-      <h1 className="text-3xl font-semibold">Очередь заявок</h1>
+      <h1 className="type-h1">Очередь заявок</h1>
       <ul className="flex flex-col gap-3">
         {(["submitted", "in_progress", "needs_info"] as const).map((status, i) => (
           <li key={status}>

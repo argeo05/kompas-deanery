@@ -16,8 +16,8 @@ export default async function Home() {
       className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center gap-4 px-4 py-16 outline-none"
     >
       <Logo />
-      <h1 className="font-display text-3xl lg:text-4xl">Всё про учёбу — в одном месте</h1>
-      <p className="text-lg text-ink-2">
+      <h1 className="type-display">Всё про учёбу — в одном месте</h1>
+      <p className="type-body text-ink-2">
         Личный кабинет студента: расписание, оценки, справки и связь с деканатом. Концепт для MGIMO
         AI Challenge.
       </p>

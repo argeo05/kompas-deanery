@@ -25,10 +25,10 @@ export function WhatIf({ items }: { items: Item[] }) {
 
   return (
     <section aria-labelledby="whatif-title" className="flex flex-col gap-3">
-      <h2 id="whatif-title" className="text-xl font-semibold">
+      <h2 id="whatif-title" className="type-h2">
         Что если
       </h2>
-      <p className="text-sm text-ink-2">
+      <p className="type-caption text-ink-2">
         Передвиньте ползунки у работ, которые ещё не сданы. Это прогноз, а не оценка: ничего не
         сохраняется.
       </p>
@@ -38,11 +38,11 @@ export function WhatIf({ items }: { items: Item[] }) {
           const id = `whatif-${i.id}`;
           return (
             <li key={i.id} className="flex flex-col gap-1">
-              <div className="flex justify-between gap-2 text-base">
+              <div className="flex justify-between gap-2 type-body">
                 <label htmlFor={id} className="min-w-0 break-words hyphens-auto">
                   {i.title}
                 </label>
-                <span aria-hidden className="shrink-0 font-semibold tabular">
+                <span aria-hidden className="shrink-0 type-num">
                   {value} из {i.max}
                 </span>
                 <output htmlFor={id} className="sr-only">
@@ -65,8 +65,8 @@ export function WhatIf({ items }: { items: Item[] }) {
         })}
       </ul>
       <div className="rounded-card bg-surface-2 p-3">
-        <p className="text-sm text-ink-2">Итог при таких баллах (прогноз)</p>
-        <GradeScale total={total} mark={mark} size="lg" />
+        <p className="type-caption text-ink-2">Итог при таких баллах (прогноз)</p>
+        <GradeScale total={total} mark={mark} variant="card" />
       </div>
     </section>
   );

@@ -1,75 +1,72 @@
 import * as React from "react";
 import { cn } from "cn";
 
-// Сцены для пустых состояний (SPEC §7.2 «Иллюстрации»): линейная графика чернилами + одна
-// заливка-акцент. Это рабочий набор в едином стиле; финальные сцены (ИИ-генерация и векторизация)
-// заменят их без изменения API: <Illustration name="…" />. Декоративные — aria-hidden.
+// Сцены для пустых состояний (SPEC §7.2 «Иллюстрации», §12.1): SVG кодом, без генератора изображений.
+// Измеримый стиль, по которому принимается каждая сцена:
+//  - холст 240×160, показ 240×160 px на мобильной, до 320×213 на десктопе;
+//  - линия 2, мелкие детали 1,5, скругления round, без градиентов;
+//  - цвет: линии `currentColor` = --ink и ОДНА заливка --accent с fill-opacity 0,16 на одном предмете;
+//  - один «тетрадный» предмет по центру на базовой линии y = 136, поле ≥ 16 px, без людей и текста;
+//  - никакой анимации: постоянного движения в интерфейсе нет (§7.2 «Движение»).
+// Декоративные: aria-hidden, смысл несёт подпись пустого состояния.
 
 export type IllustrationName =
   "free-day" | "all-done" | "offline" | "no-requests" | "nothing-found" | "error";
 
-const line = "fill-none stroke-ink";
-const fillAccent = "fill-info-bg stroke-ink";
+/** Заливка-акцент: единственная на сцену. */
+const ACCENT = { className: "fill-accent", fillOpacity: 0.16 } as const;
+
+/** Мелкая деталь: 1,5 вместо 2. */
+const FINE = { strokeWidth: 1.5 } as const;
 
 const scenes: Record<IllustrationName, React.ReactNode> = {
-  // Свободный день: солнце над раскрытой тетрадью.
+  // Свободный день: чашка с паром.
   "free-day": (
     <>
-      <circle cx="80" cy="34" r="14" className={fillAccent} />
-      <path
-        d="M80 10v6M80 52v6M56 34h6M98 34h6M63 17l4 4M93 47l4 4M63 51l4-4M93 21l4-4"
-        className={line}
-      />
-      <path
-        d="M30 70c14-6 30-6 50 0 20-6 36-6 50 0v34c-14-6-30-6-50 0-20-6-36-6-50 0z"
-        className={line}
-      />
-      <path d="M80 70v34M42 80h24M42 88h18M94 80h24M94 88h20" className={line} />
+      <path d="M92 84h56v28a24 24 0 0 1-24 24h-8a24 24 0 0 1-24-24z" {...ACCENT} />
+      <path d="M148 94h6a12 12 0 0 1 0 24h-8" />
+      <path d="M108 70c-4-6 4-10 0-16M124 70c-4-6 4-10 0-16M140 70c-4-6 4-10 0-16" {...FINE} />
     </>
   ),
-  // Всё сделано: лист с галочками.
+  // Всё сделано: тетрадь с галочкой.
   "all-done": (
     <>
-      <rect x="50" y="14" width="60" height="86" rx="8" className={fillAccent} />
-      <path
-        d="m60 36 5 5 9-10M60 58l5 5 9-10M60 80l5 5 9-10M82 38h18M82 60h18M82 82h14"
-        className={line}
-      />
+      <rect x="84" y="40" width="72" height="96" rx="6" {...ACCENT} />
+      <path d="M98 40v96" />
+      <path d="m111 88 9 9 17-19" />
+      <path d="M110 58h30" {...FINE} />
     </>
   ),
-  // Нет сети: облако с перечёркиванием.
+  // Нет сети: компас с разорванным кольцом.
   offline: (
     <>
-      <path
-        d="M48 86h62a20 20 0 0 0 0-40 28 28 0 0 0-54-4 22 22 0 0 0-8 44z"
-        className={fillAccent}
-      />
-      <path d="M44 28l76 72" className={line} />
+      <circle cx="120" cy="92" r="44" strokeDasharray="6 8" />
+      <path d="M120 64 130 92l-10 28-10-28z" {...ACCENT} />
+      <path d="M120 52v6M120 126v6M76 92h6M158 92h6" {...FINE} />
     </>
   ),
-  // Нет заявок: пустой лоток.
+  // Нет заявок: конверт.
   "no-requests": (
     <>
-      <path d="M36 66l14-38h60l14 38v28a6 6 0 0 1-6 6H42a6 6 0 0 1-6-6z" className={line} />
-      <path d="M36 66h26l6 10h24l6-10h26" className={fillAccent} />
+      <rect x="76" y="72" width="88" height="64" rx="6" />
+      <path d="M76 78 120 108l44-30V72H76z" {...ACCENT} />
+      <path d="m76 134 34-24M164 134l-34-24" {...FINE} />
     </>
   ),
-  // Ничего не найдено: лупа над пустой строкой.
+  // Ничего не найдено: раскрытая чистая тетрадь.
   "nothing-found": (
     <>
-      <circle cx="72" cy="50" r="24" className={fillAccent} />
-      <path d="m90 68 22 22M40 104h80" className={line} />
-      <path d="M64 50h16" className={line} />
+      <path d="M120 60c-14-8-30-10-48-6v82c18-4 34-2 48 6z" {...ACCENT} />
+      <path d="M120 60c14-8 30-10 48-6v82c-18-4-34-2-48 6z" />
+      <path d="M120 60v82" {...FINE} />
     </>
   ),
-  // Ошибка: страница с загнутым углом и знаком вопроса.
+  // Ошибка: страница с загнутым углом и трещиной.
   error: (
     <>
-      <path
-        d="M50 14h44l16 16v70a6 6 0 0 1-6 6H50a6 6 0 0 1-6-6V20a6 6 0 0 1 6-6z"
-        className={fillAccent}
-      />
-      <path d="M94 14v16h16M70 54a8 8 0 1 1 12 7c-3 2-4 4-4 7M78 78v1" className={line} />
+      <path d="M88 40h48l24 24v72H88z" />
+      <path d="M136 40v24h24z" {...ACCENT} />
+      <path d="m88 100 16-8 12 12 14-10 14 10 16-8" {...FINE} />
     </>
   ),
 };
@@ -77,15 +74,20 @@ const scenes: Record<IllustrationName, React.ReactNode> = {
 export function Illustration({ name, className }: { name: IllustrationName; className?: string }) {
   return (
     <svg
-      viewBox="0 0 160 120"
+      viewBox="0 0 240 160"
       aria-hidden
       focusable="false"
-      strokeWidth={2.5}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={cn("h-auto w-32", className)}
+      data-slot="illustration"
+      className={cn("h-auto w-60 max-w-full text-ink lg:w-80", className)}
     >
       {scenes[name]}
+      {/* Базовая линия сцены. */}
+      <path d="M56 136h128" />
     </svg>
   );
 }

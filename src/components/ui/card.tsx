@@ -46,14 +46,16 @@ function CardTitle({
   as: Tag = "h3",
   ...props
 }: React.ComponentProps<"h3"> & { as?: "h2" | "h3" | "h4" }) {
-  return (
-    <Tag data-slot="card-title" className={cn("text-lg font-semibold", className)} {...props} />
-  );
+  return <Tag data-slot="card-title" className={cn("type-h3", className)} {...props} />;
 }
 
 function CardDescription({ className, ...props }: React.ComponentProps<"p">) {
   return (
-    <p data-slot="card-description" className={cn("text-sm text-ink-2", className)} {...props} />
+    <p
+      data-slot="card-description"
+      className={cn("type-caption text-ink-2", className)}
+      {...props}
+    />
   );
 }
 
@@ -78,7 +80,7 @@ function CardLink({ className, ...props }: React.ComponentProps<typeof Link>) {
   return (
     <Link
       className={cn(
-        "card-link font-semibold text-ink no-underline outline-none after:absolute after:inset-0 after:rounded-card",
+        "card-link text-ink no-underline outline-none after:absolute after:inset-0 after:rounded-card",
         className,
       )}
       {...props}

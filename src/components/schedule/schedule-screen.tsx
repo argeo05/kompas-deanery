@@ -42,7 +42,7 @@ function Skeleton_() {
 function ParityLine({ data }: { data: ScheduleDTO }) {
   const parity = data.weekParity ? (data.weekParity === "odd" ? "числитель" : "знаменатель") : null;
   return (
-    <p className="text-sm text-ink-2">
+    <p className="type-caption text-ink-2">
       Неделя {data.weekNumber}
       {parity && ` · ${parity}`}
     </p>
@@ -108,7 +108,7 @@ export function ScheduleScreen() {
     <>
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-2xl font-semibold lg:text-3xl">Расписание</h1>
+          <h1 className="type-h1">Расписание</h1>
           <div role="group" aria-label="Вид расписания" className="flex gap-1">
             {(["day", "week"] as const).map((v) => (
               <Button
@@ -134,7 +134,7 @@ export function ScheduleScreen() {
               >
                 <ChevronLeft aria-hidden />
               </Button>
-              <p className="min-w-0 flex-1 text-center text-lg font-semibold" aria-live="polite">
+              <p className="min-w-0 flex-1 text-center type-h3" aria-live="polite">
                 {view === "day"
                   ? heading
                   : `${formatDayMonthFull(startOfDayMsk(days[0]!))} — ${formatDayMonthFull(startOfDayMsk(days[6]!))}`}
@@ -188,7 +188,7 @@ export function ScheduleScreen() {
               className={cn("flex flex-col gap-4", view === "day" && "touch-pan-y")}
             >
               {data.classes.some((c) => c.type === "exam") && (
-                <p className="rounded-control bg-info-bg p-3 text-sm text-info-fg">
+                <p className="rounded-control bg-info-bg p-3 type-caption text-info-fg">
                   На этой неделе есть экзамены. Даты и аудитории смотрите во вкладке{" "}
                   <Link href="/study/session">«Сессия»</Link> раздела «Учёба».
                 </p>

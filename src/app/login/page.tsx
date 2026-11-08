@@ -18,8 +18,8 @@ export default async function LoginPage({
     >
       <Logo />
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold">Вход в кабинет</h1>
-        <p className="text-base text-ink-2">Введите логин и пароль, которые вам выдали.</p>
+        <h1 className="type-h1">Вход в кабинет</h1>
+        <p className="type-body text-ink-2">Введите логин и пароль, которые вам выдали.</p>
       </div>
       <LoginForm next={next} />
     </main>

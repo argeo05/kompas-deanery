@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState, InlineError } from "@/components/ui/error-state";
+import { GradeScale } from "@/components/ui/grade-scale";
+import { NowLine } from "@/components/ui/now-line";
 import { Illustration, type IllustrationName } from "@/components/ui/illustrations";
 import { OfflineBar } from "@/components/ui/offline-bar";
 import { LoadingRegion, Skeleton, SkeletonCard } from "@/components/ui/skeleton";
@@ -45,15 +47,18 @@ const SURFACES = [
   { name: "--alert", cls: "bg-alert" },
 ];
 
-const TYPE_SCALE = [
-  { cls: "text-4xl", px: 40 },
-  { cls: "text-3xl", px: 32 },
-  { cls: "text-2xl", px: 24 },
-  { cls: "text-xl", px: 20 },
-  { cls: "text-lg", px: 18 },
-  { cls: "text-base", px: 16 },
-  { cls: "text-sm", px: 14 },
-  { cls: "text-xs", px: 12 },
+// Роли типографики (SPEC §7.2, src/styles/typography.css).
+const TYPE_ROLES = [
+  { cls: "type-display", name: "display", spec: "Unbounded 32 / 40" },
+  { cls: "type-h1", name: "h1", spec: "Onest 24 / 32, 600" },
+  { cls: "type-h2", name: "h2", spec: "Onest 20 / 24, 600" },
+  { cls: "type-h3", name: "h3", spec: "Onest 18 / 20, 600" },
+  { cls: "type-body", name: "body", spec: "Onest 16, 400" },
+  { cls: "type-body-strong", name: "body-strong", spec: "Onest 16, 500" },
+  { cls: "type-caption", name: "caption", spec: "Onest 14, 400" },
+  { cls: "type-label", name: "метка статуса", spec: "Onest 12, 600, прописные" },
+  { cls: "type-nav", name: "подпись навигации", spec: "Onest 12 / 16, 500" },
+  { cls: "type-num", name: "цифры", spec: "Onest 600, tabular-nums" },
 ];
 
 const ILLUSTRATIONS: { name: IllustrationName; label: string }[] = [
@@ -76,7 +81,7 @@ function Section({
 }) {
   return (
     <section aria-labelledby={id} className="flex flex-col gap-4">
-      <h2 id={id} className="text-2xl font-semibold">
+      <h2 id={id} className="type-h2">
         {title}
       </h2>
       {children}
@@ -94,7 +99,7 @@ export default function DevUiPage() {
       badges={{ schedule: true, study: 2, requests: true, more: 3, notifications: 3 }}
     >
       <header className="flex flex-col gap-1">
-        <h1 className="font-display text-3xl lg:text-4xl">Витрина интерфейса</h1>
+        <h1 className="type-display">Витрина интерфейса</h1>
         <p className="text-ink-2">
           Токены «Бумага и чернила» и компоненты кабинета. Страница видна только в разработке.
         </p>
@@ -109,7 +114,7 @@ export default function DevUiPage() {
             </li>
           ))}
         </ul>
-        <h3 className="text-lg font-semibold">Цвета дисциплин</h3>
+        <h3 className="type-h3">Цвета дисциплин</h3>
         <ul className="flex flex-wrap gap-2" aria-label="Десять цветов дисциплин">
           {COURSE_COLOR_CLASSES.map((cls, i) => (
             <li
@@ -124,14 +129,34 @@ export default function DevUiPage() {
       </Section>
 
       <Section id="type" title="Типографика">
-        <p className="font-display text-3xl tabular lg:text-4xl">12:40 → 15:20</p>
-        <ul className="flex flex-col gap-1">
-          {TYPE_SCALE.map((t) => (
-            <li key={t.cls} className={`${t.cls} flex items-baseline gap-3`}>
-              <span className="w-10 shrink-0 text-xs text-ink-2 tabular">{t.px}</span>
-              <span className="min-w-0">Макроэкономика, ауд. 4012</span>
+        <ul className="flex flex-col gap-2">
+          {TYPE_ROLES.map((t) => (
+            <li
+              key={t.cls}
+              className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-3"
+            >
+              <span className="shrink-0 type-caption text-ink-2 sm:w-56">
+                {t.name} · {t.spec}
+              </span>
+              <span className={`${t.cls} min-w-0`}>
+                {t.cls === "type-display" || t.cls === "type-num" ? "15:20" : "Макроэкономика"}
+              </span>
             </li>
           ))}
+        </ul>
+        <h3 className="type-h3">Оценка «98 / Отлично / A»</h3>
+        <div className="flex max-w-md flex-col gap-4">
+          <Card>
+            <GradeScale total={98} mark={{ word: "Отлично", letter: "A" }} variant="card" />
+          </Card>
+          <Card className="flex-row items-start justify-between gap-3">
+            <p className="type-h3">Макроэкономика</p>
+            <GradeScale total={74} mark={{ word: "Хорошо", letter: "C" }} />
+          </Card>
+        </div>
+        <h3 className="type-h3">Линия «сейчас»</h3>
+        <ul className="max-w-md">
+          <NowLine now={new Date("2026-11-12T12:40:00+03:00")} />
         </ul>
         <p className="max-w-prose">
           Основной текст — Onest 16 px, высота строки 1,5. Длинные слова вроде «межфакультетский» и
@@ -208,7 +233,7 @@ export default function DevUiPage() {
       </Section>
 
       <Section id="badges" title="Статусы">
-        <h3 className="text-lg font-semibold">Заявки</h3>
+        <h3 className="type-h3">Заявки</h3>
         <ul className="flex flex-wrap gap-2">
           {(Object.keys(REQUEST_STATUS) as RequestStatus[]).map((s) => (
             <li key={s}>
@@ -216,7 +241,7 @@ export default function DevUiPage() {
             </li>
           ))}
         </ul>
-        <h3 className="text-lg font-semibold">Семестр</h3>
+        <h3 className="type-h3">Семестр</h3>
         <ul className="flex flex-wrap gap-2">
           {(Object.keys(SEMESTER_STATUS) as SemesterStatus[]).map((s) => (
             <li key={s}>
@@ -224,7 +249,7 @@ export default function DevUiPage() {
             </li>
           ))}
         </ul>
-        <h3 className="text-lg font-semibold">Метки</h3>
+        <h3 className="type-h3">Метки</h3>
         <div className="flex flex-wrap gap-2">
           <Badge tone="warn" icon={ArrowRightLeft}>
             Перенос
@@ -262,13 +287,13 @@ export default function DevUiPage() {
             </EmptyState>
           </Card>
         </div>
-        <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {ILLUSTRATIONS.map((il) => (
             <li
               key={il.name}
-              className="flex flex-col items-center gap-2 text-center text-sm text-ink-2"
+              className="flex flex-col items-center gap-2 text-center type-caption text-ink-2"
             >
-              <Illustration name={il.name} className="w-24" />
+              <Illustration name={il.name} />
               {il.label}
             </li>
           ))}

@@ -8,6 +8,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GradeScale } from "@/components/ui/grade-scale";
+import { ProgressRing } from "@/components/ui/progress-ring";
 import { LoadingRegion, Skeleton, SkeletonCard } from "@/components/ui/skeleton";
 import type { CourseGradesDTO } from "@/contracts/api";
 import { formatDayMonth } from "@/lib/format";
@@ -43,10 +44,10 @@ function Help({ course }: { course: CourseGradesDTO }) {
   const needsHelp = !!behind && behind.needed > 0 && (left === 0 || behind.needed > left * 0.7);
   return (
     <section aria-labelledby="help-title" className="flex flex-col gap-3">
-      <h2 id="help-title" className="text-xl font-semibold">
+      <h2 id="help-title" className="type-h2">
         Что поможет
       </h2>
-      <ul className="flex flex-col gap-1.5 text-base">
+      <ul className="flex flex-col gap-1.5 type-body">
         {sorted.map((l) => (
           <li key={l.target}>{l.text}</li>
         ))}
@@ -54,7 +55,7 @@ function Help({ course }: { course: CourseGradesDTO }) {
       {needsHelp && (
         <div className="flex flex-col gap-2">
           {course.teacher.officeHours && (
-            <p className="text-base">Ближайшая консультация: {course.teacher.officeHours}.</p>
+            <p className="type-body">Ближайшая консультация: {course.teacher.officeHours}.</p>
           )}
           {course.teacher.email && (
             <a
@@ -78,17 +79,27 @@ function Content({ course }: { course: CourseGradesDTO }) {
       <div className="flex min-w-0 flex-col gap-6">
         <Card>
           {course.mark ? (
-            <GradeScale total={course.total} mark={course.mark} size="lg" />
+            <GradeScale total={course.total} mark={course.mark} variant="card" />
           ) : (
-            <p className="text-lg text-ink-2">Итоговой оценки пока нет</p>
+            <div className="flex items-center gap-3">
+              <ProgressRing
+                value={course.total}
+                max={100}
+                label={`Набрано ${course.total} баллов из 100`}
+              />
+              <div className="flex flex-col">
+                <p className="type-body-strong">Итоговой оценки пока нет</p>
+                <p className="type-caption text-ink-2">предварительно</p>
+              </div>
+            </div>
           )}
-          <p className="text-sm text-ink-2">
+          <p className="type-caption text-ink-2">
             {CONTROL_LABEL[course.control]} · {course.teacher.fullName}
           </p>
         </Card>
 
         <section aria-labelledby="items-title" className="flex flex-col gap-3">
-          <h2 id="items-title" className="text-xl font-semibold">
+          <h2 id="items-title" className="type-h2">
             Работы и баллы
           </h2>
           <ul className="flex flex-col gap-2">
@@ -96,10 +107,8 @@ function Content({ course }: { course: CourseGradesDTO }) {
               <li key={i.id}>
                 <Card className="gap-1 p-3">
                   <div className="flex items-start justify-between gap-3">
-                    <p className="min-w-0 text-base font-medium break-words hyphens-auto">
-                      {i.title}
-                    </p>
-                    <p className="shrink-0 text-base font-semibold tabular">
+                    <p className="min-w-0 type-body-strong break-words hyphens-auto">{i.title}</p>
+                    <p className="shrink-0 text-base type-num">
                       {i.score === null ? (
                         <span className="font-normal text-ink-2">не сдано</span>
                       ) : (
@@ -107,7 +116,7 @@ function Content({ course }: { course: CourseGradesDTO }) {
                       )}
                     </p>
                   </div>
-                  <p className="text-sm text-ink-2">
+                  <p className="type-caption text-ink-2">
                     {i.dueAt ? `Срок: ${formatDayMonth(i.dueAt)} · ` : ""}вес в итоге{" "}
                     {Math.round(i.weight * 100)}%{i.max !== 100 ? ` · максимум ${i.max}` : ""}
                   </p>
@@ -124,18 +133,18 @@ function Content({ course }: { course: CourseGradesDTO }) {
         <Help course={course} />
         {course.rulesText && (
           <section aria-labelledby="rules-title" className="flex flex-col gap-2">
-            <h2 id="rules-title" className="text-xl font-semibold">
+            <h2 id="rules-title" className="type-h2">
               Как оценивается
             </h2>
-            <p className="text-base whitespace-pre-line text-ink-2">{course.rulesText}</p>
+            <p className="type-body whitespace-pre-line text-ink-2">{course.rulesText}</p>
           </section>
         )}
         {course.history.length > 0 && (
           <section aria-labelledby="history-title" className="flex flex-col gap-2">
-            <h2 id="history-title" className="text-xl font-semibold">
+            <h2 id="history-title" className="type-h2">
               История изменений
             </h2>
-            <ul className="flex flex-col gap-2 text-sm">
+            <ul className="flex flex-col gap-2 type-caption">
               {course.history.map((h) => {
                 const item = maxById.get(h.itemId);
                 const max = item?.max ?? "";
@@ -165,10 +174,10 @@ export function SubjectScreen({ courseId }: { courseId: string }) {
   return (
     <>
       <header className="flex flex-col gap-2">
-        <Link href="/study" className="w-fit text-sm">
+        <Link href="/study" className="w-fit type-caption">
           ← Учёба
         </Link>
-        <h1 className="text-2xl font-semibold break-words hyphens-auto lg:text-3xl">
+        <h1 className="type-h2 break-words hyphens-auto lg:text-3xl">
           {api.data?.title ?? "Дисциплина"}
         </h1>
       </header>

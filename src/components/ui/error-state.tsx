@@ -27,8 +27,8 @@ export function ErrorState({
       className={cn("flex flex-col items-center gap-3 px-4 py-8 text-center", className)}
     >
       <Illustration name="error" />
-      <H className="text-xl font-semibold">{title}</H>
-      {children && <div className="max-w-sm text-base text-ink-2">{children}</div>}
+      <H className="type-h2">{title}</H>
+      {children && <div className="max-w-sm type-body text-ink-2">{children}</div>}
       <div className="mt-1 flex flex-wrap justify-center gap-2">{action}</div>
     </section>
   );
@@ -57,7 +57,7 @@ export function InlineError({
       )}
     >
       <CircleAlert aria-hidden className="size-5 shrink-0 text-alert-fg" />
-      <p className="min-w-0 flex-1 basis-48 text-sm">{children}</p>
+      <p className="min-w-0 flex-1 basis-48 type-caption">{children}</p>
       {action}
     </div>
   );

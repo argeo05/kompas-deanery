@@ -37,7 +37,7 @@ export function ProgressRing({
           strokeDashoffset={c * (1 - share)}
         />
       </svg>
-      <span aria-hidden className="absolute text-sm font-semibold tabular">
+      <span aria-hidden className="absolute text-sm type-num">
         {Math.round(value)}
       </span>
     </span>

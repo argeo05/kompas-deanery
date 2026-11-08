@@ -75,7 +75,7 @@ function TodayContent({ today }: { today: TodayDTO }) {
           <NewsList items={today.news} />
         </div>
       ) : (
-        <p className="text-base text-ink-2">
+        <p className="type-body text-ink-2">
           Срочного нет.{" "}
           <Link
             href="/schedule?view=week"
@@ -99,13 +99,13 @@ export function TodayScreen() {
     <>
       <header className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-1">
-          <h1 className="text-2xl font-semibold lg:text-3xl">
+          <h1 className="type-h1 lg:type-display">
             {api.data
               ? `${GREETING[api.data.greeting]}, ${displayName}`
               : `Здравствуйте, ${displayName}`}
           </h1>
           {api.data && (
-            <p className="text-base text-ink-2">
+            <p className="type-body text-ink-2">
               {formatDateLong(now)} · по Москве
               {api.justUpdated && !api.error && " · обновлено только что"}
             </p>

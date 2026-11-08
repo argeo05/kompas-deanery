@@ -2,9 +2,9 @@ import * as React from "react";
 import { cn } from "cn";
 import { Radio } from "lucide-react";
 import { Card, CardLink } from "@/components/ui/card";
+import { CourseBookmark } from "@/components/ui/course-bookmark";
 import { Badge } from "@/components/ui/status-badge";
 import type { ClassDTO } from "@/contracts/api";
-import { courseColorClass } from "@/lib/course-color";
 import { formatTimeMsk, formatWeekdayShort, formatDayMonth } from "@/lib/format";
 import {
   CHANGE_META,
@@ -51,7 +51,7 @@ export function ChangeNote({ cls }: { cls: ClassDTO }) {
       <Badge tone={meta.tone} icon={meta.icon}>
         {meta.label}
       </Badge>
-      {detail && <span className="text-sm text-ink">{detail}</span>}
+      {detail && <span className="type-caption text-ink">{detail}</span>}
     </div>
   );
 }
@@ -80,24 +80,21 @@ export function ClassCard({
       variant={changed && !cancelled ? "highlight" : "interactive"}
       className={cn(
         "flex-row gap-3",
-        compact ? "p-3" : "p-4",
+        compact ? "p-3 pl-7" : "p-4 pl-7",
         changed &&
           "has-[.card-link:focus-visible]:outline-2 has-[.card-link:focus-visible]:outline-offset-2 has-[.card-link:focus-visible]:outline-focus",
         className,
       )}
     >
-      <span
-        aria-hidden
-        className={cn("w-1 shrink-0 self-stretch rounded-full", courseColorClass(cls.course.colorIndex))}
-      />
+      <CourseBookmark colorIndex={cls.course.colorIndex} />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-2">
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 type-caption text-ink-2">
           {showDate && (
             <span>
               {formatWeekdayShort(cls.startsAt)}, {formatDayMonth(cls.startsAt)}
             </span>
           )}
-          <time className="font-medium text-ink tabular">{timeRange(cls)}</time>
+          <time className="type-num text-ink">{timeRange(cls)}</time>
           <span>{CLASS_TYPE_LABEL[cls.type]}</span>
           {compact && (
             <span className={cn(cls.change?.type === "room_changed" && "font-semibold text-ink")}>
@@ -114,15 +111,15 @@ export function ClassCard({
           href={href}
           className={cn(
             "break-words hyphens-auto",
-            compact ? "text-base" : "text-lg",
+            compact ? "type-body-strong" : "type-h3",
             cancelled && "line-through decoration-2",
-            state === "past" && "font-medium text-ink-2",
+            state === "past" && "text-ink-2",
           )}
         >
           {cls.course.title}
         </CardLink>
         {!compact && (
-          <p className="text-sm text-ink-2">
+          <p className="type-caption text-ink-2">
             <span className={cn(cls.change?.type === "room_changed" && "font-semibold text-ink")}>
               {roomText(cls.room)}
             </span>
@@ -153,9 +150,9 @@ export function GhostCard({
       className="flex gap-3 rounded-card border border-dashed border-line-strong p-3 text-ink-2"
     >
       <span aria-hidden className="w-1 shrink-0 self-stretch rounded-full bg-line-strong" />
-      <div className="flex min-w-0 flex-col gap-1 text-sm">
+      <div className="flex min-w-0 flex-col gap-1 type-caption">
         <p className="tabular">{formatTimeMsk(originalStartsAt)}</p>
-        <p className="font-medium text-ink-2 line-through">{cls?.course.title ?? "Пара"}</p>
+        <p className="type-body-strong text-ink-2 line-through">{cls?.course.title ?? "Пара"}</p>
         <p>
           Перенесена на{" "}
           {otherDay

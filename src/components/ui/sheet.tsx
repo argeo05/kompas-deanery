@@ -93,7 +93,7 @@ export function Sheet({
             className="mx-auto mb-2 block h-1 w-10 rounded-full bg-line-strong lg:hidden"
           />
           <div className="flex items-start justify-between gap-2">
-            <h2 id={titleId} className="pt-2 text-xl font-semibold">
+            <h2 id={titleId} className="pt-2 type-h2">
               {title}
             </h2>
             <button
@@ -106,7 +106,7 @@ export function Sheet({
             </button>
           </div>
           {description && (
-            <p id={descId} className="text-sm text-ink-2">
+            <p id={descId} className="type-caption text-ink-2">
               {description}
             </p>
           )}

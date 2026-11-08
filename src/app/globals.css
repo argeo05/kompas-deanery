@@ -259,6 +259,27 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Тетрадная линовка (SPEC §7.2a п.4): строки --line через 24 px и «поле» --line-strong в 24 px от
+   левого края с прозрачностью 0,5. Фон остаётся --surface (задаёт компонент); линовка декоративна,
+   под цифры display её не пускаем (у них собственный фон). */
+@utility paper-ruled {
+  background-image:
+    linear-gradient(
+      to right,
+      transparent calc(1.5rem - 0.5px),
+      color-mix(in srgb, var(--line-strong) 50%, transparent) calc(1.5rem - 0.5px),
+      color-mix(in srgb, var(--line-strong) 50%, transparent) calc(1.5rem + 0.5px),
+      transparent calc(1.5rem + 0.5px)
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(1.5rem - 1px),
+      var(--line) calc(1.5rem - 1px),
+      var(--line) 1.5rem
+    );
+}
+
 /* Безопасные отступы под вырез и жест «домой» на телефонах. */
 @utility pb-safe {
   padding-bottom: env(safe-area-inset-bottom);

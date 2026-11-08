@@ -47,7 +47,7 @@ export function WeekView({
             <h2
               id={`wk-${iso}`}
               className={cn(
-                "sticky top-(--header-h) z-10 bg-bg py-1 text-base font-semibold lg:static",
+                "sticky top-(--header-h) z-10 bg-bg py-1 type-h3 lg:static",
                 iso === today && "text-accent",
               )}
             >
@@ -55,7 +55,7 @@ export function WeekView({
               {iso === today && " · сегодня"}
             </h2>
             {ofDay.length === 0 && ghosts.length === 0 ? (
-              <p className="text-sm text-ink-2">Занятий нет</p>
+              <p className="type-caption text-ink-2">Занятий нет</p>
             ) : (
               <ul className="flex flex-col gap-2">
                 {ghosts.map((g) => (

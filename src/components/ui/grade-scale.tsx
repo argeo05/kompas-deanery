@@ -1,46 +1,68 @@
 import { cn } from "cn";
 import type { MarkDTO } from "@/contracts/api";
 
-// Оценка тройкой «98 / Отлично / A» (SPEC §6.4 п.8, как в ЛК МГИМО): баллы, слово, буква.
-// Размеры и начертание заданы здесь одним местом: типографика по ролям (SPEC 1.3) меняется заменой классов.
+// Оценка тройкой «98 / Отлично / A» (SPEC §7.2 «Оценка», §6.4 п.8, как в ЛК МГИМО).
+// Главное — баллы, слово и буква — расшифровка. Оценку по качеству не окрашиваем:
+// ни число, ни слово не получают статусный токен («Не стыдим»), риск показывает только StatusBadge.
+// Диктор читает одну строку: «98 баллов, отлично, A» (aria-label у группы).
 
-const SIZE = {
-  md: { score: "text-xl font-semibold", rest: "text-base" },
-  lg: { score: "font-display text-3xl", rest: "text-lg" },
-} as const;
+type Mark = Pick<MarkDTO, "word" | "letter">;
 
+function label(total: number, mark: Mark): string {
+  return `${total} баллов, ${mark.word.toLowerCase()}, ${mark.letter}`;
+}
+
+/**
+ * - `row` — строка списка дисциплин: «98» Onest 18 px 600, под ним «Отлично · A»; столбец 4ch, по правому краю.
+ * - `card` — шапка карточки дисциплины: «98» display, «из 100»; справа «Отлично» и чип «A».
+ */
 export function GradeScale({
   total,
   mark,
-  size = "md",
+  variant = "row",
   className,
 }: {
   total: number;
-  mark: Pick<MarkDTO, "word" | "letter">;
-  size?: keyof typeof SIZE;
+  mark: Mark;
+  variant?: "row" | "card";
   className?: string;
 }) {
-  const s = SIZE[size];
+  if (variant === "card") {
+    return (
+      <div
+        role="group"
+        aria-label={label(total, mark)}
+        data-slot="grade-scale"
+        data-variant="card"
+        className={cn("flex items-center justify-between gap-4", className)}
+      >
+        <div aria-hidden className="flex flex-col">
+          <span className="type-display">{total}</span>
+          <span className="type-caption text-ink-2">из 100</span>
+        </div>
+        <div aria-hidden className="flex flex-col items-end gap-1">
+          <span className="type-body-strong">{mark.word}</span>
+          <span className="rounded-full bg-neutral-bg px-2.5 py-0.5 type-caption font-semibold text-neutral-fg">
+            {mark.letter}
+          </span>
+        </div>
+      </div>
+    );
+  }
   return (
-    <p data-slot="grade-scale" className={cn("flex flex-wrap items-baseline gap-x-2", className)}>
-      <span className="sr-only">
-        {total} баллов, оценка «{mark.word}», буква {mark.letter}
-      </span>
-      <span aria-hidden className={cn("tabular", s.score)}>
+    <div
+      role="group"
+      aria-label={label(total, mark)}
+      data-slot="grade-scale"
+      data-variant="row"
+      className={cn("flex flex-col items-end text-right", className)}
+    >
+      <span aria-hidden className="min-w-[4ch] text-lg leading-snug type-num">
         {total}
       </span>
-      <span aria-hidden className="text-ink-2">
-        /
+      <span aria-hidden className="type-caption whitespace-nowrap text-ink-2">
+        {mark.word} · {mark.letter}
       </span>
-      <span aria-hidden className={cn("font-medium", s.rest)}>
-        {mark.word}
-      </span>
-      <span aria-hidden className="text-ink-2">
-        /
-      </span>
-      <span aria-hidden className={cn("font-medium", s.rest)}>
-        {mark.letter}
-      </span>
-    </p>
+    </div>
   );
 }

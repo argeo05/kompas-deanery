@@ -23,7 +23,7 @@ export function StudyTabs() {
                 href={t.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "-mb-px inline-flex min-h-11 items-center border-b-2 px-3 text-base font-medium no-underline",
+                  "-mb-px inline-flex min-h-11 items-center border-b-2 px-3 type-body-strong no-underline",
                   active
                     ? "border-accent font-semibold text-ink"
                     : "border-transparent text-ink-2 hover:text-ink",
