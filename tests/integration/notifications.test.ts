@@ -6,6 +6,7 @@ import { notify } from "../../src/server/services/notify";
 import { renderNotification } from "../../src/server/notify-templates";
 import { apiAs, freezeTime, resetDb } from "../helpers/api";
 import type { ApiErrorBody, NotificationPrefsDTO, NotificationsDTO } from "@/contracts/api";
+import type { ApiResult } from "../helpers/api";
 
 // DS-18 · Уведомления: список/чтение/настройки + сервис notify (с黛玉 DS-02, дебаунс 2 мин).
 // Время заморожено до сида («сегодня» = 2026-11-12, четверг, 12:00 МСК).
@@ -60,7 +61,7 @@ describe("GET /api/me/notifications", () => {
     const seen: string[] = [];
     let cursor: string | null = null;
     for (let page = 0; page < 5; page++) {
-      const res = await apiAs("anna").get<NotificationsDTO>(
+      const res: ApiResult<NotificationsDTO> = await apiAs("anna").get<NotificationsDTO>(
         cursor ? `/api/me/notifications?limit=1&cursor=${cursor}` : "/api/me/notifications?limit=1",
       );
       if (res.body.items.length === 0) break;
