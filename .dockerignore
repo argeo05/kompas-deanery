@@ -1,0 +1,13 @@
+.git
+.github
+.claude
+.next
+node_modules
+.env*
+!.env.example
+secrets
+docs
+tests
+test-results
+playwright-report
+*.md

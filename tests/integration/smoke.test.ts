@@ -10,7 +10,9 @@ describe("smoke: integration", () => {
   afterAll(() => sql.end());
 
   it("PostgreSQL 16 доступен и миграции применены", async () => {
-    const [{ version }] = await sql<{ version: string }[]>`SHOW server_version`;
+    const [{ server_version: version }] = await sql<
+      { server_version: string }[]
+    >`SHOW server_version`;
     expect(version.startsWith("16")).toBe(true);
 
     const [{ exists }] = await sql<{ exists: boolean }[]>`
