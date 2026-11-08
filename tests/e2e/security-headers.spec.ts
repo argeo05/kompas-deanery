@@ -42,7 +42,10 @@ test("страница гидратируется без нарушений CSP"
     if (/content security policy/i.test(m.text())) violations.push(m.text());
   });
   await page.goto("/");
-  await page.waitForLoadState("networkidle");
+  // Не networkidle: prefetch ссылок (полоса концепта → /about) роутер Next дочитывает лениво,
+  // и запрос остаётся «открытым» для DevTools (C2, PROGRESS-C). Ждём загрузку и паузу на гидратацию.
+  await page.waitForLoadState("load");
+  await page.waitForTimeout(500);
   // Next кладёт в window.next / __next_f только после выполнения своих скриптов.
   expect(await page.evaluate(() => Array.isArray((self as { __next_f?: unknown }).__next_f))).toBe(
     true,

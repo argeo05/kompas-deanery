@@ -44,6 +44,8 @@ export default defineConfig({
       PORT: String(PORT),
       HOSTNAME: "127.0.0.1",
       TRUSTED_PROXY: "true",
+      // Витрина /dev/ui на production-сборке открыта только для e2e и скриншотов (src/lib/dev-ui.ts).
+      KOMPAS_DEV_UI: "true",
       // Секрет только для e2e; в production задаётся окружением хостинга.
       BETTER_AUTH_SECRET:
         process.env.BETTER_AUTH_SECRET ?? "e2e-only-insecure-secret-do-not-use-in-prod",

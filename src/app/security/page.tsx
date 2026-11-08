@@ -38,7 +38,11 @@ const FACTS: { title: string; text: string; proof: string }[] = [
 
 export default function SecurityPage() {
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-12">
+    <main
+      id="content"
+      tabIndex={-1}
+      className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-12 outline-none"
+    >
       <h1 className="text-3xl font-semibold">Безопасность</h1>
       <p>
         Ниже только то, что уже работает и проверено автотестами. В демо все данные вымышленные.
@@ -48,7 +52,7 @@ export default function SecurityPage() {
           <li key={fact.title}>
             <h2 className="text-xl font-semibold">{fact.title}</h2>
             <p>{fact.text}</p>
-            <p className="text-sm">Проверка: {fact.proof}</p>
+            <p className="text-sm text-ink-2">Проверка: {fact.proof}</p>
           </li>
         ))}
       </ul>
