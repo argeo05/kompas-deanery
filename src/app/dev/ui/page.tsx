@@ -142,8 +142,8 @@ export default function DevUiPage() {
       <Section id="buttons" title="Кнопки">
         <div className="flex flex-wrap items-center gap-2">
           <Button>Заказать справку</Button>
-          <Button variant="secondary">В календарь</Button>
-          <Button variant="ghost">Все пары</Button>
+          <Button variant="secondary">Добавить в календарь</Button>
+          <Button variant="ghost">Показать все пары</Button>
           <Button variant="danger">Отменить заявку</Button>
           <Button variant="link">Подробнее</Button>
         </div>
@@ -239,7 +239,15 @@ export default function DevUiPage() {
       <Section id="empty" title="Пустые состояния">
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
-            <EmptyState illustration="free-day" title="На сегодня всё 🎉" headingLevel="h3">
+            <EmptyState
+              illustration="free-day"
+              title={
+                <>
+                  На сегодня всё <span aria-hidden>🎉</span>
+                </>
+              }
+              headingLevel="h3"
+            >
               Пар больше нет. Завтра первая — в 09:30.
             </EmptyState>
           </Card>
@@ -250,7 +258,7 @@ export default function DevUiPage() {
               headingLevel="h3"
               action={<Button>Заказать справку</Button>}
             >
-              Справку об обучении можно заказать за три касания.
+              Справку об обучении можно заказать в три шага.
             </EmptyState>
           </Card>
         </div>
@@ -285,6 +293,7 @@ export default function DevUiPage() {
         <Card>
           <ErrorState
             title="Не получилось загрузить расписание"
+            headingLevel="h3"
             action={<Button variant="secondary">Повторить</Button>}
           >
             Сервер не ответил. Попробуйте ещё раз через минуту — данные никуда не денутся.

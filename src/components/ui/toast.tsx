@@ -44,12 +44,40 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = React.useState<ToastItem[]>([]);
   const nextId = React.useRef(1);
 
+  const returnFocus = React.useRef<HTMLElement | null>(null);
+  const stackRef = React.useRef<HTMLDivElement>(null);
+
+  // Высота стека — в CSS-переменную: scroll-padding-bottom учитывает её, и toast не закрывает фокус (2.4.11).
+  React.useEffect(() => {
+    const el = stackRef.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const ro = new ResizeObserver(() =>
+      root.style.setProperty("--toast-stack-h", `${el.offsetHeight}px`),
+    );
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      root.style.removeProperty("--toast-stack-h");
+    };
+  }, []);
+
   const dismiss = React.useCallback((id: number) => {
+    // Фокус был внутри закрываемого toast — возвращаем туда, откуда его вызвали, иначе к содержимому (2.4.3).
+    const active = document.activeElement;
+    const hadFocus = active instanceof HTMLElement && active.closest(`[data-toast-id="${id}"]`);
     setItems((list) => list.filter((t) => t.id !== id));
+    if (hadFocus) {
+      const target = returnFocus.current?.isConnected
+        ? returnFocus.current
+        : document.getElementById("content");
+      target?.focus();
+    }
   }, []);
 
   const push = React.useCallback((t: ToastInput) => {
     const item: ToastItem = { tone: "info", ...t, id: nextId.current++ };
+    if (document.activeElement instanceof HTMLElement) returnFocus.current = document.activeElement;
     // Больше трёх одновременно не держим: старые уходят.
     setItems((list) => [...list.slice(-2), item]);
   }, []);
@@ -59,6 +87,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       {/* Регионы существуют всегда, иначе первое сообщение читалка не озвучит. */}
       <div
+        ref={stackRef}
         className={cn(
           "pointer-events-none fixed inset-x-0 z-50 flex flex-col items-center gap-2 px-4",
           "bottom-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom)+0.75rem)] lg:right-6 lg:bottom-6 lg:left-auto lg:items-end",
@@ -89,7 +118,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
 function Toast({ item, onClose }: { item: ToastItem; onClose: () => void }) {
   const [paused, setPaused] = React.useState(false);
-  const autoClose = item.tone !== "error";
+  // С действием тоже не закрываем: с клавиатуры или читалкой за 5 с до кнопки не добраться (2.2.1).
+  const autoClose = item.tone !== "error" && !item.action;
 
   React.useEffect(() => {
     if (!autoClose || paused) return;
@@ -101,6 +131,7 @@ function Toast({ item, onClose }: { item: ToastItem; onClose: () => void }) {
   return (
     <div
       data-slot="toast"
+      data-toast-id={item.id}
       data-tone={item.tone}
       onPointerEnter={() => setPaused(true)}
       onPointerLeave={() => setPaused(false)}

@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
@@ -22,6 +23,17 @@ export function MoreSheet({
   theme: ThemePref;
 }) {
   const pathname = usePathname();
+
+  // Лист живёт в нижней панели, которая скрыта на ≥ 1024 px. Окно расширили (поворот планшета) —
+  // закрываем лист, иначе невидимый модальный диалог оставил бы страницу inert.
+  React.useEffect(() => {
+    if (!open) return;
+    const mq = window.matchMedia("(min-width: 64rem)");
+    const onChange = () => mq.matches && onOpenChange(false);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, [open, onOpenChange]);
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title="Ещё">
       <ul className="flex flex-col">

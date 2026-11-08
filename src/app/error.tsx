@@ -17,18 +17,21 @@ export default function Error({
       tabIndex={-1}
       className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center px-4 py-12 outline-none"
     >
+      <title>Страница не открылась — Компас</title>
       <ErrorState
         title="Страница не открылась"
+        headingLevel="h1"
         action={
           <>
-            <Button onClick={reset}>Попробовать ещё раз</Button>
+            <Button onClick={reset}>Повторить</Button>
             <Button variant="secondary" asChild>
               <Link href="/">На главную</Link>
             </Button>
           </>
         }
       >
-        Что-то сломалось на нашей стороне. Ваши данные в порядке — попробуйте ещё раз через минуту.
+        Не получилось открыть страницу: ошибка на нашей стороне. Попробуйте ещё раз через минуту или
+        вернитесь на главную.
       </ErrorState>
     </main>
   );

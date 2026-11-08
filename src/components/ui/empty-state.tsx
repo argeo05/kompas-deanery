@@ -12,7 +12,8 @@ export function EmptyState({
   className,
 }: {
   illustration: IllustrationName;
-  title: string;
+  /** Эмодзи внутри оборачивайте в <span aria-hidden> — читалка не должна их произносить. */
+  title: React.ReactNode;
   children?: React.ReactNode;
   /** Кнопка или ссылка: что сделать дальше. */
   action?: React.ReactNode;

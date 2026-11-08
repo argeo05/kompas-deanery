@@ -111,7 +111,7 @@ export function Sheet({
             </p>
           )}
         </div>
-        <div className="overflow-y-auto overscroll-contain px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        <div className="overflow-y-auto overscroll-contain px-4 pt-1 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           {children}
         </div>
       </div>

@@ -107,3 +107,22 @@ test("404 на русском и с действием", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1, name: "Такой страницы нет" })).toBeVisible();
   await expect(page.getByRole("link", { name: "На главную" })).toBeVisible();
 });
+
+test("на 320 px нет горизонтальной прокрутки и подписи панели не обрезаны (WCAG 1.4.10)", async ({
+  page,
+}) => {
+  test.skip(!isMobile(page), "перекомпоновка проверяется на мобильной");
+  await page.setViewportSize({ width: 320, height: 640 });
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+  const clipped = await page
+    .getByRole("navigation", { name: "Основные разделы", exact: true })
+    .evaluate((nav) =>
+      [...nav.querySelectorAll("a > span:not(.sr-only), button > span:not(.sr-only)")]
+        .filter((s) => s.scrollWidth > s.clientWidth + 1)
+        .map((s) => s.textContent),
+    );
+  expect(clipped).toEqual([]);
+});

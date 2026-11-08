@@ -39,7 +39,7 @@ export function ThemeToggle({ initial, className }: { initial: ThemePref; classN
             className={cn(
               "relative flex min-h-11 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-control px-1 text-center text-xs font-medium text-ink-2",
               "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus",
-              "has-checked:bg-surface has-checked:text-ink has-checked:shadow-card",
+              "has-checked:bg-surface has-checked:font-semibold has-checked:text-ink has-checked:shadow-card has-checked:ring-1 has-checked:ring-line-strong",
             )}
           >
             <input

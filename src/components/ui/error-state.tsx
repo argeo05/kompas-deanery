@@ -11,11 +11,13 @@ export function ErrorState({
   title,
   children,
   action,
+  headingLevel: H = "h2",
   className,
 }: {
   title: string;
   children?: React.ReactNode;
   action: React.ReactNode;
+  headingLevel?: "h1" | "h2" | "h3";
   className?: string;
 }) {
   return (
@@ -25,7 +27,7 @@ export function ErrorState({
       className={cn("flex flex-col items-center gap-3 px-4 py-8 text-center", className)}
     >
       <Illustration name="error" />
-      <h2 className="text-xl font-semibold">{title}</h2>
+      <H className="text-xl font-semibold">{title}</H>
       {children && <div className="max-w-sm text-base text-ink-2">{children}</div>}
       <div className="mt-1 flex flex-wrap justify-center gap-2">{action}</div>
     </section>

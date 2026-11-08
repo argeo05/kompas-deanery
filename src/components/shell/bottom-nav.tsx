@@ -11,8 +11,10 @@ import type { ThemePref } from "@/lib/theme";
 
 // Нижняя панель (SPEC §5.2, §7.4 BottomNav): < 1024 px, 5 пунктов с подписями, 64 px + safe-area.
 const itemClass = cn(
-  "relative flex min-h-11 flex-1 flex-col items-center justify-center gap-1 rounded-control px-1 pt-1 text-xs font-medium no-underline",
-  "text-ink-2 hover:text-ink aria-[current=page]:text-accent aria-expanded:text-accent",
+  "relative flex min-h-11 flex-1 flex-col items-center justify-center gap-1 rounded-control px-0.5 pt-1 text-xs font-medium no-underline hyphens-none",
+  "text-ink-2 hover:text-ink aria-[current=page]:font-semibold aria-[current=page]:text-accent aria-expanded:text-accent",
+  // Активный пункт отмечен не только цветом: подложка под иконкой, как в боковой панели (1.4.1).
+  "[&[aria-current=page]_.nav-icon]:bg-info-bg [&[data-active]_.nav-icon]:bg-info-bg",
 );
 
 export function BottomNav({
@@ -34,7 +36,7 @@ export function BottomNav({
       aria-label="Основные разделы"
       className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface pb-safe lg:hidden"
     >
-      <ul className="mx-auto flex h-(--bottom-nav-h) max-w-xl items-stretch gap-1 px-2 py-1">
+      <ul className="mx-auto flex h-(--bottom-nav-h) max-w-xl items-stretch px-1 py-1">
         {tabs.map((item) => {
           const active = isActive(pathname, item);
           const Icon = item.icon;
@@ -45,18 +47,20 @@ export function BottomNav({
                 aria-current={active ? "page" : undefined}
                 className={itemClass}
               >
-                <span className="relative">
+                <span className="nav-icon relative rounded-full px-3 py-0.5">
                   <Icon aria-hidden strokeWidth={active ? 2.25 : 1.75} className="size-6" />
                   {item.badge && (
                     <NavBadge
                       kind={item.badge}
                       value={badges[item.badge]}
                       withText={false}
-                      className="absolute -top-1 left-4"
+                      className="absolute -top-1 left-7"
                     />
                   )}
                 </span>
-                <span className="max-w-full truncate">{item.short ?? item.label}</span>
+                <span className="max-w-full text-center leading-tight">
+                  {item.short ?? item.label}
+                </span>
                 {item.badge && <NavBadgeText kind={item.badge} value={badges[item.badge]} />}
               </Link>
             </li>
@@ -69,19 +73,25 @@ export function BottomNav({
               aria-haspopup="dialog"
               aria-expanded={moreOpen}
               onClick={() => setMoreOpen(true)}
-              className={cn(itemClass, moreActive && "text-accent")}
+              data-active={moreActive || undefined}
+              className={cn(itemClass, moreActive && "font-semibold text-accent")}
             >
-              <span className="relative">
-                <MORE_TAB.icon aria-hidden strokeWidth={1.75} className="size-6" />
+              <span className="nav-icon relative rounded-full px-3 py-0.5">
+                <MORE_TAB.icon
+                  aria-hidden
+                  strokeWidth={moreActive ? 2.25 : 1.75}
+                  className="size-6"
+                />
                 <NavBadge
                   kind="more"
                   value={badges.more}
                   withText={false}
-                  className="absolute -top-1 left-4"
+                  className="absolute -top-1 left-7"
                 />
               </span>
               <span>{MORE_TAB.label}</span>
               <NavBadgeText kind="more" value={badges.more} />
+              {moreActive && <span className="sr-only">, открыт раздел из этого меню</span>}
             </button>
           </li>
         )}

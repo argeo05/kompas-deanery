@@ -19,7 +19,7 @@ import type { RequestStatus, SemesterStatus } from "@/contracts/api";
 // Цвета — только семантические пары --{tone}-bg / --{tone}-fg из tokens.css.
 
 export const badgeVariants = cva(
-  "inline-flex w-fit max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-medium [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex w-fit max-w-full items-center gap-1.5 rounded-2xl px-2.5 py-1 text-sm font-medium [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       tone: {
@@ -79,7 +79,7 @@ export function StatusBadge({ kind, status, label, className, ...props }: BadgeP
       {...props}
     >
       <Icon aria-hidden strokeWidth={2} />
-      <span className="truncate">{label ?? meta.label}</span>
+      <span className="min-w-0">{label ?? meta.label}</span>
     </span>
   );
 }
@@ -95,7 +95,7 @@ export function Badge({
   return (
     <span data-slot="badge" className={cn(badgeVariants({ tone }), className)} {...props}>
       {Icon && <Icon aria-hidden strokeWidth={2} />}
-      <span className="truncate">{children}</span>
+      <span className="min-w-0">{children}</span>
     </span>
   );
 }

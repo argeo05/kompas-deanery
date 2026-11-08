@@ -28,8 +28,11 @@ export function useOnline(): boolean {
 export function OfflineBar({
   dataAt,
   forceOffline = false,
+  sticky = false,
   className,
 }: {
+  /** Плашка прилипает под шапкой; тогда scroll-padding учитывает её высоту (globals.css, 2.4.11). */
+  sticky?: boolean;
   /** Когда получены показанные данные (ISO). */
   dataAt?: string | null;
   /** Для витрины: показать плашку без отключения сети. */
@@ -44,8 +47,9 @@ export function OfflineBar({
       {offline && (
         <p
           data-slot="offline-bar"
+          data-sticky={sticky || undefined}
           className={cn(
-            "flex items-center justify-center gap-2 bg-ink px-4 py-2 text-center text-sm text-bg",
+            "flex min-h-(--offline-bar-h) items-center justify-center gap-2 bg-ink px-4 py-2 text-center text-sm text-bg",
           )}
         >
           <WifiOff aria-hidden className="size-4 shrink-0" />

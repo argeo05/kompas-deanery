@@ -34,7 +34,13 @@ export function NavBadge({
   );
 }
 
-export function NavBadgeText({ kind, value }: { kind: NavBadgeKey; value: number | boolean | undefined }) {
+export function NavBadgeText({
+  kind,
+  value,
+}: {
+  kind: NavBadgeKey;
+  value: number | boolean | undefined;
+}) {
   const label = badgeLabel(kind, value);
   return label ? <span className="sr-only">, {label}</span> : null;
 }

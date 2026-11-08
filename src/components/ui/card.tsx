@@ -6,6 +6,8 @@ import Link from "next/link";
 // Карточка (SPEC §7.4): default / interactive / highlight (изменение).
 // interactive — вся карточка кликабельна: внутрь кладут одну ссылку с классом card-link,
 // её псевдоэлемент растягивается на карточку (ссылка остаётся одной целью для фокуса и чтения).
+// Другим кнопкам внутри interactive-карточки нужен `relative z-10`, иначе их перекроет псевдоэлемент.
+// highlight всегда сопровождайте текстовой меткой (Badge «Перенос»): полоса — только цвет (1.4.1).
 const cardVariants = cva(
   "relative flex flex-col gap-3 rounded-card border border-(--card-border) bg-surface p-4 text-ink shadow-card",
   {

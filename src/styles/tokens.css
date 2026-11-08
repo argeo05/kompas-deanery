@@ -104,6 +104,7 @@
   /* ── Размеры оболочки (§7.5) ─────────────────────────────────────── */
   --concept-bar-h: 2rem;
   --header-h: 3.5rem;
+  --offline-bar-h: 2.25rem;
   --bottom-nav-h: 4rem;
   --sidebar-w: 15rem;
   --content-max: 75rem;

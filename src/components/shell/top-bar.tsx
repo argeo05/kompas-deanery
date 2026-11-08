@@ -65,6 +65,7 @@ export function TopBar({
                 ref={searchRef}
                 name="q"
                 type="search"
+                aria-keyshortcuts="Meta+K Control+K"
                 placeholder="Поиск: пары, заявки, дедлайны"
                 className="min-h-11 w-full rounded-control border border-line-strong bg-surface pr-14 pl-10 text-base text-ink placeholder:text-ink-2"
               />

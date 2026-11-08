@@ -193,11 +193,17 @@
     -webkit-text-size-adjust: 100%;
     /* Фокус не уходит под шапку и нижнюю панель (WCAG 2.4.11). */
     scroll-padding-top: calc(var(--header-h) + 0.5rem);
-    scroll-padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 0.5rem);
+    scroll-padding-bottom: calc(
+      var(--bottom-nav-h) + env(safe-area-inset-bottom) + var(--toast-stack-h, 0px) + 0.5rem
+    );
+  }
+  /* Плашка «Нет сети» прилипает под шапкой — фокус не должен уходить и под неё. */
+  html:has([data-slot="offline-bar"][data-sticky]) {
+    scroll-padding-top: calc(var(--header-h) + var(--offline-bar-h) + 0.5rem);
   }
   @media (min-width: 64rem) {
     html {
-      scroll-padding-bottom: 1rem;
+      scroll-padding-bottom: calc(var(--toast-stack-h, 0px) + 1rem);
     }
   }
 

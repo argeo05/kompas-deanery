@@ -32,7 +32,7 @@ export async function AppShell({
         <SideNav role={role} badges={badges} theme={theme} />
         <div className="flex min-w-0 flex-1 flex-col">
           <TopBar role={role} initials={initials} unread={unread} />
-          <OfflineBar className="sticky top-(--header-h) z-10" />
+          <OfflineBar sticky className="sticky top-(--header-h) z-10" />
           <main
             id="content"
             tabIndex={-1}

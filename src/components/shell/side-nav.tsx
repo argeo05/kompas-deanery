@@ -60,10 +60,10 @@ export function SideNav({
   const pathname = usePathname();
   const primary = role === "student" ? STUDENT_TABS : STAFF_NAV;
   return (
-    <aside className="sticky top-0 hidden h-[calc(100dvh-var(--concept-bar-h))] w-(--sidebar-w) shrink-0 flex-col gap-6 overflow-y-auto border-r border-line bg-surface px-2 py-4 lg:flex">
+    <div className="sticky top-0 hidden h-[calc(100dvh-var(--concept-bar-h))] w-(--sidebar-w) shrink-0 flex-col gap-6 overflow-y-auto border-r border-line bg-surface px-2 py-4 lg:flex">
       <Link
         href={role === "student" ? "/today" : "/staff/queue"}
-        className="rounded-control px-3 py-1 no-underline"
+        className="flex min-h-11 items-center rounded-control px-2.5 no-underline"
       >
         <Logo />
         <span className="sr-only">, на главную</span>
@@ -83,6 +83,6 @@ export function SideNav({
         )}
       </nav>
       <ThemeToggle initial={theme} className="px-1" />
-    </aside>
+    </div>
   );
 }
