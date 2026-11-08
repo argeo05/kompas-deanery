@@ -76,7 +76,7 @@
   --color-secondary-foreground: var(--ink);
   --color-muted: var(--surface-2);
   --color-muted-foreground: var(--ink-2);
-  --color-destructive: var(--alert);
+  --color-destructive: var(--coral);
   --color-border: var(--line);
   --color-input: var(--line-strong);
   --color-ring: var(--focus);
@@ -86,6 +86,12 @@
   --font-display: "Unbounded", "Onest", ui-sans-serif, system-ui, sans-serif;
   --font-heading: var(--font-sans);
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  /* Межбуквенное расстояние ролей §7.2 «Типографика»: tracking-display — Unbounded от 32 px,
+     tracking-heading — h1 Onest, tracking-caps — метки прописными («ПЕРЕНОС»). */
+  --tracking-display: -0.03em;
+  --tracking-heading: -0.01em;
+  --tracking-caps: 0.04em;
 
   /* Шкала 12 / 14 / 16 / 18 / 20 / 24 / 32 / 40, высота строки 1,4–1,5 (крупные — плотнее). */
   --text-*: initial;
@@ -123,7 +129,6 @@
   --default-transition-timing-function: var(--ease-ink);
 
   --animate-ink-in: ink-in var(--duration-slow) var(--ease-ink) both;
-  --animate-pulse-soft: pulse-soft 2s var(--ease-ink) infinite;
   --animate-shimmer: shimmer 1.4s linear infinite;
 
   @keyframes ink-in {
@@ -134,15 +139,6 @@
     to {
       opacity: 1;
       transform: none;
-    }
-  }
-  @keyframes pulse-soft {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.55;
     }
   }
   @keyframes shimmer {
@@ -176,8 +172,7 @@
     --tw-enter-scale: 1 !important;
     --tw-exit-scale: 1 !important;
   }
-  .animate-shimmer,
-  .animate-pulse-soft {
+  .animate-shimmer {
     animation: none;
   }
 }
