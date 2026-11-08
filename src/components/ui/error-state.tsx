@@ -39,13 +39,16 @@ export function InlineError({
   children,
   action,
   className,
+  id,
 }: {
+  id?: string;
   children: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
 }) {
   return (
     <div
+      id={id}
       role="alert"
       data-slot="inline-error"
       className={cn(

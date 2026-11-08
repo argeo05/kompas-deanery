@@ -74,6 +74,8 @@ export async function proxy(req: NextRequest) {
 
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-nonce", nonce);
+  // Путь нужен layout кабинета: гостя он отправляет на /login?next=<этот путь>.
+  requestHeaders.set("x-pathname", req.nextUrl.pathname);
   requestHeaders.set("Content-Security-Policy", csp);
   return withCsp(NextResponse.next({ request: { headers: requestHeaders } }));
 }

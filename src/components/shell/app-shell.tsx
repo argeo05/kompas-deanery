@@ -36,7 +36,7 @@ export async function AppShell({
           <main
             id="content"
             tabIndex={-1}
-            className="mx-auto flex w-full max-w-(--content-max) flex-1 flex-col gap-6 px-4 pt-4 pb-8 outline-none md:px-6 lg:pt-6"
+            className="mx-auto flex w-full max-w-(--content-max) flex-1 flex-col gap-4 px-4 pt-4 pb-8 outline-none md:px-6 lg:gap-6 lg:pt-6"
           >
             {children}
           </main>

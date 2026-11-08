@@ -11,3 +11,81 @@ const timeFormat = new Intl.DateTimeFormat("ru-RU", {
 export function formatTimeMsk(value: Date | string): string {
   return timeFormat.format(typeof value === "string" ? new Date(value) : value);
 }
+
+const dateLongFormat = new Intl.DateTimeFormat("ru-RU", {
+  timeZone: MSK,
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
+const dayMonthFormat = new Intl.DateTimeFormat("ru-RU", {
+  timeZone: MSK,
+  day: "numeric",
+  month: "short",
+});
+const dayMonthFullFormat = new Intl.DateTimeFormat("ru-RU", {
+  timeZone: MSK,
+  day: "numeric",
+  month: "long",
+});
+const weekdayShortFormat = new Intl.DateTimeFormat("ru-RU", { timeZone: MSK, weekday: "short" });
+const weekdayLongFormat = new Intl.DateTimeFormat("ru-RU", { timeZone: MSK, weekday: "long" });
+
+const upperFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const asDate = (value: Date | string) => (typeof value === "string" ? new Date(value) : value);
+
+/** «Четверг, 12 ноября» по Москве. */
+export function formatDateLong(value: Date | string): string {
+  return upperFirst(dateLongFormat.format(asDate(value)));
+}
+
+/** «12 ноя» — короткая дата без точки в конце. */
+export function formatDayMonth(value: Date | string): string {
+  return dayMonthFormat.format(asDate(value)).replace(/\.$/, "");
+}
+
+/** «12 ноября». */
+export function formatDayMonthFull(value: Date | string): string {
+  return dayMonthFullFormat.format(asDate(value));
+}
+
+/** «чт» и «четверг». */
+export function formatWeekdayShort(value: Date | string): string {
+  return weekdayShortFormat.format(asDate(value)).replace(/\.$/, "");
+}
+export function formatWeekdayLong(value: Date | string): string {
+  return weekdayLongFormat.format(asDate(value));
+}
+
+/** Длительность в минутах человеческими словами: «32 мин», «1 ч 40 мин», «2 ч». */
+export function formatDuration(totalMinutes: number): string {
+  const minutes = Math.max(0, Math.round(totalMinutes));
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m} мин`;
+  return m === 0 ? `${h} ч` : `${h} ч ${m} мин`;
+}
+
+/** Склонение по числу: plural(2, ["пара", "пары", "пар"]) → «пары». */
+export function plural(n: number, forms: [one: string, few: string, many: string]): string {
+  const abs = Math.abs(n) % 100;
+  const last = abs % 10;
+  if (abs > 10 && abs < 20) return forms[2];
+  if (last === 1) return forms[0];
+  if (last >= 2 && last <= 4) return forms[1];
+  return forms[2];
+}
+
+/** «завтра в 23:59», «сегодня в 18:00», «чт, 12 ноя в 09:30» — срок или момент по-человечески. */
+export function formatWhen(value: Date | string, nowValue: Date): string {
+  const target = asDate(value);
+  const day = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: MSK }).format(d);
+  const diffDays = Math.round(
+    (Date.parse(day(target)) - Date.parse(day(nowValue))) / (24 * 3600_000),
+  );
+  const time = formatTimeMsk(target);
+  if (diffDays === 0) return `сегодня в ${time}`;
+  if (diffDays === 1) return `завтра в ${time}`;
+  if (diffDays === -1) return `вчера в ${time}`;
+  return `${formatWeekdayShort(target)}, ${formatDayMonth(target)} в ${time}`;
+}

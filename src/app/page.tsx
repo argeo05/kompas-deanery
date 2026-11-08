@@ -1,7 +1,14 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Logo } from "@/components/shell/logo";
+import { buttonVariants } from "@/components/ui/button";
+import { getPageSession } from "@/server/auth/page-session";
 
-// Временная главная концепта. Лендинг (SPEC §6.12) и экран «Сегодня» (§6.2) — этапы C3 и C8.
-export default function Home() {
+// Временная главная концепта. Полноценный лендинг (SPEC §6.12) — этап C8.
+// Вошедший пользователь сразу попадает в свой раздел.
+export default async function Home() {
+  const session = await getPageSession();
+  if (session) redirect(session.user.role === "staff" ? "/staff/queue" : "/today");
   return (
     <main
       id="content"
@@ -14,6 +21,11 @@ export default function Home() {
         Личный кабинет студента: расписание, оценки, справки и связь с деканатом. Концепт для MGIMO
         AI Challenge.
       </p>
+      <div>
+        <Link href="/login" className={buttonVariants({ size: "lg" })}>
+          Войти
+        </Link>
+      </div>
     </main>
   );
 }
