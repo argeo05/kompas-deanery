@@ -2,6 +2,7 @@
   "$schema": "https://opencode.ai/config.json",
   "instructions": ["docs/DEEPSEEK-TASKS.md"],
   "permissions": [
+    { "action": "external_directory", "resource": "*", "effect": "allow" },
     { "action": "edit", "resource": "*", "effect": "deny" },
     { "action": "edit", "resource": "src/lib/*", "effect": "allow" },
     { "action": "edit", "resource": "src/server/services/*", "effect": "allow" },
@@ -17,20 +18,19 @@
 
     { "action": "edit", "resource": "src/lib/auth/*", "effect": "deny" },
     { "action": "edit", "resource": "src/app/api/auth/*", "effect": "deny" },
-    { "action": "edit", "resource": "src/app/api/me/requests/route.ts", "effect": "deny" },
     { "action": "edit", "resource": "src/app/api/me/requests/?id?/route.ts", "effect": "deny" },
     { "action": "edit", "resource": "src/app/api/me/documents/?id?/file/*", "effect": "deny" },
     { "action": "edit", "resource": "src/app/api/assistant/*", "effect": "deny" },
     { "action": "edit", "resource": "src/app/api/search/*", "effect": "deny" },
     { "action": "edit", "resource": "src/app/api/jury/*", "effect": "deny" },
     { "action": "edit", "resource": "db/seed/demo-accounts.ts", "effect": "deny" },
-    { "action": "edit", "resource": "tests/unit/*.test.ts", "effect": "ask" },
+    { "action": "edit", "resource": "tests/unit/*.test.ts", "effect": "allow" },
 
     { "action": "read", "resource": "*.env", "effect": "deny" },
     { "action": "read", "resource": "*.env.*", "effect": "deny" },
     { "action": "read", "resource": "*.env.example", "effect": "allow" },
 
-    { "action": "shell", "resource": "*", "effect": "ask" },
+    { "action": "shell", "resource": "*", "effect": "allow" },
     { "action": "shell", "resource": "pnpm typecheck*", "effect": "allow" },
     { "action": "shell", "resource": "pnpm lint*", "effect": "allow" },
     { "action": "shell", "resource": "pnpm vitest *", "effect": "allow" },
