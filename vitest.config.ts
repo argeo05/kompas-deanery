@@ -5,6 +5,16 @@ import { defineConfig } from "vitest/config";
 
 // Три набора: unit (чистая логика, без БД), integration (с БД из docker-compose),
 // security (матрица изоляции IDOR/ролей, SPEC §9.3). Запуск: pnpm test:unit | test:integration | test:security.
+// Наборы с БД видят только TEST_DATABASE_URL (под именем DATABASE_URL); globalSetup проверяет,
+// что это не рабочая база, и применяет миграции (D-004).
+const dbProject = {
+  env: { DATABASE_URL: process.env.TEST_DATABASE_URL ?? "" },
+  globalSetup: ["tests/helpers/global-db.ts"],
+  setupFiles: ["tests/helpers/setup-db.ts"],
+  // Файлы делят одну БД — без параллелизма между ними.
+  fileParallelism: false,
+};
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -36,9 +46,7 @@ export default defineConfig({
           name: "integration",
           include: ["tests/integration/**/*.test.ts"],
           environment: "node",
-          setupFiles: ["tests/helpers/setup-db.ts"],
-          // Тесты делят одну БД — без параллелизма между файлами.
-          fileParallelism: false,
+          ...dbProject,
         },
       },
       {
@@ -47,8 +55,7 @@ export default defineConfig({
           name: "security",
           include: ["tests/security/**/*.{test,spec}.ts"],
           environment: "node",
-          setupFiles: ["tests/helpers/setup-db.ts"],
-          fileParallelism: false,
+          ...dbProject,
         },
       },
     ],

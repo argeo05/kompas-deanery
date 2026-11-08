@@ -1,16 +1,18 @@
-# Локальная БД для разработки и тестов. Значения берутся из .env (см. .env.example).
+# Локальный PostgreSQL. Значения берутся из .env (см. .env.example).
+# Базы (D-004): kompas_dev — разработка, kompas_test — тесты, kompas_ds_test и kompas_ds_dev — worktree DeepSeek.
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-kompas}
+      POSTGRES_DB: ${POSTGRES_DB:-kompas_dev}
       POSTGRES_USER: ${POSTGRES_USER:-kompas}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Задайте POSTGRES_PASSWORD в .env}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./db/docker-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 2s

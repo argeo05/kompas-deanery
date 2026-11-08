@@ -16,7 +16,7 @@
     "test:e2e": "playwright test --grep-invert @shots",
     "test:a11y": "playwright test tests/a11y",
     "shots": "playwright test --grep @shots",
-    "db:up": "docker compose up -d --wait db",
+    "db:up": "docker compose up -d --wait db && tsx db/ensure-databases.ts",
     "db:down": "docker compose down",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx db/migrate.ts",
