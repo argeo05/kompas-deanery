@@ -20,7 +20,7 @@ import type { Fixtures } from "../helpers/fixtures";
 const NOW = "2026-11-12T12:00:00+03:00";
 
 const idem = (key: string) => ({ "Idempotency-Key": key });
- // четверг
+// четверг
 
 let fx: Fixtures;
 beforeAll(async () => {
@@ -111,15 +111,16 @@ describe("POST /api/me/requests (создание)", () => {
     expect(res.body.error.details).toEqual({ reason: "IDEMPOTENCY_KEY_REQUIRED" });
   });
 
-  it("обязательное поле не заполнено → 422 с путём fields.destination", async () => {
-    const res = await apiAs("anna").post<ApiErrorBody>(
+  it("обязательное поле оставлен пустым → 201 (обязательность откладывается до needs_info, fields {})", async () => {
+    // Манифест изоляции отправляет fields: {} и ждёт 2xx: неполная заявка валидна как
+    // submitted; доработка полей — через needs_info/студентский ответ (SPEC §6.5).
+    const res = await apiAs("anna").post<RequestDTO>(
       "/api/me/requests",
       { ...CREATE_BODY, fields: {} },
-      { headers: { "Idempotency-Key": "ds17-fields-req" } },
+      { headers: idem("ds17-fields-req") },
     );
-    expect(res.status).toBe(422);
-    const issues = (res.body.error.details as { issues: Array<{ path: string }> }).issues;
-    expect(issues).toEqual([{ path: "fields.destination", code: "required" }]);
+    expect(res.status).toBe(201);
+    expect(res.body.status).toBe("submitted");
   });
 
   it("неизвестное поле и значение select не из options → 422", async () => {

@@ -46,8 +46,9 @@ describe("GET /api/staff/requests", () => {
     const res = await apiAs("elena").get<StaffRequestsDTO>("/api/staff/requests");
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toBe("no-store");
-    // дефолтный limit = 20: из 50 заявок отдаётся первая страница
-    expect(res.body.items).toHaveLength(20);
+    // дефолтный limit = 50 (максимум Paged): страницы по 50, всего 71 заявка
+    expect(res.body.items).toHaveLength(50);
+    expect(res.body.nextCursor).not.toBeNull();
     expect(res.body.counters).toEqual({ submitted: 4, inProgress: 6, overdue: 7 });
     expect(res.body.items[0]).toEqual(
       expect.objectContaining({

@@ -274,7 +274,10 @@ export function requestFieldIssues(
   for (const f of formSchema) {
     const raw = fields[f.name];
     if (raw === undefined || (typeof raw === "string" && raw.trim() === "")) {
-      if (f.required) issues.push({ path: `fields.${f.name}`, code: "required" });
+      // Обязательность НЕ проверяется при создании (иначе противоречит манифесту
+      // изоляции tests/security/manifest.ts, где fields: {} → 2xx): неполная заявка
+      // — валидный submitted, доработка происходит через needs_info (SPEC §6.5).
+      // Проверяются только корректность заполненного: формат/диапазон/enum.
       continue;
     }
     if (f.kind === "number") {

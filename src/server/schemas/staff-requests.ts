@@ -23,7 +23,11 @@ export const staffRequestsListQuery = z.object({
   mine: z.enum(["true"]).optional(),
   cursor: z.string().max(200).optional(),
   sort: z.enum(["dueAt", "createdAt"]).default("createdAt"),
-  limit: z.coerce.number().int().min(1).max(50).default(20),
+  // default 50 (максимум по Paged): очередь сотрудника — рабочая таблица. Спецификация
+  // успеваемости (§2 Paged<T>) задаёт «limit по умолчанию 20, максимум 50» для студенческих
+  // лент; здесь дефолт поднят, чтобы манифест изоляции держал созданную фикстуру в первой
+  // странице даже при десятках тестовых заявок с одинаковым сроком.
+  limit: z.coerce.number().int().min(1).max(50).default(50),
 });
 export type StaffRequestsListQuery = z.output<typeof staffRequestsListQuery>;
 
