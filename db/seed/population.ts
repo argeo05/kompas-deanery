@@ -1,9 +1,10 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { asc, eq, sql } from "drizzle-orm";
 import { faker } from "@faker-js/faker/locale/ru";
 import * as schema from "../schema";
 import { formatRequestNumber } from "../../src/lib/request-number";
 import { hashPassword } from "../../src/server/auth/password";
+import { docPublicCode, docTokenHash } from "../../src/server/services/verify-code";
 import { addWorkdays } from "../../src/lib/workdays";
 import { mskParts, toMsk } from "../../src/lib/time";
 import type { SeedDates } from "./dates";
@@ -535,11 +536,16 @@ export async function seedPopulation(db: SeedDb, d: SeedDates) {
         actorId: staffUser?.id ?? null,
         createdAt: issuedAt,
       });
+      // DS-23: в БД — SHA-256 публичного кода, а код восстанавливается из id документа
+      // и VERIFY_SECRET (src/server/services/verify-code.ts) — иначе ссылки /verify/<code>
+      // из списка DS-19 не будут находить засеянные документы.
+      const documentId = randomUUID();
       documentValues.push({
+        id: documentId,
         requestId: r.id,
         studentId: r.studentId,
         fileKey: `documents/${r.id}/document.pdf`,
-        verifyTokenHash: createHash("sha256").update(`population-verify-${r.id}`).digest("hex"),
+        verifyTokenHash: docTokenHash(docPublicCode(documentId)),
         issuedAt,
       });
     }
