@@ -7,6 +7,7 @@
 - Проверка тикета: pnpm typecheck && pnpm lint && pnpm vitest run <тесты тикета>
 - Полная проверка: pnpm verify:ds
 - Сброс и сид БД: pnpm db:reset && pnpm db:seed
+- Базы: ты работаешь в ../kompas-ds, тесты идут в kompas_ds_test (TEST_DATABASE_URL), сид — в kompas_ds_dev; kompas_dev и kompas_test не трогай.
 
 ## Нельзя
 - Трогать UI: src/app/**/page.tsx, layout.tsx, src/components, src/styles, public, src/sw.

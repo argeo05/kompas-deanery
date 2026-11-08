@@ -88,3 +88,18 @@
 **Последствия.** Когда тикет DS-0X готов, Claude при ревью удаляет из `src/lib/not-implemented.ts` последний вызов, а затем и сам файл. Новый алиас `@config/*` прописан в tsconfig.
 
 **Дополнение D-003 (решение человека).** Stop-хук в `.claude/settings.json` запускает юнит-тесты с `--exclude` для семи файлов DS-01…07: TDD-тесты красные, пока их не реализует DeepSeek. Когда тикет смёрджен, Claude убирает его файл из исключения. `pnpm verify:ds` и CI проверяют все тесты без исключений.
+
+## 2026-11-08 · D-004 · Раздельные базы, worktree DeepSeek, манифест заранее (закрытие фазы A)
+
+**Решение.**
+
+- **Базы.** Один контейнер PostgreSQL, четыре базы: `kompas_dev` (`DATABASE_URL`), `kompas_test` (`TEST_DATABASE_URL`), `kompas_ds_dev` и `kompas_ds_test` (worktree DeepSeek). На пустом томе их создаёт `db/docker-init/10-databases.sh`, на существующем — `pnpm db:up` (`db/ensure-databases.ts`). Четвёртая база `kompas_ds_dev` добавлена сверх задания: без неё `pnpm db:reset` из worktree стёр бы `kompas_dev`.
+- **Guard.** Наборы integration и security получают `DATABASE_URL = TEST_DATABASE_URL` (`vitest.config.ts → dbProject`). globalSetup `tests/helpers/global-db.ts` падает, если `TEST_DATABASE_URL` не задан или указывает на ту же базу (host:port/db, `localhost` = `127.0.0.1`), и применяет миграции под advisory-локом. `setup-db.ts` повторяет проверку в воркере.
+- **Worktree.** `scripts/ds-worktree.sh DS-XX`: ветка `ds/DS-XX` от `main` в `../kompas-ds` (существующий worktree переключается, если чист), `.env.ds` создаётся из `.env` с заменой баз и копируется как `.env`, затем `pnpm install` и миграции.
+- **Манифест заранее.** В `tests/security/manifest.ts` все 51 маршрут DS-10…DS-33 и эталона. У каждого есть фабрика (`tests/security/factories.ts`), которая перед каждой проверкой создаёт свежий ресурс Ани, поэтому изменяющие проверки не зависят от порядка. Маршрут с `pending` пропускается, пока нет `route.ts` с этим методом. Имена параметров пути при сравнении не важны. Матрица для сотрудника: Елена (свой) → 2xx и видит, Олег (деканат МО) → 404 и не видит, Аня → 403. `owned` ловит и IDOR через тело (`deadlineId` плана, `link` обращения).
+- **Stop-хук** читает исключения из `.claude/ds-pending.txt`: одна строка на тикет (`scripts/hooks/stop.sh`).
+- **CI.** `checks` (lint, типы, unit) без БД; отдельный job `db-tests` (integration + security) с сервисом `postgres:16`; e2e ждёт оба.
+
+**Проверено.** Без `TEST_DATABASE_URL` и при совпадении с `DATABASE_URL` тесты отказываются стартовать. Временные заглушки трёх pending-маршрутов (в том числе `[deadlineId]` при `:id` в манифесте) включили их проверки автоматически. Утекающая заглушка `GET /api/staff/tickets` дала красный тест «oleg не видит». Все 49 фабрик отработали на сиде. Заглушки удалены.
+
+**Последствия.** В `.env` нужен `TEST_DATABASE_URL`. Тела запросов в манифесте — контракт для DeepSeek: если реализация не принимает тело, это вопрос в `docs/ds-questions/`, а не правка теста. Integration и security на одной базе одновременно не запускать (общий `resetDb`).

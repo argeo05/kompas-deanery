@@ -10,11 +10,15 @@
 - Миграции и сид: pnpm db:migrate && pnpm db:seed · сброс: pnpm db:reset · новая миграция: pnpm db:generate
 - Типы: pnpm typecheck · линт + формат: pnpm lint
 - Юнит: pnpm test:unit · один файл: pnpm vitest run path/to/file.test.ts
+- Базы (D-004): kompas_dev — DATABASE_URL (приложение), kompas_test — TEST_DATABASE_URL (только тесты; совпадение с DATABASE_URL → отказ). pnpm db:up досоздаёт базы
 - Интеграционные (нужна БД): pnpm test:integration
 - Безопасность (IDOR/роли): pnpm test:security
 - E2E + axe: pnpm test:e2e · мобильный проект: pnpm test:e2e --project=mobile-360 · только axe: pnpm test:a11y
 - Скриншоты экранов: pnpm shots (кладёт в docs/process/shots/)
 - Проверка для DeepSeek: pnpm verify:ds
+- Worktree DeepSeek: scripts/ds-worktree.sh DS-XX → ../kompas-ds, ветка ds/DS-XX, базы kompas_ds_*
+- Приняли тикет DS-01…07 → удалить его строку в .claude/ds-pending.txt (исключения Stop-хука)
+- Новый маршрут DS уже есть в tests/security/manifest.ts (pending); принят — снять `pending`
 
 # Неочевидные правила
 

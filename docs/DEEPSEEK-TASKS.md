@@ -505,7 +505,8 @@ interface MessageDTO { id: UUID; author: 'student' | 'staff'; authorName: string
 
 ## 6. Протокол работы и учёт стоимости
 
-1. Человек открывает новую сессию OpenCode в ветке `ds/DS-XX` и даёт промпт:
+0. Рабочая копия: `scripts/ds-worktree.sh DS-XX` — ветка `ds/DS-XX` от `main` в `../kompas-ds`, свои базы `kompas_ds_dev`/`kompas_ds_test`, `pnpm install`; прогоны не мешают основной папке.
+1. Человек открывает новую сессию OpenCode в `../kompas-ds` (ветка `ds/DS-XX`) и даёт промпт:
    ```
    Прочитай AGENTS.md и docs/DEEPSEEK-TASKS.md: §1–3 и тикет DS-XX.
    Посмотри эталон src/app/api/me/requests/ и его тесты.
@@ -520,7 +521,7 @@ interface MessageDTO { id: UUID; author: 'student' | 'staff'; authorName: string
    |---|---|---|---|---|---|---|
 
 4. Раз в день (или после 3–5 тикетов) — сессия Claude Code: «Сделай ревью веток `ds/*`: субагенты `security-auditor` и `spec-reviewer`, исправь находки, смёрджи в `main`». Находки записываются в `docs/ai-log/errors.md` с пометкой модели — это готовый материал для PDF («работа с ошибками ИИ»).
-5. Claude регистрирует новые эндпоинты в `tests/security/manifest.ts`. Матрица изоляции прогоняется автоматически.
+5. Все эндпоинты DS-10…DS-33 уже зарегистрированы в `tests/security/manifest.ts` с пометкой `pending`: проверки маршрута включаются сами, как только появляется `route.ts`. При приёмке Claude снимает `pending`.
 
 **Оценка экономии.** Блоки 1–4 — около 35–45% всего кода проекта по объёму, но это однотипная работа. По тарифам DeepSeek V4.1 Flash (на OpenRouter — около $0,006 за 1 млн входных и $0,50 за 1 млн выходных токенов; у других провайдеров цены отличаются) весь бэкенд обойдётся в единицы долларов. Реальные цифры берём из журнала, а не из этой оценки.
 
@@ -540,6 +541,7 @@ interface MessageDTO { id: UUID; author: 'student' | 'staff'; authorName: string
 - Проверка тикета: pnpm typecheck && pnpm lint && pnpm vitest run <тесты тикета>
 - Полная проверка: pnpm verify:ds
 - Сброс и сид БД: pnpm db:reset && pnpm db:seed
+- Базы: ты работаешь в ../kompas-ds, тесты идут в kompas_ds_test (TEST_DATABASE_URL), сид — в kompas_ds_dev; kompas_dev и kompas_test не трогай.
 
 ## Нельзя
 - Трогать UI: src/app/**/page.tsx, layout.tsx, src/components, src/styles, public, src/sw.
@@ -622,13 +624,16 @@ interface MessageDTO { id: UUID; author: 'student' | 'staff'; authorName: string
 
 ## Приложение C. Чек-лист Claude перед стартом фазы B
 
-- [x] `src/contracts/api.ts` содержит все типы из §4.
-- [x] Эталон `GET /api/me/requests` и `GET /api/me/requests/:id` с интеграционными тестами и тестом изоляции.
-- [x] `http.ts`, `guards.ts`, `db.ts` (`withUserTx`), `idempotency.ts`, `clock.ts`, `time.ts`, `audit.ts`, `notify-templates.ts`.
-- [x] Падающие юнит-тесты для DS-01…DS-07.
-- [x] `config/holidays.ts` и `config/grading.ts` заполнены.
-- [x] Хелперы тестов: `apiAs`, `resetDb`, `freezeTime`, `countQueries`.
-- [x] Схема БД со всеми таблицами SPEC §10.4 и RLS-политиками.
-- [x] Установлены зависимости, нужные тикетам: `ics`, `ical.js` (dev), `@faker-js/faker`, `rate-limiter-flexible`.
-- [x] Скрипт `pnpm verify:ds`.
-- [x] `AGENTS.md` и `opencode.json` из приложений A и B закоммичены.
+- [x] `src/contracts/api.ts` содержит все типы из §4. — 612 строк, `tsc` зелёный
+- [x] Эталон `GET /api/me/requests` и `GET /api/me/requests/:id` с интеграционными тестами и тестом изоляции. — `tests/integration/me-requests.test.ts`, матрица в `idor.spec.ts`
+- [x] `http.ts`, `guards.ts`, `db.ts` (`withUserTx`), `idempotency.ts`, `clock.ts`, `time.ts`, `audit.ts`, `notify-templates.ts`. — файлы в `src/server`, `src/lib`; 43 ключа шаблонов в `NOTIFY_KEYS`
+- [x] Падающие юнит-тесты для DS-01…DS-07. — 7 файлов, 265 тестов; исключены из Stop-хука через `.claude/ds-pending.txt`
+- [x] `config/holidays.ts` и `config/grading.ts` заполнены. — постановления № 1466 и № 1187 в шапке, 247 рабочих дней в году; сомнительное — 1 TODO
+- [x] Хелперы тестов: `apiAs`, `resetDb`, `freezeTime`, `countQueries`. — `tests/helpers/api.ts`, `clock.ts`
+- [x] Схема БД со всеми таблицами SPEC §10.4 и RLS-политиками. — `db/migrations/0000_init.sql`, `0001_rls.sql`; `tests/security/rls.spec.ts`
+- [x] Установлены зависимости, нужные тикетам: `ics`, `ical.js` (dev), `@faker-js/faker`, `rate-limiter-flexible`. — `package.json`, записи в `LICENSES.md`
+- [x] Скрипт `pnpm verify:ds`. — `package.json`
+- [x] `AGENTS.md` и `opencode.json` из приложений A и B закоммичены. — коммит 977f2d0
+- [x] Раздельные базы `kompas_dev` / `kompas_test` / `kompas_ds_*`, guard `TEST_DATABASE_URL` — D-004.
+- [x] `scripts/ds-worktree.sh` и `.claude/ds-pending.txt` — D-004.
+- [x] Манифест безопасности со всеми маршрутами DS-10…DS-33 (`pending`) и фабриками фикстур — D-004.
