@@ -13,6 +13,7 @@
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
     "test:security": "vitest run --project security --passWithNoTests",
+    "verify": "pnpm typecheck && pnpm lint && vitest run --project unit --project integration --project security --passWithNoTests",
     "test:e2e": "playwright test --grep-invert @shots",
     "test:a11y": "playwright test tests/a11y",
     "shots": "playwright test --grep @shots",
