@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { connection } from "next/server";
 import { cookies } from "next/headers";
 import { ConceptBar } from "@/components/shell/concept-bar";
+import { StatusRegion } from "@/components/ui/status-region";
 import { SkipLink } from "@/components/shell/skip-link";
 import { THEME_COOKIE, parseTheme } from "@/lib/theme";
 import "./globals.css";
@@ -32,6 +33,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="ru" data-theme={theme} className="h-full">
       <body className="flex min-h-full flex-col">
         <SkipLink />
+        <StatusRegion />
         <ConceptBar />
         {children}
       </body>

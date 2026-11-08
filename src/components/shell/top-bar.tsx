@@ -6,9 +6,10 @@ import { useRouter } from "next/navigation";
 import { Bell, Search } from "lucide-react";
 import { LogoMark } from "./logo";
 import { NavBadge } from "./nav-badge";
+import { SearchHint } from "./search-hint";
 
 // Шапка (SPEC §5.5 п.3, §7.5): колокольчик с бейджем и аватар → профиль на каждом экране.
-// На десктопе — строка поиска с подсказкой ⌘K. Заголовок раздела — h1 в начале <main> страницы.
+// На десктопе — строка поиска с подсказкой ⌘K / Ctrl K по платформе. Заголовок раздела — h1 в начале <main> страницы.
 export function TopBar({
   role,
   initials,
@@ -67,14 +68,9 @@ export function TopBar({
                 type="search"
                 aria-keyshortcuts="Meta+K Control+K"
                 placeholder="Поиск: пары, заявки, дедлайны"
-                className="min-h-11 w-full rounded-control border border-line-strong bg-surface pr-14 pl-10 text-base text-ink placeholder:text-ink-2"
+                className="min-h-11 w-full rounded-control border border-line-strong bg-surface pr-20 pl-10 text-base text-ink placeholder:text-ink-2"
               />
-              <kbd
-                aria-hidden
-                className="pointer-events-none absolute right-3 rounded-sm border border-line px-1.5 text-xs text-ink-2"
-              >
-                ⌘K
-              </kbd>
+              <SearchHint className="pointer-events-none absolute right-3 rounded-sm border border-line px-1.5 text-xs text-ink-2" />
             </label>
           </form>
         )}

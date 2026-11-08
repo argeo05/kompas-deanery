@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cn } from "cn";
+import { Announce } from "./status-region";
 
 // Скелетоны (SPEC §7.4): строка / карточка / круг. Контейнер загрузки помечается aria-busy
 // и озвучивается одной фразой, сами скелетоны скрыты от чтения с экрана.
@@ -28,7 +29,7 @@ export function Skeleton({
   );
 }
 
-/** Обёртка для области, которая грузится: aria-busy и скрытая подпись «Загружаем…». */
+/** Обёртка для области, которая грузится: aria-busy и фраза «Загружаем…» в общем живом регионе оболочки. */
 export function LoadingRegion({
   label = "Загружаем…",
   className,
@@ -37,9 +38,7 @@ export function LoadingRegion({
 }: React.ComponentProps<"div"> & { label?: string }) {
   return (
     <div aria-busy="true" className={cn("flex flex-col gap-3", className)} {...props}>
-      <span role="status" className="sr-only">
-        {label}
-      </span>
+      <Announce message={label} />
       {children}
     </div>
   );
