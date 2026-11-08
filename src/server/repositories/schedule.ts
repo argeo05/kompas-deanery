@@ -37,7 +37,11 @@ const MINE_OR_ENROLLED = (keys: MyScheduleKeys) => (courseIds: string[]) =>
         and(inArray(classes.courseId, courseIds), sql`${classes.groupId} IS NULL`),
       );
 
-/** Пары за диапазон [start, end): группы и потоковые личные, отсортированы по началу. */
+/**
+ * Пары, касающиеся диапазона [start, end): исходное время в диапазоне ИЛИ пара перенесена
+ * в диапазон из другого дня (DS-11, вопрос 2). Группы и потоковые личные, по исходному началу.
+ * Что показать на сетке (сама пара или только призрак), решает сервис по эффективному времени.
+ */
 export async function listMyClasses(
   tx: Tx,
   keys: MyScheduleKeys,
@@ -45,6 +49,12 @@ export async function listMyClasses(
   start: Date,
   end: Date,
 ) {
+  const movedIntoRange = sql`exists (
+    select 1 from ${scheduleChanges}
+    where ${scheduleChanges.classId} = ${classes.id}
+      and ${scheduleChanges.newStartsAt} >= ${start.toISOString()}::timestamptz
+      and ${scheduleChanges.newStartsAt} < ${end.toISOString()}::timestamptz
+  )`;
   return tx
     .select({ row: classes, course: courses, room: rooms, teacher: teachers })
     .from(classes)
@@ -54,8 +64,7 @@ export async function listMyClasses(
     .where(
       and(
         MINE_OR_ENROLLED(keys)(courseIds),
-        gte(classes.startsAt, start),
-        lt(classes.startsAt, end),
+        or(and(gte(classes.startsAt, start), lt(classes.startsAt, end)), movedIntoRange),
       ),
     )
     .orderBy(asc(classes.startsAt), asc(classes.id));

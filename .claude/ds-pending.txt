@@ -1,10 +1,3 @@
 # Тикеты DeepSeek, чьи TDD-тесты ещё красные: Stop-хук (scripts/hooks/stop.sh) исключает их из unit.
 # Приняли тикет — удалите его строку. pnpm verify:ds и CI гоняют все тесты без исключений (D-003).
 # Формат: <тикет> <файл теста>
-DS-01 tests/unit/workdays.test.ts
-DS-02 tests/unit/digest.test.ts
-DS-03 tests/unit/grading.test.ts
-DS-04 tests/unit/semester-status.test.ts
-DS-05 tests/unit/windows.test.ts
-DS-06 tests/unit/request-fsm.test.ts
-DS-07 tests/unit/today.test.ts

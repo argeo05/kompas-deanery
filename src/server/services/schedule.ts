@@ -138,15 +138,23 @@ export async function getMySchedule(
     ? await listMyClassNotes(tx, keys.studentId)
     : new Map<string, string>();
 
-  const classes = rows.map((r) => {
-    const bundle = latest.get(r.row.id);
-    return toClassDTO(
-      r,
-      bundle,
-      bundle ? toChangeDTO(bundle, r, seenIds) : null,
-      notes.get(r.row.id) ?? null,
-    );
-  });
+  const inRange = (d: Date | string) => {
+    const t = new Date(d).getTime();
+    return t >= start.getTime() && t < end.getTime();
+  };
+  // На сетке — пары, чьё эффективное (после переноса) время в диапазоне; перенесённая
+  // за границу диапазона пара остаётся здесь только призраком (ghostSlots ниже).
+  const classes = rows
+    .map((r) => {
+      const bundle = latest.get(r.row.id);
+      return toClassDTO(
+        r,
+        bundle,
+        bundle ? toChangeDTO(bundle, r, seenIds) : null,
+        notes.get(r.row.id) ?? null,
+      );
+    })
+    .filter((c) => inRange(c.startsAt));
   // Сортируем уже по эффективному (после переносов) времени начала.
   classes.sort((a, b) => a.startsAt.localeCompare(b.startsAt) || a.id.localeCompare(b.id));
 
@@ -154,7 +162,8 @@ export async function getMySchedule(
   for (const bundle of latest.values()) {
     if (bundle.change.type === "moved" && bundle.change.newStartsAt) {
       const original = byId.get(bundle.classId);
-      if (original)
+      // Призрак — только на исходном месте внутри диапазона.
+      if (original && inRange(original.row.startsAt))
         ghostSlots.push({
           classId: bundle.classId,
           originalStartsAt: toMsk(original.row.startsAt),

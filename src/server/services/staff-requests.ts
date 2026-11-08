@@ -33,6 +33,8 @@ import type {
   StaffTransitionInput,
 } from "../schemas/staff-requests";
 import { staffShortName } from "./requests";
+import { lockRequestRow } from "../repositories/requests";
+import { findStaffProfile } from "../repositories/staff-tickets";
 
 // Сервис очереди заявок сотрудника (DS-30, SPEC §6.9). Сервис собирает DTO из строк репозитория;
 // все запросы выполняются в tx из withUserTx (app.user_id — сотрудник), область видимости —
@@ -275,6 +277,9 @@ export async function transitionStaffRequest(
   requestId: UUID,
   body: StaffTransitionInput,
 ): Promise<StaffRequestDTO | null> {
+  // Блокировка строки: параллельные переходы (take/take, ready/reject, отмена студентом)
+  // сериализуются, второй видит уже новый статус и получает 409 (ревью DS-30).
+  if (!(await lockRequestRow(tx, requestId, null))) return null;
   const row = await findRequestForStaff(tx, { facultyId: ctx.facultyId }, requestId);
   if (!row) return null;
   const r = row.request;
@@ -349,6 +354,7 @@ export async function addStaffMessage(
   requestId: UUID,
   input: StaffRequestMessageInput,
 ): Promise<MessageDTO | null> {
+  if (!(await lockRequestRow(tx, requestId, null))) return null;
   const row = await findRequestForStaff(tx, { facultyId: ctx.facultyId }, requestId);
   if (!row) return null;
   const r = row.request;
@@ -383,7 +389,8 @@ export async function addStaffMessage(
   return {
     id: message.id,
     author: "staff",
-    authorName: shortAssignee(row.assignee) ?? "",
+    // Подпись — автор сообщения (текущий сотрудник), а не ответственный за заявку.
+    authorName: shortAssignee(await findStaffProfile(tx, ctx.userId)) ?? "",
     body: message.body,
     createdAt: toMsk(message.createdAt),
   };

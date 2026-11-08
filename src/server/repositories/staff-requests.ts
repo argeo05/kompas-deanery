@@ -51,14 +51,18 @@ function staffScopeCondition(scope: StaffScope) {
 
 /** Заявки в области видимости сотрудника; limit + 1 строка — чтобы понять, есть ли следующая страница. */
 export function listRequestsForStaff(tx: Tx, opts: StaffListOpts) {
-  const cursor =
-    opts.cursor === null
-      ? undefined
-      : opts.cursor.key === "createdAt"
-        ? // новые первыми
-          sql`(${requests.createdAt}, ${requests.id}) < (${opts.cursor.at.toISOString()}::timestamptz, ${opts.cursor.id}::uuid)`
-        : // по сроку — раньше первыми
-          sql`(${requests.dueAt}, ${requests.id}) > (${opts.cursor.at.toISOString()}::timestamptz, ${opts.cursor.id}::uuid)`;
+  // Курсор сравнивается теми же выражениями, что и ORDER BY ниже (усечённое время, затем
+  // номер DESC): иначе строки пропадали бы или дублировались между страницами (ревью DS-30).
+  const cursor = (() => {
+    if (opts.cursor === null) return undefined;
+    const at = sql`date_trunc('second', ${opts.cursor.at.toISOString()}::timestamptz)`;
+    const num = sql`(select ${requests.number} from ${requests} where ${requests.id} = ${opts.cursor.id}::uuid)`;
+    const col = opts.cursor.key === "createdAt" ? requests.createdAt : requests.dueAt;
+    const t = sql`date_trunc('second', ${col})`;
+    return opts.cursor.key === "createdAt"
+      ? sql`(${t} < ${at} or (${t} = ${at} and ${requests.number} < ${num}))` // новые первыми
+      : sql`(${t} > ${at} or (${t} = ${at} and ${requests.number} < ${num}))`; // ранний срок первыми
+  })();
 
   return (
     tx

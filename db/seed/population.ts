@@ -553,7 +553,8 @@ export async function seedPopulation(db: SeedDb, d: SeedDates) {
   await db.insert(schema.requestEvents).values(eventValues);
   await db.insert(schema.documents).values(documentValues);
 
-  // ── 12. Объявления: 30 шт. от студенческого офиса, аудитория — факультет и группа.
+  // ── 12. Объявления: 30 шт. от студенческого офиса; аудитория по очереди — факультет или группа
+  // (критерии аудитории пересекаются, DS-31: «факультет + чужая группа» не видел бы никто).
   const announcementValues = Array.from({ length: ANNOUNCEMENTS_COUNT }, (_, i) => {
     const publishAt = d.at(-(i % 20) - 1, "09:00");
     return {
@@ -561,7 +562,10 @@ export async function seedPopulation(db: SeedDb, d: SeedDates) {
       createdBy: staffUser!.id,
       title: `${pick(ANNOUNCEMENT_TITLES, i)} (${i + 1})`,
       bodyMd: `**${pick(ANNOUNCEMENT_TITLES, i)} (демо).**\n\nУсловный текст для демонстрации концепта. Детали уточняются в студенческом офисе.`,
-      audience: { facultyIds: [faculties[i % 3]!.id], groupIds: [groups[i % groups.length]!.id] },
+      audience:
+        i % 2 === 0
+          ? { facultyIds: [faculties[i % 3]!.id] }
+          : { groupIds: [groups[i % groups.length]!.id] },
       important: i % 4 === 0,
       publishAt,
       expiresAt: d.at(30, "18:00"),

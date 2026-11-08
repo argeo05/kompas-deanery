@@ -385,10 +385,11 @@ describe("POST /api/me/requests/:id/resubmit", () => {
 
 describe("POST /api/me/data-fix", () => {
   it("201: заявка типа data_fix, delivery null, copies 1", async () => {
-    const res = await apiAs("anna").post<RequestDTO>("/api/me/data-fix", {
-      field: "contacts",
-      comment: "Телефон в профиле больше не действует",
-    });
+    const res = await apiAs("anna").post<RequestDTO>(
+      "/api/me/data-fix",
+      { field: "contacts", comment: "Телефон в профиле больше не действует" },
+      { headers: idem("ds17-datafix-ok") }, // gitleaks:allow — REST-заголовок, не секрет
+    );
     expect(res.status).toBe(201);
     expect(res.body.type).toEqual({ code: "data_fix", title: "Исправление личных данных" });
     expect(res.body.delivery).toBeNull();
@@ -404,17 +405,26 @@ describe("POST /api/me/data-fix", () => {
   });
 
   it("невалидное поле и пустой комментарий → 422", async () => {
-    const badField = await apiAs("anna").post<ApiErrorBody>("/api/me/data-fix", {
-      field: "nickname",
-      comment: "x",
-    });
+    const badField = await apiAs("anna").post<ApiErrorBody>(
+      "/api/me/data-fix",
+      { field: "nickname", comment: "x" },
+      { headers: idem("ds17-datafix-bad1") }, // gitleaks:allow — REST-заголовок, не секрет
+    );
     expect(badField.status).toBe(422);
     expect(badField.body.error.code).toBe("VALIDATION");
-    const empty = await apiAs("anna").post<ApiErrorBody>("/api/me/data-fix", {
-      field: "group",
-      comment: "   ",
-    });
+    const empty = await apiAs("anna").post<ApiErrorBody>(
+      "/api/me/data-fix",
+      { field: "group", comment: "   " },
+      { headers: idem("ds17-datafix-bad2") }, // gitleaks:allow — REST-заголовок, не секрет
+    );
     expect(empty.status).toBe(422);
+    // Без Idempotency-Key заявка не создаётся (ревью Claude, .claude/rules/api.md).
+    const noKey = await apiAs("anna").post<ApiErrorBody>("/api/me/data-fix", {
+      field: "group",
+      comment: "Не та группа",
+    });
+    expect(noKey.status).toBe(422);
+    expect(noKey.body.error.details).toMatchObject({ reason: "IDEMPOTENCY_KEY_REQUIRED" });
   });
 
   it("гость → 401, сотрудник → 403", async () => {

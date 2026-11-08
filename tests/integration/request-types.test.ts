@@ -72,7 +72,9 @@ describe("GET /api/request-types", () => {
     expect(app.delivery).toEqual([]);
     const fix = res.body.items.find((t) => t.code === "data_fix")!;
     expect(fix.formSchema[0]).toMatchObject({ name: "field", kind: "select", required: true });
-    expect(fix.formSchema[0]!.options).toContain("ФИО");
+    // Значения — машинные коды контракта DataFixField (подписи — в UI), второе поле — comment.
+    expect(fix.formSchema[0]!.options).toContain("fullName");
+    expect(fix.formSchema.map((f) => f.name)).toEqual(["field", "comment"]);
   });
 
   it("гость — 401, сотрудник — 403", async () => {

@@ -118,6 +118,19 @@ export async function appendStaffTicketMessage(
   return { message, ticket };
 }
 
+/**
+ * Блокировка строки обращения до конца транзакции: ответ и закрытие не гоняются друг с другом
+ * (иначе параллельный ответ возвращал бы закрытое обращение в answered — ревью DS-33).
+ */
+export async function lockTicketRow(tx: Tx, ticketId: string): Promise<boolean> {
+  const rows = await tx
+    .select({ id: tickets.id })
+    .from(tickets)
+    .where(eq(tickets.id, ticketId))
+    .for("update");
+  return rows.length > 0;
+}
+
 /** Закрытие обращения: status = closed (lastMessageAt не трогаем — сообщений не добавлялось). */
 export async function closeTicketRow(
   tx: Tx,

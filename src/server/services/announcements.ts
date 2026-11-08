@@ -187,12 +187,13 @@ export async function createAnnouncement(
     throw new HttpError(422, "VALIDATION", { reason: "INVALID_INTERVAL" });
   }
 
+  const audience = toAudience(body, ctx.facultyId);
   const [a] = await insertAnnouncement(tx, {
     authorUnitId: ctx.unitId,
     createdBy: ctx.userId,
     title: body.title,
     bodyMd: body.bodyMd,
-    audience: toAudience(body),
+    audience,
     important: body.important,
     publishAt,
     expiresAt,
@@ -211,9 +212,9 @@ export async function createAnnouncement(
   const recipients = await listAudienceStudentIds(
     tx,
     {
-      facultyIds: body.audience.facultyIds ?? [],
-      groupIds: body.audience.groupIds ?? [],
-      courseNumbers: body.audience.courses ?? [],
+      facultyIds: audience.facultyIds ?? [],
+      groupIds: audience.groupIds ?? [],
+      courseNumbers: audience.courses ?? [],
     },
     ctx.facultyId,
   );

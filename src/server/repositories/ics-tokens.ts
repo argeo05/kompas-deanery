@@ -1,26 +1,24 @@
 import "server-only";
-import { createHash, randomBytes } from "node:crypto";
-import { and, eq, sql } from "drizzle-orm";
-import { idempotencyKeys, icsTokens } from "../../../db/schema";
+import { createHash, createHmac } from "node:crypto";
+import { eq, sql } from "drizzle-orm";
+import { icsTokens } from "../../../db/schema";
 import { now } from "@/lib/clock";
+import { serverSecret } from "../services/verify-code";
 import type { Tx } from "../db";
 
-// Репозиторий токенов календаря ICS (DS-22).
-// В ics_tokens хранится ТОЛЬКО SHA-256 токена (SPEC §6.9 — единственный
-// неаутентифицированный endpoint с личными данными). Из хеша токен не восстановить,
-// поэтому ссылка для повторного показа GET /api/me/ics кэшируется в idempotency_keys
-// (ключ FEED_TOKEN_CACHE_KEY); rotate перезаписывает обе строки в одной транзакции.
-// Подробно — docs/ds-questions/DS-22.md.
+// Репозиторий токенов календаря ICS (DS-22, ревью Claude).
+// Токен не хранится нигде: он выводится из (userId, generation) и серверного секрета,
+// поэтому GET /api/me/ics повторно показывает ту же ссылку, а выгрузка БД ссылок не даёт.
+// В ics_tokens — SHA-256 токена (поиск публичным роутом) и поколение; rotate → generation + 1.
 
-/** Ключ кэша ссылки в idempotency_keys (формат по KEY_RE из src/server/idempotency.ts). */
-export const FEED_TOKEN_CACHE_KEY = "ics-feed-url";
+/** Формат токена: HMAC-SHA256 в base64url — ровно 43 символа. */
+export const FEED_TOKEN_RE = /^[A-Za-z0-9_-]{43}$/;
 
-/** Хеш запроса кэшируемого ответа: метод и его путь. */
-export const FEED_TOKEN_REQUEST_HASH = createHash("sha256").update("GET /api/me/ics").digest("hex");
-
-/** Свежий токен: 256 бит случайности (32 байта) в base64url — коротко и безопасно в URL. */
-export function generateFeedToken(): string {
-  return randomBytes(32).toString("base64url");
+/** Токен поколения generation: 256 бит HMAC, в URL безопасен. */
+export function deriveFeedToken(userId: string, generation: number): string {
+  return createHmac("sha256", serverSecret())
+    .update(`ics:${userId}:${generation}`)
+    .digest("base64url");
 }
 
 /** SHA-256 токена — ровно то, что лежит в ics_tokens.token_hash. */
@@ -33,21 +31,20 @@ export function feedUrl(token: string): string {
   return `/api/ics/${token}.ics`;
 }
 
-/** Текущий хеш токена студента; null — подписка ещё не создавалась. */
-export async function findTokenHashByUserId(tx: Tx, userId: string): Promise<string | null> {
+/** Текущее поколение ссылки студента; null — подписка ещё не создавалась. */
+export async function findFeedGeneration(tx: Tx, userId: string): Promise<number | null> {
   const [row] = await tx
-    .select({ tokenHash: icsTokens.tokenHash })
+    .select({ generation: icsTokens.generation })
     .from(icsTokens)
     .where(eq(icsTokens.userId, userId))
     .limit(1);
-  return row?.tokenHash ?? null;
+  return row?.generation ?? null;
 }
 
 /**
  * Владелец подписки по хешу токена — для публичного /api/ics/:token (DS-22), как
- * findDocumentByTokenHash для /api/verify (DS-23). Роль kompas_app сюда не пускали бы:
- * вызывается соединением владельца, без uid'а сессии. Возвращает только userId —
- * сами пары читаются дальше строго внутри withUserTx этого владельца.
+ * findDocumentByTokenHash для /api/verify (DS-23). Вызывается соединением владельца,
+ * без uid'а сессии. Возвращает только userId — пары читаются дальше внутри withUserTx.
  */
 export async function findUserIdByTokenHash(tx: Tx, tokenHash: string): Promise<string | null> {
   const [row] = await tx
@@ -59,46 +56,19 @@ export async function findUserIdByTokenHash(tx: Tx, tokenHash: string): Promise<
 }
 
 /**
- * Записать хеш токена владельца: один токен на студента (первичный ключ user_id).
- * Rotate перезаписывает — прежний токен перестаёт находимым быть и его корм 404.
+ * Создать подписку (generation 1) или перейти к следующему поколению: прежний токен
+ * перестаёт находиться — его корм 404. Возвращает новое поколение.
  */
-export async function putTokenHash(tx: Tx, userId: string, tokenHash: string): Promise<void> {
+export async function bumpFeedGeneration(tx: Tx, userId: string): Promise<number> {
+  const current = await findFeedGeneration(tx, userId);
+  const generation = (current ?? 0) + 1;
+  const tokenHash = feedTokenHash(deriveFeedToken(userId, generation));
   await tx
     .insert(icsTokens)
-    .values({ userId, tokenHash, createdAt: now() })
-    .onConflictDoUpdate({ target: icsTokens.userId, set: { tokenHash, createdAt: now() } });
-}
-
-/**
- * Токен из кэша ссылки (idempotency_keys): памятует сырой токен, чтобы повторный
- * GET /api/me/ics вернул ту же ссылку. null — кэша нет/испорчен.
- */
-export async function findCachedFeedToken(tx: Tx, userId: string): Promise<string | null> {
-  const [row] = await tx
-    .select({ statusCode: idempotencyKeys.statusCode, response: idempotencyKeys.response })
-    .from(idempotencyKeys)
-    .where(and(eq(idempotencyKeys.userId, userId), eq(idempotencyKeys.key, FEED_TOKEN_CACHE_KEY)))
-    .limit(1);
-  if (row?.statusCode !== 200) return null;
-  const token = (row.response as { token?: unknown } | null)?.token;
-  return typeof token === "string" ? token : null;
-}
-
-/** Запомнить токен в кэше ответа GET /api/me/ics (в той же транзакции, что и ics_tokens). */
-export async function putCachedFeedToken(tx: Tx, userId: string, token: string): Promise<void> {
-  const response = sql`${JSON.stringify({ token })}::jsonb`;
-  await tx
-    .insert(idempotencyKeys)
-    .values({
-      userId,
-      key: FEED_TOKEN_CACHE_KEY,
-      requestHash: FEED_TOKEN_REQUEST_HASH,
-      statusCode: 200,
-      response,
-      createdAt: now(),
-    })
+    .values({ userId, tokenHash, generation, createdAt: now() })
     .onConflictDoUpdate({
-      target: [idempotencyKeys.userId, idempotencyKeys.key],
-      set: { statusCode: 200, response, createdAt: now() },
+      target: icsTokens.userId,
+      set: { tokenHash, generation: sql`excluded.generation`, createdAt: now() },
     });
+  return generation;
 }

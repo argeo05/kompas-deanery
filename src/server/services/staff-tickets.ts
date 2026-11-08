@@ -11,6 +11,7 @@ import { notify } from "./notify";
 import {
   appendStaffTicketMessage,
   closeTicketRow,
+  lockTicketRow,
   findStaffProfile,
   findTicketForStaff,
   listTicketMessagesForStaff,
@@ -114,6 +115,7 @@ export async function addStaffTicketMessage(
   ticketId: StaffTicketIdParams["id"],
   input: StaffTicketMessageInput,
 ): Promise<MessageDTO | null> {
+  if (!(await lockTicketRow(tx, ticketId))) return null;
   const scope: StaffScope = { facultyId: ctx.facultyId };
   const row = await findTicketForStaff(tx, scope, ticketId);
   if (!row) return null;
@@ -168,6 +170,7 @@ export async function closeStaffTicket(
   ctx: StaffCtx,
   ticketId: StaffTicketIdParams["id"],
 ): Promise<StaffTicketRowDTO | null> {
+  if (!(await lockTicketRow(tx, ticketId))) return null;
   const scope: StaffScope = { facultyId: ctx.facultyId };
   const row = await findTicketForStaff(tx, scope, ticketId);
   if (!row) return null;

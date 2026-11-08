@@ -23,6 +23,8 @@ import { HttpError } from "../http";
 import {
   findDocumentForStudentRequest,
   findRequestForStudent,
+  hasResubmission,
+  lockRequestRow,
   findRequestType,
   findStudentDisplayName,
   insertRequest,
@@ -256,6 +258,13 @@ async function createRequestRow(
 }
 
 /** Проверка способа получения: должен быть null (заявление) или из deliveryOptions типа. */
+/** Статусы, в которых студент уже не пишет в заявку (зеркало MESSAGE_ALLOWED сотрудника). */
+const STUDENT_MESSAGE_CLOSED: ReadonlySet<RequestStatus> = new Set([
+  "issued",
+  "rejected",
+  "cancelled",
+]);
+
 function deliveryIssues(options: Delivery[], delivery: Delivery | null): ValidationIssue[] {
   if (delivery !== null && options.includes(delivery)) return [];
   return [{ path: "delivery", code: "not_available" }];
@@ -345,6 +354,7 @@ export async function cancelMyRequest(
   studentId: string,
   requestId: string,
 ): Promise<RequestDTO | null> {
+  if (!(await lockRequestRow(tx, requestId, studentId))) return null;
   const row = await findRequestForStudent(tx, studentId, requestId);
   if (!row) return null;
   const { status } = row.request;
@@ -386,8 +396,12 @@ export async function addRequestMessageForStudent(
   requestId: string,
   body: RequestMessageBody,
 ): Promise<{ message: MessageDTO; request: RequestDTO } | null> {
+  if (!(await lockRequestRow(tx, requestId, studentId))) return null;
   const row = await findRequestForStudent(tx, studentId, requestId);
   if (!row) return null;
+  // В закрытую заявку (issued/rejected/cancelled) не пишут — как и сотрудник (MESSAGE_ALLOWED).
+  if (STUDENT_MESSAGE_CLOSED.has(row.request.status))
+    throw new HttpError(409, "CONFLICT", { reason: "REQUEST_CLOSED", status: row.request.status });
   const at = now();
   const [message] = await insertRequestMessage(tx, {
     requestId,
@@ -436,6 +450,7 @@ export async function resubmitMyRequest(
   requestId: string,
   override: Record<string, string | number>,
 ): Promise<RequestDTO | null> {
+  if (!(await lockRequestRow(tx, requestId, studentId))) return null;
   const row = await findRequestForStudent(tx, studentId, requestId);
   if (!row) return null;
   const { status, typeCode, delivery, copies, payload } = row.request;
@@ -445,13 +460,18 @@ export async function resubmitMyRequest(
       status,
       action: "resubmit",
     });
+  // Одна отклонённая заявка — одна повторная подача (строка заблокирована выше).
+  if (await hasResubmission(tx, requestId))
+    throw new HttpError(409, "CONFLICT", { reason: "ALREADY_RESUBMITTED" });
   const [type] = await findRequestType(tx, typeCode);
   if (!type) throw new HttpError(404, "NOT_FOUND");
   const fields = { ...payload, ...override };
-  // Поля повторной подачи не перевалидируем (SPEC §6.5 п.10 — «те же поля + перезапись
-  // из тела»): перезапрещении обязательно ломало бы решённую кейс-матрицу изоляции, где
-  // исходный payload может быть неполным. Валидируется только канал выдачи.
-  const issues = deliveryIssues(type.deliveryOptions, delivery);
+  // Исходный payload не перевалидируем (он мог быть неполным — обязательность не проверяется
+  // и при создании), а перезапись из тела — да: неизвестные ключи, тип и варианты select → 422.
+  const issues = [
+    ...deliveryIssues(type.deliveryOptions, delivery),
+    ...requestFieldIssues(type.formSchema, override),
+  ];
   if (issues.length > 0) throw new HttpError(422, "VALIDATION", { issues });
   await consumeRequestQuota(studentId);
   const created = await createRequestRow(

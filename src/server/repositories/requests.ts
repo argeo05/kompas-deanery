@@ -149,6 +149,38 @@ export function insertRequestMessage(tx: Tx, values: typeof requestMessages.$inf
   });
 }
 
+/**
+ * Блокировка строки заявки до конца транзакции (SELECT … FOR UPDATE): проверка статуса и
+ * UPDATE мутации идут без гонки с параллельным действием студента или сотрудника.
+ * studentId — условие по владельцу для студента; null — сотрудник (видимость режет RLS).
+ */
+export async function lockRequestRow(
+  tx: Tx,
+  requestId: string,
+  studentId: string | null,
+): Promise<boolean> {
+  const rows = await tx
+    .select({ id: requests.id })
+    .from(requests)
+    .where(
+      studentId
+        ? and(eq(requests.id, requestId), eq(requests.studentId, studentId))
+        : eq(requests.id, requestId),
+    )
+    .for("update");
+  return rows.length > 0;
+}
+
+/** Есть ли уже повторная подача этой заявки (resubmitted_from = id). */
+export async function hasResubmission(tx: Tx, requestId: string): Promise<boolean> {
+  const rows = await tx
+    .select({ id: requests.id })
+    .from(requests)
+    .where(eq(requests.resubmittedFrom, requestId))
+    .limit(1);
+  return rows.length > 0;
+}
+
 /** Обновление заявки студента: владелец — условие по student_id. */
 export function updateRequestStatus(
   tx: Tx,

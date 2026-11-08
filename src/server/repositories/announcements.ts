@@ -102,11 +102,9 @@ export function insertAnnouncement(tx: Tx, values: typeof announcements.$inferIn
 // ── Список студента ─────────────────────────────────────────────────────────
 
 /**
- * Вхождение студента в аудиторию объявления (объединение критериев, DS-31):
- *   • student в facultyIds, или
- *   • student в groupIds, или
- *   • номер курса студента в courses — и если в аудитории заданы facultyIds, его факультет там.
- * Отсутствие ключа в jsonb (критерий не заполняли) трактуется как «не задано», а не false.
+ * Вхождение студента в аудиторию объявления (DS-31): заданные критерии ПЕРЕСЕКАЮТСЯ
+ * (факультет ∧ курс ∧ группа, иерархия SPEC §6.6 п.3), внутри критерия — любой из списка.
+ * Отсутствующий ключ jsonb — «критерий не задан» (не сужает). Пустую аудиторию отсекает Zod.
  */
 export function audienceMatchesStudent(student: {
   facultyId: string;
@@ -114,13 +112,10 @@ export function audienceMatchesStudent(student: {
   course: number;
 }): SQL {
   const aud = announcements.audience;
-  const facultyMatch = sql`(${aud} -> 'facultyIds') ? ${student.facultyId}`;
-  const groupMatch = sql`(${aud} -> 'groupIds') ? ${student.groupId}`;
-  const courseMatch = sql`(
-    (${aud} -> 'courses') @> ${JSON.stringify([student.course])}::jsonb
-    and (not (${aud} ? 'facultyIds') or (((${aud} -> 'facultyIds') ? ${student.facultyId})))
-  )`;
-  return sql`(${facultyMatch} or ${groupMatch} or ${courseMatch})`;
+  const facultyOk = sql`(not (${aud} ? 'facultyIds') or (${aud} -> 'facultyIds') ? ${student.facultyId})`;
+  const groupOk = sql`(not (${aud} ? 'groupIds') or (${aud} -> 'groupIds') ? ${student.groupId})`;
+  const courseOk = sql`(not (${aud} ? 'courses') or (${aud} -> 'courses') @> ${JSON.stringify([student.course])}::jsonb)`;
+  return sql`(${facultyOk} and ${groupOk} and ${courseOk})`;
 }
 
 /** Видимые студенту объявления: publishAt ≤ now < (expiresAt ?? ∞) и студент входит в аудиторию. */
@@ -191,32 +186,28 @@ export function findStaffName(tx: Tx, userId: string) {
 }
 
 /**
- * Студенты аудитории объявления — по тем же правилам, что и audienceMatchesStudent (сервис DS-31);
- * результат — получатели notify при создании. facultyScope — ограничитель критерия «номер курса»,
- * когда факультеты в аудитории не выбраны: это факультет сотрудника (null — нет ограничителя).
+ * Студенты аудитории объявления — те же правила, что audienceMatchesStudent (пересечение
+ * критериев); результат — получатели notify при создании. facultyScope — факультет сотрудника:
+ * дополнительный ограничитель (null — общевузовское подразделение).
  */
 export function listAudienceStudentIds(
   tx: Tx,
   audience: { facultyIds: string[]; groupIds: string[]; courseNumbers: number[] },
   facultyScope: string | null,
 ) {
-  const courseFacultyIds =
-    audience.facultyIds.length > 0 ? audience.facultyIds : facultyScope ? [facultyScope] : null;
   const conditions = [
     audience.facultyIds.length > 0
       ? inArray(studentProfiles.facultyId, audience.facultyIds)
       : undefined,
     audience.groupIds.length > 0 ? inArray(studentProfiles.groupId, audience.groupIds) : undefined,
     audience.courseNumbers.length > 0
-      ? and(
-          inArray(studentProfiles.course, audience.courseNumbers),
-          courseFacultyIds ? inArray(studentProfiles.facultyId, courseFacultyIds) : undefined,
-        )
+      ? inArray(studentProfiles.course, audience.courseNumbers)
       : undefined,
   ].filter((c): c is SQL => c !== undefined);
   if (conditions.length === 0) return Promise.resolve([]);
+  if (facultyScope) conditions.push(eq(studentProfiles.facultyId, facultyScope));
   return tx
     .select({ userId: studentProfiles.userId })
     .from(studentProfiles)
-    .where(or(...conditions));
+    .where(and(...conditions));
 }

@@ -1,5 +1,6 @@
 import {
   index,
+  integer,
   jsonb,
   pgTable,
   primaryKey,
@@ -70,5 +71,7 @@ export const icsTokens = pgTable("ics_tokens", {
     .primaryKey()
     .references(() => users.id, { onDelete: "cascade" }),
   tokenHash: text("token_hash").notNull().unique(),
+  /** Поколение ссылки: токен = HMAC(секрет, userId:generation), rotate → +1 (ревью DS-22). */
+  generation: integer("generation").notNull().default(1),
   createdAt: ts("created_at").notNull(),
 });

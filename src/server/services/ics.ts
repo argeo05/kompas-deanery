@@ -6,13 +6,10 @@ import { now } from "@/lib/clock";
 import { deadlines } from "../../../db/schema";
 import type { Tx } from "../db";
 import {
-  feedTokenHash,
+  bumpFeedGeneration,
+  deriveFeedToken,
   feedUrl,
-  findCachedFeedToken,
-  findTokenHashByUserId,
-  generateFeedToken,
-  putCachedFeedToken,
-  putTokenHash,
+  findFeedGeneration,
 } from "../repositories/ics-tokens";
 import {
   listChangesForClasses,
@@ -23,9 +20,9 @@ import {
 
 // Сервис календаря ICS (DS-22).
 //
-// • GET /api/me/ics — idempotent: повторный вызов возвращает ту же ссылку, пока
-//   студент не сбросил её (rotate). Токен в БД только хешем, сырой токен — в кэше
-//   ответа (repositories/ics-tokens.ts, docs/ds-questions/DS-22.md).
+// • GET /api/me/ics — повторный вызов возвращает ту же ссылку, пока студент не сбросил
+//   её (rotate): токен выводится из поколения и секрета, в БД только хеш
+//   (repositories/ics-tokens.ts, docs/ds-questions/DS-22.md).
 // • Корм: пары студента ±4 недели от now() (переносы применены, отмена — STATUS:CANCELLED)
 //   и дедлайны со звёздочкой (без окна — подписка «догоняет» и старые, см. DS-22.md).
 
@@ -54,30 +51,20 @@ function calendarOf(events: EventAttributes[]): string {
   return value;
 }
 
-/**
- * GET /api/me/ics: кэш ссылки валиден, пока его токен совпадает с хешем в ics_tokens.
- * Кэша нет или он отстал (например, ежедневный сброс демо-данных) — тихо создаём новый
- * токен: прежнюю ссылку всё равно восстановить нельзя.
- */
+/** GET /api/me/ics: ссылка текущего поколения; подписки ещё нет — создаём первое. */
 export async function getMyIcsUrl(tx: Tx, userId: string): Promise<IcsUrlDTO> {
-  const tokenHash = await findTokenHashByUserId(tx, userId);
-  const cached = await findCachedFeedToken(tx, userId);
-  if (tokenHash && cached && feedTokenHash(cached) === tokenHash) {
-    return { url: feedUrl(cached) };
-  }
-  return rotateIcsUrl(tx, userId);
+  const generation =
+    (await findFeedGeneration(tx, userId)) ?? (await bumpFeedGeneration(tx, userId));
+  return { url: feedUrl(deriveFeedToken(userId, generation)) };
 }
 
 /**
- * POST /api/me/ics/rotate: новый токен, старый перестаёт работать (upsert по user_id —
- * один токен на студента). Без withIdempotency: повтор rotate обязан выдать НОВЫЙ
- * токен, возврат сохранённого ответа был бы бессмыслен.
+ * POST /api/me/ics/rotate: следующее поколение, старый токен перестаёт работать. Без
+ * withIdempotency: повтор rotate обязан выдать НОВЫЙ токен.
  */
 export async function rotateIcsUrl(tx: Tx, userId: string): Promise<IcsUrlDTO> {
-  const token = generateFeedToken();
-  await putTokenHash(tx, userId, feedTokenHash(token));
-  await putCachedFeedToken(tx, userId, token);
-  return { url: feedUrl(token) };
+  const generation = await bumpFeedGeneration(tx, userId);
+  return { url: feedUrl(deriveFeedToken(userId, generation)) };
 }
 
 type FeedChangeBundle = Awaited<ReturnType<typeof listChangesForClasses>>[number];

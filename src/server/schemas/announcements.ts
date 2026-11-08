@@ -48,10 +48,16 @@ export const announcementCreateBody = z.object({
 export type AnnouncementCreateInput = z.output<typeof announcementCreateBody>;
 
 /** Как аудиторию сохраняют в jsonb (для DTO и notify): undefined-ключи убраны —
- * SQL смотрит их отсутствие через `? 'ключ'`, а не через NULL-значение. */
-export function toAudience(input: AnnouncementCreateInput): AnnouncementAudience {
+ * SQL смотрит их отсутствие через `? 'ключ'`, а не через NULL-значение.
+ * Сотрудник факультета без явных facultyIds пишет своему факультету: без этого
+ * «1 курс» увидели бы первокурсники всего вуза (находка ревью DS-31). */
+export function toAudience(
+  input: AnnouncementCreateInput,
+  facultyScope: string | null,
+): AnnouncementAudience {
+  const facultyIds = input.audience.facultyIds ?? (facultyScope ? [facultyScope] : undefined);
   return {
-    ...(input.audience.facultyIds ? { facultyIds: input.audience.facultyIds } : {}),
+    ...(facultyIds ? { facultyIds } : {}),
     ...(input.audience.courses ? { courses: input.audience.courses } : {}),
     ...(input.audience.groupIds ? { groupIds: input.audience.groupIds } : {}),
   };

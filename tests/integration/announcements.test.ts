@@ -265,9 +265,10 @@ describe("GET /api/me/announcements", () => {
     toMaximGroup = await add("Группа М-ЦМ-11", { groupIds: [maximGroupId] });
     toAnnaFaculty = await add("Факультет ЭК", { facultyIds: [econFacultyId] });
     toFirstCourses = await add("Первый курс всех факультетов", { courses: [1] });
-    combined = await add("Объединение критериев", {
+    // Критерии пересекаются (DS-31, ревью Claude): «факультет ЭК ∧ 1 курс» — Аня, не Максим.
+    combined = await add("Первый курс факультета ЭК", {
       facultyIds: [econFacultyId],
-      groupIds: [maximGroupId],
+      courses: [1],
     });
 
     const futureRes = await apiAs("elena").post<StaffAnnouncementDTO>(
@@ -323,14 +324,14 @@ describe("GET /api/me/announcements", () => {
     ]);
   });
 
-  it("Максим видит только свою аудиторию (объединение критериев)", async () => {
+  it("Максим видит только свою аудиторию (пересечение критериев)", async () => {
     const res = await apiAs("maxim").get<StudentPage>("/api/me/announcements");
     expect(res.status).toBe(200);
     const ids = res.body.items.map((a) => a.id);
-    for (const id of [toMaximGroup, toFirstCourses, combined]) {
+    for (const id of [toMaximGroup, toFirstCourses]) {
       expect(ids, id).toContain(id);
     }
-    for (const id of [toAnnaGroup, toAnnaFaculty, future, expired]) {
+    for (const id of [toAnnaGroup, toAnnaFaculty, combined, future, expired]) {
       expect(ids, `скрыто от Максима: ${id}`).not.toContain(id);
     }
   });

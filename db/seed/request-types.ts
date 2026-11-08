@@ -301,12 +301,13 @@ export const REQUEST_TYPES: RequestTypeSeed[] = [
         kind: "select",
         label: "Какие данные исправить",
         required: true,
-        options: ["ФИО", "группа", "программа", "контакты", "другое"],
+        // Машинные коды контракта DataFixField; подписи (ФИО, группа…) — в UI.
+        options: ["fullName", "group", "program", "contacts", "other"],
       },
       {
-        name: "correctValue",
+        name: "comment",
         kind: "textarea",
-        label: "Как должно быть (правильное значение)",
+        label: "Что исправить и как должно быть",
         required: true,
         max: 1000,
       },
