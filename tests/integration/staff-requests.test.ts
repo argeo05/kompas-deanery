@@ -76,7 +76,9 @@ describe("GET /api/staff/requests", () => {
   });
 
   it("фильтр mine=true: только заявки, назначенные Елене", async () => {
-    const res = await apiAs("elena").get<StaffRequestsDTO>("/api/staff/requests?mine=true&limit=50");
+    const res = await apiAs("elena").get<StaffRequestsDTO>(
+      "/api/staff/requests?mine=true&limit=50",
+    );
     expect(res.body.items).toHaveLength(50); // всего «моих» 52 — первая страница лимита
     expect(res.body.items.every((r) => r.assignee !== null)).toBe(true);
   });

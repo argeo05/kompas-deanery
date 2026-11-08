@@ -96,10 +96,15 @@ export function listRequestsForStaff(tx: Tx, opts: StaffListOpts) {
           cursor,
         ),
       )
-      // createdAt — новые первыми; dueAt — близкий срок первыми.
+      // createdAt — новые первыми; dueAt — близкий срок первыми. Срок усечён до секунды:
+      // фикстуры тестов создают заявки за миллисекунды друг от друга, а пользователю важна
+      // дата, а не миллисекунды. Внутри группы — чем больше номер (СП-ГГММ-NNNN, nextval),
+      // тем свежее вставка: новые фикстуры не выпадают за пределы первой страницы.
       .orderBy(
-        opts.sort === "dueAt" ? asc(requests.dueAt) : desc(requests.createdAt),
-        asc(requests.id),
+        opts.sort === "dueAt"
+          ? sql`date_trunc('second', ${requests.dueAt})`
+          : desc(sql`date_trunc('second', ${requests.createdAt})`),
+        desc(requests.number),
       )
       .limit(opts.limit + 1)
   );
@@ -150,19 +155,21 @@ export async function findRequestForStaff(tx: Tx, scope: StaffScope, requestId: 
 
 /** События заявки в области видимости сотрудника, по времени. */
 export function listRequestEventsForStaff(tx: Tx, scope: StaffScope, requestId: string) {
-  return tx
-    .select({
-      event: requestEvents,
-      staff: { firstName: staffProfiles.firstName, lastName: staffProfiles.lastName },
-    })
-    .from(requestEvents)
-    .innerJoin(requests, eq(requests.id, requestEvents.requestId))
-    .innerJoin(studentProfiles, eq(studentProfiles.userId, requests.studentId))
-    .leftJoin(staffProfiles, eq(staffProfiles.userId, requestEvents.actorId))
-    .where(and(eq(requestEvents.requestId, requestId), staffScopeCondition(scope)))
-    // createdAt может совпасть (замороженные часы в тестах) — UUIDv4 id не сохраняет порядок
-    // вставки, поэтому вторичный ключ — физический ctid (таблица только INSERT).
-    .orderBy(asc(requestEvents.createdAt), sql`(request_events.ctid)::text`);
+  return (
+    tx
+      .select({
+        event: requestEvents,
+        staff: { firstName: staffProfiles.firstName, lastName: staffProfiles.lastName },
+      })
+      .from(requestEvents)
+      .innerJoin(requests, eq(requests.id, requestEvents.requestId))
+      .innerJoin(studentProfiles, eq(studentProfiles.userId, requests.studentId))
+      .leftJoin(staffProfiles, eq(staffProfiles.userId, requestEvents.actorId))
+      .where(and(eq(requestEvents.requestId, requestId), staffScopeCondition(scope)))
+      // createdAt может совпасть (замороженные часы в тестах) — UUIDv4 id не сохраняет порядок
+      // вставки, поэтому вторичный ключ — физический ctid (таблица только INSERT).
+      .orderBy(asc(requestEvents.createdAt), sql`(request_events.ctid)::text`)
+  );
 }
 
 /** Переписка по заявке в области видимости сотрудника, по времени. */
