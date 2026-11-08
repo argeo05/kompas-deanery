@@ -38,13 +38,13 @@ import { notify } from "./notify";
 
 const HOUR = 3_600_000;
 /** Граница «горит» и «риск»: 48 часов от текущего момента. */
-const HOT_MS = 48 * HOUR;
+export const HOT_MS = 48 * HOUR;
 /** Граница группы «На этой неделе»: 7 дней от текущего момента. */
 const WEEK_MS = 7 * 24 * HOUR;
 
 export type DeadlineAction = "star" | "unstar" | "done" | "undone";
 
-type DeadlineRow = Awaited<ReturnType<typeof listDeadlinesForStudent>>[number];
+export type DeadlineRow = Awaited<ReturnType<typeof listDeadlinesForStudent>>[number];
 
 /**
  * Риск (DeadlineDTO.risk): дедлайн ещё не отмечен «Сделал» и до срока ≤ 48 ч
@@ -65,7 +65,7 @@ function toPlanDTO(p: typeof plans.$inferSelect): PlanDTO {
 }
 
 /** Актуальный план дедлайна — последний созданный (в schema нет unique по deadlineId). */
-function latestPlans(
+export function latestPlans(
   planRows: Awaited<ReturnType<typeof listPlansForStudent>>,
 ): Map<string, PlanDTO> {
   const map = new Map<string, PlanDTO>();
@@ -75,7 +75,11 @@ function latestPlans(
   return map;
 }
 
-function toDeadlineDTO(row: DeadlineRow, planById: Map<string, PlanDTO>, at: Date): DeadlineDTO {
+export function toDeadlineDTO(
+  row: DeadlineRow,
+  planById: Map<string, PlanDTO>,
+  at: Date,
+): DeadlineDTO {
   const d = row.deadline;
   return {
     id: d.id,
