@@ -210,6 +210,14 @@ export const apiRoutes: ApiRouteSpec[] = [
   },
   {
     method: "POST",
+    path: "/api/me/requests/:id/seen",
+    access: "student",
+    ticket: "C4",
+    owned: true,
+    case: async (fx) => ({ params: { id: await f.annaRequest(fx, "ready") } }),
+  },
+  {
+    method: "POST",
     path: "/api/me/requests/:id/messages",
     access: "student",
     ticket: "DS-17",

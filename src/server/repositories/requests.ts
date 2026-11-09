@@ -211,3 +211,12 @@ export async function findStudentDisplayName(tx: Tx, userId: string): Promise<st
     .limit(1);
   return row?.displayName ?? null;
 }
+
+/** Студент открыл карточку: все события до этого момента просмотрены. updatedAt не меняется. */
+export function markRequestSeen(tx: Tx, studentId: string, requestId: string, at: Date) {
+  return tx
+    .update(requests)
+    .set({ studentSeenAt: at })
+    .where(and(eq(requests.id, requestId), eq(requests.studentId, studentId)))
+    .returning({ id: requests.id });
+}
