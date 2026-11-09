@@ -50,6 +50,8 @@ export default defineConfig({
       BETTER_AUTH_SECRET:
         process.env.BETTER_AUTH_SECRET ?? "e2e-only-insecure-secret-do-not-use-in-prod",
       BETTER_AUTH_URL: baseURL,
+      // Секрет кодов проверки справок (/verify): в production обязателен, без него выдача документа падает.
+      VERIFY_SECRET: process.env.VERIFY_SECRET ?? "e2e-only-insecure-verify-secret",
     },
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,

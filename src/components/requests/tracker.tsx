@@ -38,7 +38,9 @@ function Dot({ done, status }: { done: boolean; status?: RequestStatus }) {
       aria-hidden
       className={cn(
         "relative z-10 grid size-6 shrink-0 place-items-center rounded-full border",
-        done && status ? `${TONE[status]} border-transparent` : "border-line-strong bg-surface text-ink-2",
+        done && status
+          ? `${TONE[status]} border-transparent`
+          : "border-line-strong bg-surface text-ink-2",
       )}
     >
       {done ? <Check className="size-3.5" /> : <Circle className="size-2" />}

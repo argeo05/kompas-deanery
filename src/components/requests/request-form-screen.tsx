@@ -148,8 +148,8 @@ function Success({ created, type }: { created: RequestDTO; type: RequestTypeDTO 
         Номер заявки {created.number}
       </h1>
       <p>
-        {type.title}. Ожидаемая готовность: <strong>{formatDateLong(created.dueAt)}</strong> с
-        учётом рабочих дней.
+        {type.title}. Ожидаемая готовность:{" "}
+        <strong>{formatDateLong(created.dueAt).toLowerCase()}</strong> с учётом рабочих дней.
       </p>
       <section aria-labelledby="next-title" className="flex flex-col gap-2">
         <h2 id="next-title" className="type-h3">

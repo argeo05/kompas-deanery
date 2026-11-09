@@ -3,7 +3,20 @@ import { expect, test } from "@playwright/test";
 import { loginAs } from "../e2e/support/auth";
 
 // WCAG 2.2 AA на экранах студента (C3) в светлой и тёмной теме, на настоящих данных Анны.
-const routes = ["/login", "/today", "/schedule", "/schedule?view=week", "/study", "/study/session"];
+const routes = [
+  "/login",
+  "/today",
+  "/schedule",
+  "/schedule?view=week",
+  "/study",
+  "/study/session",
+  "/requests",
+  "/requests/new",
+  "/requests/new/study_cert",
+  "/documents",
+  "REQUEST_CARD",
+  `/verify/${"0".repeat(64)}`,
+];
 
 for (const scheme of ["light", "dark"] as const) {
   test.describe(`${scheme}`, () => {
@@ -11,7 +24,14 @@ for (const scheme of ["light", "dark"] as const) {
     for (const route of routes) {
       test(`axe: ${route} (${scheme})`, async ({ page, context, baseURL }) => {
         if (route !== "/login") await loginAs(context, "anna", baseURL!);
-        await page.goto(route);
+        let target = route;
+        if (route === "REQUEST_CARD") {
+          const list = (await (await context.request.get("/api/me/requests")).json()) as {
+            items: { id: string }[];
+          };
+          target = `/requests/${list.items[0]!.id}`;
+        }
+        await page.goto(target);
         await page.waitForLoadState("load");
         if (route !== "/login") await expect(page.locator("[aria-busy=true]")).toHaveCount(0);
         // Карточки изменений появляются с анимацией прозрачности: axe должен мерить итоговые цвета.

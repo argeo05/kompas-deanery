@@ -1,4 +1,4 @@
-import { test } from "@playwright/test";
+import { test, type BrowserContext } from "@playwright/test";
 import { loginAs } from "./support/auth";
 
 // pnpm shots: скриншоты экранов в светлой и тёмной теме для docs/process/shots/ (SPEC §12.4 п.5).
@@ -16,7 +16,22 @@ const studentScreens = [
   { name: "schedule-week", path: "/schedule?view=week" },
   { name: "study", path: "/study" },
   { name: "study-session", path: "/study/session" },
+  { name: "requests", path: "/requests" },
+  { name: "requests-new", path: "/requests/new" },
+  { name: "requests-form", path: "/requests/new/study_cert" },
+  { name: "documents", path: "/documents" },
+  { name: "request-card", path: "REQUEST_CARD" },
+  { name: "verify", path: `/verify/${"0".repeat(64)}` },
 ];
+
+/** REQUEST_CARD — первая заявка Анны (новые первыми). */
+async function resolvePath(context: BrowserContext, path: string): Promise<string> {
+  if (path !== "REQUEST_CARD") return path;
+  const list = (await (await context.request.get("/api/me/requests")).json()) as {
+    items: { id: string }[];
+  };
+  return `/requests/${list.items[0]!.id}`;
+}
 
 for (const scheme of ["light", "dark"] as const) {
   test.describe(`@shots ${scheme}`, () => {
@@ -34,7 +49,7 @@ for (const scheme of ["light", "dark"] as const) {
     for (const screen of studentScreens) {
       test(`@shots ${screen.name} ${scheme}`, async ({ context, page, baseURL }, info) => {
         await loginAs(context, "anna", baseURL!);
-        await page.goto(screen.path);
+        await page.goto(await resolvePath(context, screen.path));
         await page.waitForLoadState("load");
         await page.locator("[aria-busy=true]").waitFor({ state: "detached" });
         await page.waitForTimeout(400);

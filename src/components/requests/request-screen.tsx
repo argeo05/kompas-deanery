@@ -50,7 +50,9 @@ function Messages({ request, onSent }: { request: RequestDetailDTO; onSent: () =
       toast({ tone: "success", title: needsReply ? "Ответ отправлен" : "Сообщение отправлено" });
       onSent();
     } catch {
-      setError("Не получилось отправить. Текст остался в поле: проверьте интернет и нажмите «Отправить» ещё раз.");
+      setError(
+        "Не получилось отправить. Текст остался в поле: проверьте интернет и нажмите «Отправить» ещё раз.",
+      );
     } finally {
       setPending(false);
     }
@@ -69,10 +71,15 @@ function Messages({ request, onSent }: { request: RequestDetailDTO; onSent: () =
             <li
               key={m.id}
               data-testid="message"
-              className={m.author === "student" ? "self-end rounded-card bg-surface-2 p-3" : "rounded-card border border-line bg-surface p-3"}
+              className={
+                m.author === "student"
+                  ? "self-end rounded-card bg-surface-2 p-3"
+                  : "rounded-card border border-line bg-surface p-3"
+              }
             >
               <p className="type-caption text-ink-2">
-                {m.author === "student" ? "Вы" : m.authorName} · {formatDayMonth(m.createdAt)}, {formatTimeMsk(m.createdAt)}
+                {m.author === "student" ? "Вы" : m.authorName} · {formatDayMonth(m.createdAt)},{" "}
+                {formatTimeMsk(m.createdAt)}
               </p>
               <p className="whitespace-pre-wrap">{m.body}</p>
             </li>
@@ -135,7 +142,12 @@ function CancelButton({ request, onDone }: { request: RequestDetailDTO; onDone: 
       <Button variant="danger" onClick={() => setOpen(true)}>
         Отменить заявку
       </Button>
-      <Sheet open={open} onOpenChange={setOpen} title="Отменить заявку?" description={`${request.type.title}, ${request.number}`}>
+      <Sheet
+        open={open}
+        onOpenChange={setOpen}
+        title="Отменить заявку?"
+        description={`${request.type.title}, ${request.number}`}
+      >
         <div className="flex flex-col gap-3">
           <p>Сотрудник ещё не взял её в работу. После отмены заявку можно будет подать заново.</p>
           {error && <InlineError>{error}</InlineError>}
@@ -189,8 +201,12 @@ function Rejection({ request }: { request: RequestDetailDTO }) {
     <Card className="gap-2 border-l-4 border-l-coral" data-testid="rejection">
       <h2 className="type-h3">Почему отклонили</h2>
       <p className="font-medium">{REJECT_REASON_TEXT[request.rejection.reason]}</p>
-      {request.rejection.comment && <p className="whitespace-pre-wrap">{request.rejection.comment}</p>}
-      <p className="text-ink-2">Исправьте данные и подайте заявку заново: форма откроется уже заполненной.</p>
+      {request.rejection.comment && (
+        <p className="whitespace-pre-wrap">{request.rejection.comment}</p>
+      )}
+      <p className="text-ink-2">
+        Исправьте данные и подайте заявку заново: форма откроется уже заполненной.
+      </p>
       <Button asChild className="self-start">
         <Link href={`/requests/new/${request.type.code}?from=${request.id}`}>Подать заново</Link>
       </Button>
@@ -201,7 +217,9 @@ function Rejection({ request }: { request: RequestDetailDTO }) {
 function Details({ request, reload }: { request: RequestDetailDTO; reload: () => void }) {
   const [now] = React.useState(() => Date.now());
   const open = !["issued", "rejected", "cancelled", "ready"].includes(request.status);
-  const lateDays = request.overdue ? Math.max(1, Math.round((now - new Date(request.dueAt).getTime()) / 86_400_000)) : 0;
+  const lateDays = request.overdue
+    ? Math.max(1, Math.round((now - new Date(request.dueAt).getTime()) / 86_400_000))
+    : 0;
   return (
     <>
       <header className="flex flex-col gap-2">
@@ -215,7 +233,9 @@ function Details({ request, reload }: { request: RequestDetailDTO; reload: () =>
         <p className="type-caption text-ink-2">
           {request.number}
           {request.delivery ? ` · ${DELIVERY_TEXT[request.delivery]}` : ""}
-          {request.copies > 1 ? ` · ${request.copies} ${plural(request.copies, ["экземпляр", "экземпляра", "экземпляров"])}` : ""}
+          {request.copies > 1
+            ? ` · ${request.copies} ${plural(request.copies, ["экземпляр", "экземпляра", "экземпляров"])}`
+            : ""}
         </p>
         <StatusBadge
           kind="request"
@@ -226,7 +246,7 @@ function Details({ request, reload }: { request: RequestDetailDTO; reload: () =>
           <p className={request.overdue ? "text-warn-fg" : "text-ink-2"}>
             {request.overdue
               ? `Срок прошёл на ${lateDays} ${plural(lateDays, ["день", "дня", "дней"])} · мы напомнили сотруднику`
-              : `Ожидаемая готовность: ${formatDateLong(request.dueAt)}`}
+              : `Ожидаемая готовность: ${formatDateLong(request.dueAt).toLowerCase()}`}
           </p>
         )}
         {request.assignee && open && (
@@ -238,7 +258,9 @@ function Details({ request, reload }: { request: RequestDetailDTO; reload: () =>
       {request.status === "needs_info" && (
         <Card className="gap-1 border-l-4 border-l-warn" data-testid="needs-info">
           <h2 className="type-h3">Сотруднику нужно уточнение</h2>
-          <p className="whitespace-pre-wrap">{request.events.findLast((e) => e.toStatus === "needs_info")?.comment}</p>
+          <p className="whitespace-pre-wrap">
+            {request.events.findLast((e) => e.toStatus === "needs_info")?.comment}
+          </p>
           <p className="text-ink-2">Ответьте в поле «Переписка» ниже: заявка вернётся в работу.</p>
         </Card>
       )}
@@ -254,14 +276,20 @@ function Details({ request, reload }: { request: RequestDetailDTO; reload: () =>
 
 export function RequestScreen({ id }: { id: string }) {
   const { userId } = useStudent();
-  const api = useApi<RequestDetailDTO>(`/api/me/requests/${id}`, { scope: userId, refreshMs: 30_000 });
+  const api = useApi<RequestDetailDTO>(`/api/me/requests/${id}`, {
+    scope: userId,
+    refreshMs: 30_000,
+  });
   const seen = React.useRef<string | null>(null);
 
   // Открыли карточку: гасим точку «есть новое» в списке. Один запрос на заявку за визит.
   React.useEffect(() => {
     if (!api.data || seen.current === api.data.id) return;
     seen.current = api.data.id;
-    void fetch(`/api/me/requests/${api.data.id}/seen`, { method: "POST", credentials: "same-origin" }).catch(() => {});
+    void fetch(`/api/me/requests/${api.data.id}/seen`, {
+      method: "POST",
+      credentials: "same-origin",
+    }).catch(() => {});
   }, [api.data]);
 
   return (
