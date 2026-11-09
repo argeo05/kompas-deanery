@@ -43,14 +43,14 @@ function RequestRow({ r }: { r: RequestDTO }) {
         <h2 className="min-w-0 type-h3">
           <Link href={`/requests/${r.id}`} className="card-link">
             {r.type.title}
+            {r.unseen && <span className="sr-only">, есть новое</span>}
           </Link>
         </h2>
         {r.unseen && (
-          <span
-            className="mt-1.5 size-3 shrink-0 rounded-full bg-accent"
-            role="img"
-            aria-label="Есть новое"
-          />
+          <span className="mt-0.5 flex shrink-0 items-center gap-1.5 type-caption text-accent">
+            <span aria-hidden className="size-2.5 rounded-full bg-accent" />
+            Новое
+          </span>
         )}
       </div>
       <p className="type-caption text-ink-2">{r.number}</p>
@@ -77,7 +77,7 @@ export function RequestsScreen() {
         <Button asChild>
           <Link href="/requests/new">
             <Plus aria-hidden />
-            Новая заявка
+            Подать заявку
           </Link>
         </Button>
       </header>

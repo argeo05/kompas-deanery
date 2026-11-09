@@ -62,7 +62,8 @@ function ProfileBlock({ me }: { me: MeDTO }) {
         <dd>{me.course}</dd>
       </dl>
       <p className="mt-2 type-caption text-ink-2">
-        Эти данные подставляются сами. Если в них ошибка, сообщите об этом в профиле.
+        Эти данные подставляются сами. Если в них ошибка, сообщите в деканат через «Связь с
+        деканатом».
       </p>
     </details>
   );
@@ -132,7 +133,7 @@ function FieldInput({
 const NEXT_STEPS = [
   "Сотрудник деканата возьмёт заявку в работу. Вы увидите это в карточке заявки.",
   "Если понадобится уточнение, вопрос появится в той же карточке, и мы пришлём уведомление.",
-  "Когда всё будет готово, электронную справку можно скачать, а за оригиналом прийти в студенческий офис.",
+  "Когда всё будет готово, электронный документ можно скачать, а за оригиналом прийти в студенческий офис.",
 ];
 
 function Success({ created, type }: { created: RequestDTO; type: RequestTypeDTO }) {
@@ -194,6 +195,7 @@ function Form({
   const [formError, setFormError] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
   const [created, setCreated] = React.useState<RequestDTO | null>(null);
+  const [focusErrors, setFocusErrors] = React.useState(0);
   const idemKey = React.useRef<string | null>(null);
   const restored = React.useRef(false);
   const [draftRestored, setDraftRestored] = React.useState(false);
@@ -213,6 +215,12 @@ function Form({
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [original, type, userId]);
 
+  // Фокус на первое поле с ошибкой — после перерисовки, когда aria-invalid уже стоит в DOM.
+  React.useEffect(() => {
+    if (focusErrors === 0) return;
+    document.querySelector<HTMLElement>("[aria-invalid=true]")?.focus();
+  }, [focusErrors]);
+
   // Сохраняем черновик при каждом изменении, пока заявка не отправлена.
   React.useEffect(() => {
     if (original || created || !restored.current) return;
@@ -230,8 +238,7 @@ function Form({
     setErrors(found);
     setFormError(null);
     if (Object.keys(found).length > 0) {
-      const first = document.querySelector<HTMLElement>("[aria-invalid=true]");
-      first?.focus();
+      setFocusErrors((n) => n + 1);
       return;
     }
     idemKey.current ??= crypto.randomUUID();
@@ -258,14 +265,16 @@ function Form({
         return;
       }
       if (res.status === 429) {
-        setFormError("Вы отправили много заявок за последний час. Подождите немного и повторите.");
+        setFormError("Вы отправили много заявок за последний час. Попробуйте снова через час.");
       } else if (res.status === 409) {
         setFormError("Эта заявка уже подана заново. Откройте её в списке заявок.");
       } else if (res.status === 422) {
         const err = (await res.json().catch(() => null)) as ApiErrorBody | null;
         void err;
         idemKey.current = null;
-        setFormError("Сервер не принял данные. Проверьте поля и отправьте ещё раз.");
+        setFormError(
+          "Не получилось отправить: часть данных не подошла. Проверьте поля и нажмите «Отправить» ещё раз.",
+        );
       } else {
         setFormError(
           "Не получилось отправить заявку. Ваши данные сохранены: нажмите «Отправить» ещё раз.",
@@ -273,7 +282,7 @@ function Form({
       }
     } catch {
       setFormError(
-        "Нет связи с сервером. Ваши данные сохранены: проверьте интернет и нажмите «Отправить» ещё раз.",
+        "Не получилось отправить: пропал интернет. Ваши данные сохранены, проверьте сеть и нажмите «Отправить» ещё раз.",
       );
     } finally {
       setPending(false);

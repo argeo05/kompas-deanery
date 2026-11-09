@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Check, Circle } from "lucide-react";
+import { Check, Circle, CircleSlash, CircleX } from "lucide-react";
 import type { RequestDetailDTO, RequestEventDTO, RequestStatus } from "@/contracts/api";
 import { formatDayMonth, formatTimeMsk } from "@/lib/format";
 import { eventTitle } from "@/lib/request-copy";
@@ -32,6 +32,12 @@ function upcoming(events: RequestEventDTO[], status: RequestStatus): string[] {
   return steps.filter(([s]) => !reached.has(s)).map(([, title]) => title);
 }
 
+function DoneIcon({ status }: { status?: RequestStatus }) {
+  if (status === "rejected") return <CircleX className="size-3.5" />;
+  if (status === "cancelled") return <CircleSlash className="size-3.5" />;
+  return <Check className="size-3.5" />;
+}
+
 function Dot({ done, status }: { done: boolean; status?: RequestStatus }) {
   return (
     <span
@@ -43,7 +49,7 @@ function Dot({ done, status }: { done: boolean; status?: RequestStatus }) {
           : "border-line-strong bg-surface text-ink-2",
       )}
     >
-      {done ? <Check className="size-3.5" /> : <Circle className="size-2" />}
+      {done ? <DoneIcon status={status} /> : <Circle className="size-2" />}
     </span>
   );
 }
@@ -60,9 +66,14 @@ export function Tracker({ request }: { request: RequestDetailDTO }) {
           <li key={e.id} className="flex animate-ink-in gap-3" data-testid="tracker-step">
             <Dot done status={e.toStatus} />
             <div className="min-w-0">
-              <p className="font-medium">{eventTitle(e.fromStatus, e.toStatus)}</p>
+              <p className="font-medium">
+                <span className="sr-only">Выполнено: </span>
+                {eventTitle(e.fromStatus, e.toStatus)}
+              </p>
               <p className="type-caption text-ink-2">
-                {formatDayMonth(e.createdAt)}, {formatTimeMsk(e.createdAt)}
+                <time dateTime={e.createdAt}>
+                  {formatDayMonth(e.createdAt)}, {formatTimeMsk(e.createdAt)}
+                </time>
                 {e.actor === "staff" && e.actorName ? ` · ${e.actorName}` : ""}
               </p>
               {e.comment && <p className="mt-1 whitespace-pre-wrap">{e.comment}</p>}
@@ -72,7 +83,10 @@ export function Tracker({ request }: { request: RequestDetailDTO }) {
         {future.map((title) => (
           <li key={title} className="flex gap-3 text-ink-2" data-testid="tracker-upcoming">
             <Dot done={false} />
-            <p className="pt-0.5">{title}</p>
+            <p className="pt-0.5">
+              <span className="sr-only">Ещё впереди: </span>
+              {title}
+            </p>
           </li>
         ))}
       </ol>

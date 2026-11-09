@@ -39,7 +39,7 @@ export function DocumentsScreen() {
                 </Button>
               }
             >
-              Готовые электронные справки появятся здесь, и их можно будет скачать.
+              Готовые документы появятся здесь, их можно будет скачать.
             </EmptyState>
           ) : (
             <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
@@ -60,7 +60,7 @@ export function DocumentsScreen() {
                       <Button asChild variant="secondary">
                         <Link href={d.verifyUrl}>
                           <ShieldCheck aria-hidden />
-                          Проверка подлинности
+                          Проверить подлинность
                         </Link>
                       </Button>
                     </div>

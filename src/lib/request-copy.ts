@@ -14,7 +14,7 @@ export function statusLine(
     case "in_progress":
       return assignee ? `В работе · ${assignee} готовит` : "В работе";
     case "needs_info":
-      return "Нужно уточнение";
+      return "Нужно уточнение · ответьте сотруднику";
     case "ready":
       return delivery === "original" ? "Готова · можно забрать" : "Готова · можно скачать";
     case "issued":
@@ -35,7 +35,7 @@ export function badgeLabel(r: Pick<RequestDTO, "status" | "delivery">): string |
 
 export const REJECT_REASON_TEXT: Record<RejectReason, string> = {
   INCOMPLETE: "Не хватило данных",
-  NOT_ELIGIBLE: "Выдать нельзя: нет оснований",
+  NOT_ELIGIBLE: "Справку не выдадим: для этого нет оснований",
   DUPLICATE: "Такая заявка уже есть",
   OTHER: "Другая причина",
 };
@@ -53,7 +53,7 @@ export function eventTitle(from: RequestStatus | null, to: RequestStatus): strin
     case "in_progress":
       return from === "needs_info" ? "Вы ответили, заявка снова в работе" : "Принята в работу";
     case "needs_info":
-      return "Нужно уточнение";
+      return "Нужно уточнение · ответьте сотруднику";
     case "ready":
       return "Готова";
     case "issued":

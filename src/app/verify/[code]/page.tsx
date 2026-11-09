@@ -12,6 +12,8 @@ import { consumeVerifyLimit } from "@/server/verify-limit";
 // Публичная проверка подлинности справки (SPEC §6.5 п.9, AC-5.5). Без входа, без личных данных:
 // только тип документа, дата выдачи и «действителен / отозван / не найден». Тот же лимит, что у API.
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Проверка документа — Компас",
   description: "Проверьте, что справка выдана через «Компас»",
@@ -37,7 +39,7 @@ async function check(code: string): Promise<Outcome> {
 function Verdict({ outcome }: { outcome: Outcome }) {
   if ("limited" in outcome) {
     return (
-      <Card className="gap-2 border-l-4 border-l-warn" role="status">
+      <Card className="gap-2 border-l-4 border-l-warn">
         <p className="inline-flex items-center gap-2 text-warn-fg">
           <Hourglass aria-hidden className="size-5" />
           <span className="type-caption font-medium">Слишком много проверок</span>
@@ -51,7 +53,7 @@ function Verdict({ outcome }: { outcome: Outcome }) {
   }
   if (!outcome.found) {
     return (
-      <Card className="gap-2 border-l-4 border-l-coral" role="status">
+      <Card className="gap-2 border-l-4 border-l-coral">
         <p className="inline-flex items-center gap-2 text-coral-fg">
           <CircleX aria-hidden className="size-5" />
           <span className="type-caption font-medium">Не подтверждён</span>
@@ -66,10 +68,7 @@ function Verdict({ outcome }: { outcome: Outcome }) {
   }
   const valid = outcome.valid;
   return (
-    <Card
-      className={valid ? "gap-2 border-l-4 border-l-ok" : "gap-2 border-l-4 border-l-coral"}
-      role="status"
-    >
+    <Card className={valid ? "gap-2 border-l-4 border-l-ok" : "gap-2 border-l-4 border-l-coral"}>
       <p
         className={
           valid
@@ -92,7 +91,10 @@ function Verdict({ outcome }: { outcome: Outcome }) {
         <dd data-testid="verify-issued">{issuedFormat.format(new Date(outcome.issuedAt))}</dd>
       </dl>
       {!valid && (
-        <p className="text-ink-2">Использовать такой документ нельзя: его отозвали после выдачи.</p>
+        <p className="text-ink-2">
+          Использовать такой документ нельзя: его отозвали после выдачи. Попросите владельца
+          получить новую справку.
+        </p>
       )}
     </Card>
   );
