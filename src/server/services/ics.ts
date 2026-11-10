@@ -1,8 +1,8 @@
 import "server-only";
 import { and, asc, eq } from "drizzle-orm";
-import { createEvents, type EventAttributes } from "ics";
 import type { IcsUrlDTO } from "@/contracts/api";
 import { now } from "@/lib/clock";
+import { buildCalendar, type IcsEvent } from "@/lib/ics";
 import { deadlines } from "../../../db/schema";
 import type { Tx } from "../db";
 import {
@@ -30,26 +30,16 @@ import {
 const FEED_WINDOW_DAYS = 28;
 /** Дедлайн — короткое событие на момент dueAt. */
 const DEADLINE_SLOT_MINUTES = 30;
+const TYPE_RU: Record<string, string> = {
+  lecture: "лекция",
+  seminar: "семинар",
+  practice: "практика",
+  exam: "экзамен",
+  consultation: "консультация",
+};
+
 /** Имя календаря (X-WR-CALNAME) для подписок в Google/iOS. */
 const CAL_NAME = "Компас";
-
-/** Момент в UTC-свёртке [Y, M, D, h, m] для ics (startInputType: "utc"). */
-function utcParts(date: Date): [number, number, number, number, number] {
-  return [
-    date.getUTCFullYear(),
-    date.getUTCMonth() + 1,
-    date.getUTCDate(),
-    date.getUTCHours(),
-    date.getUTCMinutes(),
-  ];
-}
-
-/** Собрать строку календаря; ошибка библиотеки — 500 (route() отдаёт INTERNAL). */
-function calendarOf(events: EventAttributes[]): string {
-  const { error, value } = createEvents(events, { calName: CAL_NAME });
-  if (error || !value) throw error ?? new Error("ics: пустой календарь");
-  return value;
-}
 
 /** GET /api/me/ics: ссылка текущего поколения; подписки ещё нет — создаём первое. */
 export async function getMyIcsUrl(tx: Tx, userId: string): Promise<IcsUrlDTO> {
@@ -80,55 +70,68 @@ function latestChanges(bundles: FeedChangeBundle[]): Map<string, FeedChangeBundl
  * Корм календаря (публичный GET /api/ics/:token.ics). Внутри withUserTx владельца токена:
  * deadlines — личная таблица; пары берутся готовым кодом репозитория расписания.
  */
-export async function buildIcsFeed(tx: Tx, keys: MyScheduleKeys): Promise<string> {
+export type IcsPart = "all" | "schedule" | "deadlines";
+
+export async function buildIcsFeed(
+  tx: Tx,
+  keys: MyScheduleKeys,
+  part: IcsPart = "all",
+): Promise<string> {
   const at = now();
   const start = new Date(at.getTime() - FEED_WINDOW_DAYS * 24 * 3600_000);
   const end = new Date(at.getTime() + FEED_WINDOW_DAYS * 24 * 3600_000);
 
-  const courseIds = await listMyCourseIds(tx, keys);
-  const rows = await listMyClasses(tx, keys, courseIds, start, end);
-  const bundles = rows.length
-    ? await listChangesForClasses(
-        tx,
-        rows.map((row) => row.row.id),
-      )
-    : [];
-  const latest = latestChanges(bundles);
+  const events: IcsEvent[] = [];
+  if (part !== "deadlines") {
+    const courseIds = await listMyCourseIds(tx, keys);
+    const rows = await listMyClasses(tx, keys, courseIds, start, end);
+    const bundles = rows.length
+      ? await listChangesForClasses(
+          tx,
+          rows.map((row) => row.row.id),
+        )
+      : [];
+    const latest = latestChanges(bundles);
+    const counts = new Map<string, number>();
+    for (const b of bundles) counts.set(b.classId, (counts.get(b.classId) ?? 0) + 1);
 
-  const events: EventAttributes[] = rows.map((row) => {
-    const bundle = latest.get(row.row.id);
-    const change = bundle?.change;
-    // Перенос/смена аудитории и преподавателя применяются на месте, как в ScheduleDTO.
-    const room = bundle?.newRoom ?? row.room;
-    const teacher = bundle?.newTeacher ?? row.teacher;
-    return {
-      start: utcParts(change?.newStartsAt ?? row.row.startsAt),
-      startInputType: "utc",
-      end: utcParts(change?.newEndsAt ?? row.row.endsAt),
-      endInputType: "utc",
-      title: `${row.course.shortTitle} (${row.row.type})`,
-      location: `${room.building} ${room.number}`,
-      description: teacher.fullName,
-      uid: `class-${row.row.id}@kompas`,
-      ...(change?.type === "cancelled" ? { status: "CANCELLED" as const } : {}),
-    };
-  });
-
-  // Дедлайны со звёздочкой — на момент dueAt, любые даты (вне окна корма тоже).
-  const starred = await tx
-    .select({ id: deadlines.id, title: deadlines.title, dueAt: deadlines.dueAt })
-    .from(deadlines)
-    .where(and(eq(deadlines.studentId, keys.studentId), eq(deadlines.starred, true)))
-    .orderBy(asc(deadlines.dueAt));
-  for (const deadline of starred) {
-    events.push({
-      start: utcParts(deadline.dueAt),
-      startInputType: "utc",
-      duration: { minutes: DEADLINE_SLOT_MINUTES },
-      title: `Дедлайн: ${deadline.title}`,
-      uid: `deadline-${deadline.id}@kompas`,
-    });
+    for (const row of rows) {
+      const bundle = latest.get(row.row.id);
+      const change = bundle?.change;
+      // Перенос/смена аудитории и преподавателя применяются на месте, как в ScheduleDTO.
+      const room = bundle?.newRoom ?? row.room;
+      const teacher = bundle?.newTeacher ?? row.teacher;
+      events.push({
+        uid: `class-${row.row.id}@kompas`,
+        start: change?.newStartsAt ?? row.row.startsAt,
+        end: change?.newEndsAt ?? row.row.endsAt,
+        summary: `${row.course.shortTitle} (${TYPE_RU[row.row.type] ?? row.row.type})`,
+        location: `${room.building} ${room.number}`,
+        description: teacher.fullName,
+        status: change?.type === "cancelled" ? "CANCELLED" : "CONFIRMED",
+        sequence: counts.get(row.row.id) ?? 0,
+        ...(change ? { lastModified: change.createdAt } : {}),
+      });
+    }
   }
 
-  return calendarOf(events);
+  // Дедлайны со звёздочкой — на момент dueAt, любые даты (вне окна корма тоже).
+  if (part !== "schedule") {
+    const starred = await tx
+      .select({ id: deadlines.id, title: deadlines.title, dueAt: deadlines.dueAt })
+      .from(deadlines)
+      .where(and(eq(deadlines.studentId, keys.studentId), eq(deadlines.starred, true)))
+      .orderBy(asc(deadlines.dueAt));
+    for (const deadline of starred) {
+      events.push({
+        uid: `deadline-${deadline.id}@kompas`,
+        start: deadline.dueAt,
+        end: new Date(deadline.dueAt.getTime() + DEADLINE_SLOT_MINUTES * 60_000),
+        summary: `Дедлайн: ${deadline.title}`,
+      });
+    }
+  }
+
+  const name = part === "deadlines" ? "Компас · дедлайны" : CAL_NAME;
+  return buildCalendar({ name, events, stamp: at });
 }

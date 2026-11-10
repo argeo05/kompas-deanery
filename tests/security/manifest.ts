@@ -450,6 +450,24 @@ export const apiRoutes: ApiRouteSpec[] = [
     case: async (fx) => ({ ownerIds: [await f.annaGroupAnnouncement(fx)] }),
   },
 
+  // ── C5. Поиск ────────────────────────────────────────────────────────────
+  {
+    method: "GET",
+    path: "/api/me/search",
+    access: "student",
+    ticket: "C5",
+    case: () => ({ query: { q: "справка" } }),
+  },
+
+  { method: "GET", path: "/api/me/kb", access: "student", ticket: "C5" },
+  {
+    method: "GET",
+    path: "/api/me/kb/:slug",
+    access: "student",
+    ticket: "C5",
+    case: () => ({ params: { slug: "resit-exam" } }),
+  },
+
   // ── DS-32. Изменения расписания ──────────────────────────────────────────
   {
     method: "GET",

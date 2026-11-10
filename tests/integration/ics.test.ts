@@ -125,7 +125,7 @@ describe("GET /api/ics/:token.ics", () => {
 
     // Пары: SUMMARY вида «<курс> (<type>)», у Ани есть и Макро (seminar) — переносимая демо-пара.
     const summaries = events.map((event) => String(event.getFirstPropertyValue("summary")));
-    expect(summaries.some((summary) => summary === "Макро (seminar)")).toBe(true);
+    expect(summaries.some((summary) => summary === "Макро (семинар)")).toBe(true);
     // Дедлайн со звёздочкой: «Дедлайн: Эссе по денежной политике».
     expect(summaries).toContain("Дедлайн: Эссе по денежной политике");
   });

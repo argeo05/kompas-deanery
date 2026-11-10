@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Bell, Search } from "lucide-react";
 import { LogoMark } from "./logo";
 import { NavBadge } from "./nav-badge";
+import { CommandPalette } from "@/components/search/command-palette";
 import { SearchHint } from "./search-hint";
 
 // Шапка (SPEC §5.5 п.3, §7.5): колокольчик с бейджем и аватар → профиль на каждом экране.
@@ -19,15 +19,14 @@ export function TopBar({
   initials: string;
   unread?: number;
 }) {
-  const router = useRouter();
-  const searchRef = React.useRef<HTMLInputElement>(null);
+  const [paletteOpen, setPaletteOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (role !== "student") return;
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        searchRef.current?.focus();
+        setPaletteOpen(true);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -46,33 +45,27 @@ export function TopBar({
         </Link>
         <span className="flex-1 lg:hidden" />
         {role === "student" && (
-          <form
-            role="search"
-            action="/search"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const q = searchRef.current?.value.trim();
-              router.push(q ? `/search?q=${encodeURIComponent(q)}` : "/search");
-            }}
-            className="hidden flex-1 lg:block"
+          <button
+            type="button"
+            aria-keyshortcuts="Meta+K Control+K"
+            aria-haspopup="dialog"
+            onClick={() => setPaletteOpen(true)}
+            className="relative hidden min-h-11 max-w-md flex-1 items-center rounded-control border border-line-strong bg-surface pr-20 pl-10 text-left text-base text-ink-2 lg:flex"
           >
-            <label className="relative flex max-w-md items-center">
-              <span className="sr-only">Поиск по кабинету</span>
-              <Search
-                aria-hidden
-                className="pointer-events-none absolute left-3 size-5 text-ink-2"
-              />
-              <input
-                ref={searchRef}
-                name="q"
-                type="search"
-                aria-keyshortcuts="Meta+K Control+K"
-                placeholder="Поиск: пары, заявки, дедлайны"
-                className="min-h-11 w-full rounded-control border border-line-strong bg-surface pr-20 pl-10 text-base text-ink placeholder:text-ink-2"
-              />
-              <SearchHint className="pointer-events-none absolute right-3 rounded-sm border border-line px-1.5 text-xs text-ink-2" />
-            </label>
-          </form>
+            <Search aria-hidden className="pointer-events-none absolute left-3 size-5 text-ink-2" />
+            Поиск: пары, заявки, дедлайны
+            <SearchHint className="pointer-events-none absolute right-3 rounded-sm border border-line px-1.5 text-xs text-ink-2" />
+          </button>
+        )}
+        {role === "student" && <span className="hidden flex-1 lg:block" />}
+        {role === "student" && (
+          <Link
+            href="/search"
+            className="grid size-11 place-items-center rounded-control text-ink hover:bg-surface-2 lg:hidden"
+          >
+            <Search aria-hidden strokeWidth={1.75} className="size-6" />
+            <span className="sr-only">Поиск</span>
+          </Link>
         )}
         {role === "staff" && <span className="hidden flex-1 lg:block" />}
         {role === "student" && (
@@ -95,6 +88,9 @@ export function TopBar({
           <span className="sr-only">Профиль</span>
         </Link>
       </div>
+      {role === "student" && paletteOpen && (
+        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+      )}
     </header>
   );
 }

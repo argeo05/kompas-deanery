@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { CalendarPlus } from "lucide-react";
+import Link from "next/link";
+import { CalendarPlus, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet";
 import type { ClassDTO, ClassNoteDTO } from "@/contracts/api";
@@ -140,6 +141,12 @@ export function ClassSheet({
             {cls.weekParity && <Row term="Неделя">{PARITY[cls.weekParity]}</Row>}
           </dl>
           <NoteEditor key={cls.id} cls={cls} onSaved={onChanged} />
+          <Button asChild variant="secondary" className="self-start">
+            <Link href={`/support/new?topic=schedule&kind=class&id=${cls.id}`} onClick={onClose}>
+              <MessageSquare aria-hidden />
+              Написать через Компас
+            </Link>
+          </Button>
           <Button variant="secondary" onClick={() => downloadClassIcs(cls)} className="self-start">
             <CalendarPlus aria-hidden />
             Добавить в календарь

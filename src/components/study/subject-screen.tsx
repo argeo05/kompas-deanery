@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Mail } from "lucide-react";
+import { Mail, MessageSquare } from "lucide-react";
 import { ApiView } from "@/components/screens/api-view";
 import { useStudent } from "@/components/shell/student-context";
 import { buttonVariants } from "@/components/ui/button";
@@ -96,6 +96,16 @@ function Content({ course }: { course: CourseGradesDTO }) {
           <p className="type-caption text-ink-2">
             {CONTROL_LABEL[course.control]} · {course.teacher.fullName}
           </p>
+          {course.teacher.officeHours && (
+            <p className="type-caption text-ink-2">Консультации: {course.teacher.officeHours}</p>
+          )}
+          <Link
+            href={`/support/new?topic=grades&kind=course&id=${course.courseId}`}
+            className={buttonVariants({ variant: "secondary", size: "sm" }) + " self-start"}
+          >
+            <MessageSquare aria-hidden />
+            Написать через Компас
+          </Link>
         </Card>
 
         <section aria-labelledby="items-title" className="flex flex-col gap-3">

@@ -17,7 +17,7 @@ export function HotList({ items, now }: { items: HotItem[]; now: Date }) {
         <h2 id="hot-title" className="type-h2">
           Горит
         </h2>
-        <Link href="/study#deadlines" className="type-caption">
+        <Link href="/study/deadlines" className="type-caption">
           Все дедлайны
         </Link>
       </div>

@@ -8,7 +8,7 @@ import {
 import { findStudentContext } from "@/server/repositories/session-context";
 import { getDb, withUserTx } from "@/server/db";
 import { fail, route } from "@/server/http";
-import { buildIcsFeed } from "@/server/services/ics";
+import { buildIcsFeed, type IcsPart } from "@/server/services/ics";
 
 // DS-22. Единственный неаутентифицированный endpoint с личными данными (SPEC §6.9):
 // токен 256 бит из URL, в БД только его SHA-256. В ответе — минимум полей: SUMMARY,
@@ -42,8 +42,11 @@ export const GET = route<{ token: string }>(async (req, { params }) => {
   const student = await findStudentContext(ownerId);
   if (!student?.groupId) return fail(404, "NOT_FOUND");
 
+  // ?cal=schedule | deadlines — отдельные календари (SPEC §6.7 п.5); по умолчанию всё вместе.
+  const cal = new URL(req.url).searchParams.get("cal");
+  const part: IcsPart = cal === "schedule" || cal === "deadlines" ? cal : "all";
   const calendar = await withUserTx(ownerId, (tx) =>
-    buildIcsFeed(tx, { studentId: ownerId, groupId: student.groupId }),
+    buildIcsFeed(tx, { studentId: ownerId, groupId: student.groupId }, part),
   );
   return new NextResponse(calendar, {
     status: 200,

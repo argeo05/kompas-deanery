@@ -21,6 +21,13 @@ const studentScreens = [
   { name: "requests-form", path: "/requests/new/study_cert" },
   { name: "documents", path: "/documents" },
   { name: "request-card", path: "REQUEST_CARD" },
+  { name: "notifications", path: "/notifications" },
+  { name: "notifications-settings", path: "/notifications/settings" },
+  { name: "deadlines", path: "/study/deadlines" },
+  { name: "support", path: "/support" },
+  { name: "support-new", path: "/support/new" },
+  { name: "search", path: "/search?q=%D0%B2%D0%BE%D0%B5%D0%BD%D0%BA%D0%BE%D0%BC%D0%B0%D1%82" },
+  { name: "help-article", path: "/help/resit-exam" },
   { name: "verify", path: `/verify/${"0".repeat(64)}` },
 ];
 

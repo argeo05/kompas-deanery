@@ -610,3 +610,42 @@ export interface ScheduleChangeCreateBody {
   /** ≤ 200 символов. */
   reason?: string;
 }
+
+// ── Поиск (C5, SPEC §6.10) ──────────────────────────────────────────────────
+
+export type SearchGroupKey = "actions" | "schedule" | "teachers" | "rooms" | "kb" | "announcements";
+
+export interface SearchHitDTO {
+  id: string;
+  title: string;
+  /** Вторая строка: где и когда, чем отличается. */
+  hint: string | null;
+  /** Адрес внутри кабинета. */
+  href: string;
+}
+
+export interface SearchGroupDTO {
+  key: SearchGroupKey;
+  hits: SearchHitDTO[];
+}
+
+/** GET /api/me/search?q= */
+export interface SearchDTO {
+  q: string;
+  groups: SearchGroupDTO[];
+}
+
+// ── Справочник студента (C5, SPEC §11.4) ────────────────────────────────────
+
+export interface KbItemDTO {
+  slug: string;
+  title: string;
+  tags: string[];
+}
+export interface KbListDTO {
+  items: KbItemDTO[];
+}
+export interface KbArticleDTO extends KbItemDTO {
+  bodyMd: string;
+  updatedAt: ISODateTime;
+}
