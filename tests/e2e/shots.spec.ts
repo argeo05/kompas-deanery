@@ -31,8 +31,24 @@ const studentScreens = [
   { name: "verify", path: `/verify/${"0".repeat(64)}` },
 ];
 
+// Экраны кабинета сотрудника (C6): вход Еленой.
+const staffScreens = [
+  { name: "staff-queue", path: "/staff/queue" },
+  { name: "staff-request", path: "STAFF_REQUEST" },
+  { name: "staff-tickets", path: "/staff/tickets" },
+  { name: "staff-announcements", path: "/staff/announcements" },
+  { name: "staff-announcement-new", path: "/staff/announcements/new" },
+  { name: "staff-schedule", path: "/staff/schedule" },
+];
+
 /** REQUEST_CARD — первая заявка Анны (новые первыми). */
 async function resolvePath(context: BrowserContext, path: string): Promise<string> {
+  if (path === "STAFF_REQUEST") {
+    const list = (await (await context.request.get("/api/staff/requests")).json()) as {
+      items: { id: string }[];
+    };
+    return `/staff/requests/${list.items[0]!.id}`;
+  }
   if (path !== "REQUEST_CARD") return path;
   const list = (await (await context.request.get("/api/me/requests")).json()) as {
     items: { id: string }[];
@@ -56,6 +72,20 @@ for (const scheme of ["light", "dark"] as const) {
     for (const screen of studentScreens) {
       test(`@shots ${screen.name} ${scheme}`, async ({ context, page, baseURL }, info) => {
         await loginAs(context, "anna", baseURL!);
+        await page.goto(await resolvePath(context, screen.path));
+        await page.waitForLoadState("load");
+        await page.locator("[aria-busy=true]").waitFor({ state: "detached" });
+        await page.waitForTimeout(400);
+        await page.screenshot({
+          path: `docs/process/shots/${screen.name}-${info.project.name}-${scheme}.png`,
+          fullPage: true,
+        });
+      });
+    }
+
+    for (const screen of staffScreens) {
+      test(`@shots ${screen.name} ${scheme}`, async ({ context, page, baseURL }, info) => {
+        await loginAs(context, "elena", baseURL!);
         await page.goto(await resolvePath(context, screen.path));
         await page.waitForLoadState("load");
         await page.locator("[aria-busy=true]").waitFor({ state: "detached" });

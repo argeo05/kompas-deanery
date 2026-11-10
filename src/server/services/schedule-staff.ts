@@ -96,9 +96,7 @@ function toClassDTO(
 /** Сколько студентов получат уведомление об изменении пары: группа или записанные на курс (потоковая пара). */
 async function audienceSizes(tx: Tx, rows: StaffClassRow[]): Promise<Map<string, number>> {
   const groupIds = [...new Set(rows.flatMap((r) => (r.row.groupId ? [r.row.groupId] : [])))];
-  const streamCourseIds = [
-    ...new Set(rows.flatMap((r) => (r.row.groupId ? [] : [r.course.id]))),
-  ];
+  const streamCourseIds = [...new Set(rows.flatMap((r) => (r.row.groupId ? [] : [r.course.id])))];
   const byGroup = new Map<string, number>();
   const byCourse = new Map<string, number>();
   if (groupIds.length) {

@@ -36,6 +36,8 @@ export interface StaffListOpts {
     status: RequestStatus | null;
     typeCode: string | null;
     overdueOnly: boolean;
+    /** Только открытые: отправлена, в работе, нужно уточнение. */
+    openOnly?: boolean;
     /** mine=true — только заявки с assignee = этот сотрудник (или были напрямую назначены). */
     mineAssigneeId: string | null;
   };
@@ -89,6 +91,7 @@ export function listRequestsForStaff(tx: Tx, opts: StaffListOpts) {
         and(
           staffScopeCondition(opts.scope),
           opts.filter.status ? eq(requests.status, opts.filter.status) : undefined,
+          opts.filter.openOnly ? inArray(requests.status, [...OPEN_STATUSES]) : undefined,
           opts.filter.typeCode ? eq(requests.typeCode, opts.filter.typeCode) : undefined,
           // overdue=true: срок прошёл, а заявка ещё в работе (SPEC §6.5).
           opts.filter.overdueOnly

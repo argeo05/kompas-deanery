@@ -20,10 +20,14 @@ import { listAudienceStudentIds } from "../repositories/announcements";
 // сотрудника (общевузовское подразделение видит все), аудитории, преподаватели, типы заявок.
 // Сами данные не личные; число студентов в группе считается под RLS сотрудника.
 
-const initialOf = (value: string | null | undefined) => (value ?? "").trim().charAt(0).toUpperCase();
+const initialOf = (value: string | null | undefined) =>
+  (value ?? "").trim().charAt(0).toUpperCase();
 
-export async function getStaffReference(tx: Tx, ctx: StaffCtx): Promise<StaffReferenceDTO> {
-  const scope = ctx.facultyId;
+/** Подпись сотрудника для оболочки: «Елена С.», инициалы, подразделение, должность. */
+export async function getStaffIdentity(
+  tx: Tx,
+  userId: string,
+): Promise<StaffReferenceDTO["staff"]> {
   const [me] = await tx
     .select({
       firstName: staffProfiles.firstName,
@@ -33,54 +37,60 @@ export async function getStaffReference(tx: Tx, ctx: StaffCtx): Promise<StaffRef
     })
     .from(staffProfiles)
     .innerJoin(units, eq(units.id, staffProfiles.unitId))
-    .where(eq(staffProfiles.userId, ctx.userId))
+    .where(eq(staffProfiles.userId, userId))
     .limit(1);
-
-  const [facultyRows, groupRows, sizeRows, roomRows, teacherRows, typeRows] = await Promise.all([
-    tx
-      .select({ id: faculties.id, title: faculties.title })
-      .from(faculties)
-      .where(scope ? eq(faculties.id, scope) : undefined)
-      .orderBy(asc(faculties.title)),
-    tx
-      .select({
-        id: groups.id,
-        title: groups.title,
-        course: groups.course,
-        facultyId: programs.facultyId,
-      })
-      .from(groups)
-      .innerJoin(programs, eq(programs.id, groups.programId))
-      .where(and(eq(groups.isSandbox, false), scope ? eq(programs.facultyId, scope) : undefined))
-      .orderBy(asc(groups.title)),
-    tx
-      .select({ groupId: studentProfiles.groupId, n: count() })
-      .from(studentProfiles)
-      .groupBy(studentProfiles.groupId),
-    tx
-      .select({ id: rooms.id, building: rooms.building, number: rooms.number })
-      .from(rooms)
-      .orderBy(asc(rooms.building), asc(rooms.number)),
-    tx
-      .select({ id: teachers.id, fullName: teachers.fullName })
-      .from(teachers)
-      .orderBy(asc(teachers.fullName)),
-    tx
-      .select({ code: requestTypes.code, title: requestTypes.title })
-      .from(requestTypes)
-      .orderBy(asc(requestTypes.title)),
-  ]);
-
-  const sizes = new Map(sizeRows.map((r) => [r.groupId, r.n]));
   const first = me?.firstName ?? "";
   const last = me?.lastName ?? "";
   return {
-    staff: {
-      displayName: first ? `${first} ${last.charAt(0)}.`.trim() : last,
-      initials: `${initialOf(first)}${initialOf(last)}` || "С",
-      unit: me?.unit ?? "",
-      position: me?.position ?? "",
-    },
+    displayName: first ? `${first} ${last.charAt(0)}.`.trim() : last,
+    initials: `${initialOf(first)}${initialOf(last)}` || "С",
+    unit: me?.unit ?? "",
+    position: me?.position ?? "",
+  };
+}
+
+export async function getStaffReference(tx: Tx, ctx: StaffCtx): Promise<StaffReferenceDTO> {
+  const scope = ctx.facultyId;
+  const [staff, facultyRows, groupRows, sizeRows, roomRows, teacherRows, typeRows] =
+    await Promise.all([
+      getStaffIdentity(tx, ctx.userId),
+      tx
+        .select({ id: faculties.id, title: faculties.title })
+        .from(faculties)
+        .where(scope ? eq(faculties.id, scope) : undefined)
+        .orderBy(asc(faculties.title)),
+      tx
+        .select({
+          id: groups.id,
+          title: groups.title,
+          course: groups.course,
+          facultyId: programs.facultyId,
+        })
+        .from(groups)
+        .innerJoin(programs, eq(programs.id, groups.programId))
+        .where(and(eq(groups.isSandbox, false), scope ? eq(programs.facultyId, scope) : undefined))
+        .orderBy(asc(groups.title)),
+      tx
+        .select({ groupId: studentProfiles.groupId, n: count() })
+        .from(studentProfiles)
+        .groupBy(studentProfiles.groupId),
+      tx
+        .select({ id: rooms.id, building: rooms.building, number: rooms.number })
+        .from(rooms)
+        .orderBy(asc(rooms.building), asc(rooms.number)),
+      tx
+        .select({ id: teachers.id, fullName: teachers.fullName })
+        .from(teachers)
+        .orderBy(asc(teachers.fullName)),
+      tx
+        .select({ code: requestTypes.code, title: requestTypes.title })
+        .from(requestTypes)
+        .orderBy(asc(requestTypes.title)),
+    ]);
+
+  const sizes = new Map(sizeRows.map((r) => [r.groupId, r.n]));
+  return {
+    staff,
     faculties: facultyRows,
     groups: groupRows.map((g) => ({ ...g, students: sizes.get(g.id) ?? 0 })),
     rooms: roomRows.map((r) => ({ id: r.id, label: `${r.building}, ${r.number}` })),

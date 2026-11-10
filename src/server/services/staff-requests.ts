@@ -178,6 +178,7 @@ export async function listStaffRequests(
       status: q.status ?? null,
       typeCode: q.type ?? null,
       overdueOnly: q.overdue === "true",
+      openOnly: q.open === "true",
       mineAssigneeId: q.mine === "true" ? ctx.userId : null,
     },
     sort: q.sort,
