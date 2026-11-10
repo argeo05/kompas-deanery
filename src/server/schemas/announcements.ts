@@ -62,3 +62,22 @@ export function toAudience(
     ...(input.audience.groupIds ? { groupIds: input.audience.groupIds } : {}),
   };
 }
+
+const csvParts = (v: string | undefined) => (v ? v.split(",").filter(Boolean) : []);
+
+/** GET /api/staff/audience?facultyIds=&groupIds=&courses= — списки через запятую. */
+export const audienceCountQuery = z.object({
+  facultyIds: z
+    .string()
+    .max(2000)
+    .optional()
+    .transform(csvParts)
+    .pipe(z.array(z.uuid()).max(50)),
+  groupIds: z.string().max(2000).optional().transform(csvParts).pipe(z.array(z.uuid()).max(50)),
+  courses: z
+    .string()
+    .max(100)
+    .optional()
+    .transform((v) => csvParts(v).map(Number))
+    .pipe(z.array(z.number().int().min(1).max(6)).max(6)),
+});

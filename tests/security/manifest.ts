@@ -527,6 +527,10 @@ export const apiRoutes: ApiRouteSpec[] = [
     owned: true,
     case: async (fx) => ({ params: { id: await f.annaTicket(fx) } }),
   },
+
+  // ── C6. Справочники и аудитория для форм сотрудника ──────────────────────
+  { method: "GET", path: "/api/staff/reference", access: "staff", ticket: "C6" },
+  { method: "GET", path: "/api/staff/audience", access: "staff", ticket: "C6" },
 ];
 
 /** Маршруты Better Auth обслуживает сама библиотека; матрица их не проверяет. */
@@ -537,6 +541,7 @@ export const staffPages = [
   "/staff/queue",
   "/staff/requests/00000000-0000-4000-8000-000000000000",
   "/staff/tickets",
+  "/staff/tickets/00000000-0000-4000-8000-000000000000",
   "/staff/announcements",
   "/staff/announcements/new",
   "/staff/schedule",

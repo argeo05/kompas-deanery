@@ -1,9 +1,9 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { count, eq, inArray } from "drizzle-orm";
 import type { ScheduleChangeDTO, StaffClassDTO, StaffClassesDTO, UUID } from "@/contracts/api";
 import { now } from "@/lib/clock";
 import { addDaysMsk, startOfDayMsk, toMsk, toMskDate } from "@/lib/time";
-import { rooms, scheduleChanges, teachers } from "../../../db/schema";
+import { enrollments, rooms, scheduleChanges, studentProfiles, teachers } from "../../../db/schema";
 import type { StaffCtx } from "../auth/guards";
 import type { Tx } from "../db";
 import { audit } from "../audit";
@@ -57,6 +57,7 @@ function toClassDTO(
   original: StaffClassRow,
   bundle: ChangeBundle | undefined,
   change: ScheduleChangeDTO | null,
+  audienceSize: number,
 ): StaffClassDTO {
   const c = bundle?.change;
   const room = bundle?.newRoom ?? original.room;
@@ -88,7 +89,40 @@ function toClassDTO(
     weekParity: original.row.weekParity,
     change,
     group: original.group ? { id: original.group.id, title: original.group.title } : null,
+    audienceSize,
   };
+}
+
+/** Сколько студентов получат уведомление об изменении пары: группа или записанные на курс (потоковая пара). */
+async function audienceSizes(tx: Tx, rows: StaffClassRow[]): Promise<Map<string, number>> {
+  const groupIds = [...new Set(rows.flatMap((r) => (r.row.groupId ? [r.row.groupId] : [])))];
+  const streamCourseIds = [
+    ...new Set(rows.flatMap((r) => (r.row.groupId ? [] : [r.course.id]))),
+  ];
+  const byGroup = new Map<string, number>();
+  const byCourse = new Map<string, number>();
+  if (groupIds.length) {
+    const found = await tx
+      .select({ id: studentProfiles.groupId, n: count() })
+      .from(studentProfiles)
+      .where(inArray(studentProfiles.groupId, groupIds))
+      .groupBy(studentProfiles.groupId);
+    for (const r of found) byGroup.set(r.id, r.n);
+  }
+  if (streamCourseIds.length) {
+    const found = await tx
+      .select({ id: enrollments.courseId, n: count() })
+      .from(enrollments)
+      .where(inArray(enrollments.courseId, streamCourseIds))
+      .groupBy(enrollments.courseId);
+    for (const r of found) byCourse.set(r.id, r.n);
+  }
+  return new Map(
+    rows.map((r) => [
+      r.row.id,
+      r.row.groupId ? (byGroup.get(r.row.groupId) ?? 0) : (byCourse.get(r.course.id) ?? 0),
+    ]),
+  );
 }
 
 // ── GET /api/staff/classes?date=&groupId= ────────────────────────────────────
@@ -114,9 +148,15 @@ export async function listStaffClassesForDay(
     : [];
   const latest = latestChanges(changes);
 
+  const sizes = await audienceSizes(tx, rows);
   const items = rows.map((row) => {
     const bundle = latest.get(row.row.id);
-    return toClassDTO(row, bundle, bundle ? toChangeDTO(bundle, row) : null);
+    return toClassDTO(
+      row,
+      bundle,
+      bundle ? toChangeDTO(bundle, row) : null,
+      sizes.get(row.row.id) ?? 0,
+    );
   });
   items.sort((a, b) => a.startsAt.localeCompare(b.startsAt) || a.id.localeCompare(b.id));
   return { items };

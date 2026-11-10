@@ -573,6 +573,8 @@ export interface StaffRequestDTO {
   delivery: Delivery | null;
   copies: number;
   fields: Record<string, string | number>;
+  /** Подписи полей из formSchema типа: name → «Куда предоставляется справка». */
+  fieldLabels: Record<string, string>;
   createdAt: ISODateTime;
   dueAt: ISODateTime;
   overdue: boolean;
@@ -596,9 +598,26 @@ export interface StaffTransitionBody {
 
 export interface StaffClassDTO extends Omit<ClassDTO, "note"> {
   group: { id: UUID; title: string } | null;
+  /** Сколько студентов увидят изменение этой пары (группа или записанные на курс). */
+  audienceSize: number;
 }
 export interface StaffClassesDTO {
   items: StaffClassDTO[];
+}
+
+/** GET /api/staff/reference — справочники для форм кабинета сотрудника (в пределах его факультета). */
+export interface StaffReferenceDTO {
+  staff: { displayName: string; initials: string; unit: string; position: string };
+  faculties: { id: UUID; title: string }[];
+  groups: { id: UUID; title: string; course: number; facultyId: UUID; students: number }[];
+  rooms: { id: UUID; label: string }[];
+  teachers: { id: UUID; fullName: string }[];
+  requestTypes: { code: string; title: string }[];
+}
+
+/** GET /api/staff/audience?facultyIds=&groupIds=&courses= — сколько студентов увидят объявление. */
+export interface AudienceCountDTO {
+  students: number;
 }
 
 export interface ScheduleChangeCreateBody {
