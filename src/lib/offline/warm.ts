@@ -4,7 +4,7 @@ import type { DocumentsDTO, Paged, RequestDTO } from "@/contracts/api";
 import { addDays, weekDays } from "@/components/schedule/dates";
 import { toMskDate } from "@/lib/time";
 import { fetchJson, storeApiData } from "@/lib/use-api";
-import { onDeviceWipe } from "./device-data";
+import { isDeviceLocked, onDeviceWipe } from "./device-data";
 import { idb } from "./idb";
 import { DOCS_CACHE } from "./policy";
 
@@ -17,7 +17,7 @@ const WARM_KEY = "warmed-at";
 const WARM_EVERY_MS = 10 * 60_000;
 const MAX_REQUEST_DETAILS = 10;
 /** PDF собирается на сервере дорого (и под лимитом): в фоне сохраняем только свежие справки. */
-const MAX_DOCUMENTS = 5;
+const MAX_DOCUMENTS = 3;
 
 export function offlineUrls(todayIso: string): string[] {
   const thisWeek = weekDays(todayIso);
@@ -65,6 +65,7 @@ async function saveDocuments(docs: DocumentsDTO): Promise<boolean> {
     const res = await fetch(d.fileUrl, { credentials: "same-origin", cache: "no-store" });
     // Лимит или ошибка — сервер не долбим, остальное догрузим позже.
     if (!res.ok) return false;
+    if (isDeviceLocked()) return true;
     if (res.headers.get("content-type")?.startsWith("application/pdf"))
       await cache.put(d.fileUrl, res);
   }
@@ -114,6 +115,7 @@ export async function warmOfflineData(userId: string, force = false): Promise<bo
       if (!(await saveDocuments(list).catch(() => false))) retryDocumentsLater(list);
     }
 
+    if (isDeviceLocked()) return false;
     await idb.put("meta", WARM_KEY, Date.now());
     return true;
   } catch {

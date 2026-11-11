@@ -5,7 +5,8 @@ import { cn } from "cn";
 import { formatUpdatedAgo } from "@/lib/format";
 import { useNow } from "@/lib/use-now";
 
-// Метка свежести сохранённых данных (SPEC §6.13): «Нет сети · обновлено 12 мин назад».
+// Метка свежести сохранённых данных (SPEC §6.13): «Сохранённые данные · обновлено 12 мин назад».
+// «Нет сети» уже говорит плашка под шапкой — здесь не повторяем.
 // Время — последнего успешного обновления. Живой регион не нужен: о смене сети говорит плашка офлайна.
 export function DataFreshness({
   at,
@@ -25,7 +26,7 @@ export function DataFreshness({
     >
       {offline && <CloudOff aria-hidden className="size-4 shrink-0" />}
       <span>
-        {offline ? "Нет сети · " : ""}
+        {offline ? "Сохранённые данные · " : ""}
         {formatUpdatedAgo(at, now)}
       </span>
     </p>

@@ -49,8 +49,8 @@ export function InstallSteps({ only }: { only?: Exclude<InstallPlatform, "other"
         </section>
       )}
       <p className="type-caption text-ink-2">
-        Проверить офлайн: откройте «Сегодня» и расписание с интернетом, включите режим полёта и
-        откройте Компас с главного экрана.
+        Проверить без интернета: откройте «Сегодня» и расписание с интернетом, включите режим полёта
+        и откройте Компас с главного экрана.
       </p>
     </div>
   );
@@ -76,9 +76,11 @@ export function InstallPrompt() {
   if (!show || platform === null) return null;
   if (platform !== "ios" && !canPrompt) return null;
 
+  // Карточка исчезает вместе с фокусом — возвращаем его к началу экрана (2.4.3).
   const close = () => {
     dismissInstallHint();
     setState((s) => ({ ...s, show: false }));
+    document.getElementById("content")?.focus();
   };
 
   return (
@@ -98,15 +100,7 @@ export function InstallPrompt() {
       {platform === "ios" ? (
         <InstallSteps only="ios" />
       ) : (
-        <Button
-          className="self-start"
-          onClick={() =>
-            void promptInstall().then(() => {
-              dismissInstallHint();
-              setState((s) => ({ ...s, show: false }));
-            })
-          }
-        >
+        <Button className="self-start" onClick={() => void promptInstall().then(close)}>
           Установить
         </Button>
       )}

@@ -160,7 +160,13 @@ export function OfflineShell() {
 
   const match = matchRoute(pathname);
   React.useEffect(() => {
-    if (phase.kind === "ready") document.title = `${match?.route.title ?? "Нет сети"} — Компас`;
+    const title =
+      phase.kind === "ready"
+        ? (match?.route.title ?? "Нет сети")
+        : phase.kind === "signed-out"
+          ? "Вы вышли"
+          : "Нет сети";
+    document.title = `${title} — Компас`;
   }, [phase.kind, match?.route.title]);
 
   if (phase.kind === "checking") {
@@ -200,7 +206,8 @@ export function OfflineShell() {
     return (
       <Standalone>
         <EmptyState illustration="offline" headingLevel="h1" title="Нет сети" action={<Retry />}>
-          Откройте приложение, когда появится интернет, — мы сохраним данные для офлайна.
+          Откройте приложение, когда появится интернет, — мы сохраним данные, чтобы открывать Компас
+          без интернета.
         </EmptyState>
       </Standalone>
     );

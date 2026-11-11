@@ -7,6 +7,7 @@ import { loginAs, DEMO } from "./support/auth";
 
 /** Имя Ани отдельным словом (getByText ищет подстроку: «сохранялся» тоже содержит «аня»). */
 const ANNA = /(^|[\s,])Аня([\s,!.]|$)/;
+const MAXIM = /(^|[\s,])Максим([\s,!.]|$)/;
 
 /** Значение из IndexedDB «kompas» (страница уже на сайте). */
 async function idbGet(page: Page, store: string, key: string): Promise<unknown> {
@@ -249,9 +250,14 @@ test("AC-13.4: выход без сети стирает данные, друг�
   browser,
   baseURL,
 }) => {
-  const { ctx, page } = await onlineStudent(browser, baseURL!);
-  const anna = (await idbGet(page, "meta", "user")) as { userId: string };
-  expect((await idbKeys(page, "data")).some((k) => k.startsWith(`${anna.userId}|`))).toBe(true);
+  // Максим, а не Аня: у Ани много справок, а лимит PDF (20 в минуту) общий для параллельных тестов.
+  const { ctx, page } = await onlineStudent(browser, baseURL!, "maxim");
+  const maxim = (await idbGet(page, "meta", "user")) as { userId: string };
+  expect((await idbKeys(page, "data")).some((k) => k.startsWith(`${maxim.userId}|`))).toBe(true);
+  // Копия PDF на устройстве (как после скачивания справки) — при выходе она тоже стирается.
+  await page.evaluate(async () =>
+    (await caches.open("kompas-docs")).put("/e2e-doc.pdf", new Response("%PDF-")),
+  );
 
   await ctx.setOffline(true);
   await openSignOut(page);
@@ -259,13 +265,13 @@ test("AC-13.4: выход без сети стирает данные, друг�
   expect(await idbKeys(page, "data")).toEqual([]);
   expect(await page.evaluate(() => caches.has("kompas-docs"))).toBe(false);
 
-  // Без сети ни один раздел кабинета не показывает данные Ани.
+  // Без сети ни один раздел кабинета не показывает данные Максима.
   for (const path of ["/today", "/schedule", "/documents"]) {
     await page.goto(path);
     await expect(
       page.getByRole("heading", { level: 1, name: "Вы вышли из Компаса" }),
     ).toBeVisible();
-    await expect(page.getByText(ANNA)).toHaveCount(0);
+    await expect(page.getByText(MAXIM)).toHaveCount(0);
   }
 
   // Сеть вернулась — выход завершается и на сервере: cookie больше не пускает в кабинет.
@@ -295,5 +301,22 @@ test("AC-13.4: вошёл другой человек — данные прош�
   await page.goto("/today");
   await expect(page.getByRole("heading", { level: 1, name: /Максим$/ })).toBeVisible();
   await expect(page.getByText(ANNA)).toHaveCount(0);
+  await ctx.close();
+});
+
+test("AC-13.4: вошёл сотрудник — данные студента стёрты, офлайн их не покажет", async ({
+  browser,
+  baseURL,
+}) => {
+  const { ctx, page } = await onlineStudent(browser, baseURL!, "maxim");
+  await loginAs(ctx, "elena", baseURL!);
+  await page.goto("/staff/queue");
+  await expect.poll(() => idbKeys(page, "data")).toEqual([]);
+  expect(await idbGet(page, "meta", "user")).toBeUndefined();
+
+  await ctx.setOffline(true);
+  await page.goto("/today");
+  await expect(page.getByRole("heading", { level: 1, name: "Нет сети" })).toBeVisible();
+  await expect(page.getByText(MAXIM)).toHaveCount(0);
   await ctx.close();
 });

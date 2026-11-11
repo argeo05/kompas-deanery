@@ -229,7 +229,7 @@ function DeadlineCard({
             variant="secondary"
             size="sm"
             aria-pressed={d.starred}
-            disabled={busy}
+            loading={busy}
             onClick={() => onAct(d, d.starred ? "unstar" : "star")}
           >
             <Star aria-hidden className="size-4" fill={d.starred ? "currentColor" : "none"} />
@@ -242,12 +242,12 @@ function DeadlineCard({
           </Button>
         )}
         {d.done ? (
-          <Button variant="ghost" size="sm" disabled={busy} onClick={() => onAct(d, "undone")}>
+          <Button variant="ghost" size="sm" loading={busy} onClick={() => onAct(d, "undone")}>
             <Undo2 aria-hidden className="size-4" />
             Вернуть в работу
           </Button>
         ) : (
-          <Button variant="ghost" size="sm" disabled={busy} onClick={() => onAct(d, "done")}>
+          <Button variant="ghost" size="sm" loading={busy} onClick={() => onAct(d, "done")}>
             <Check aria-hidden className="size-4" />
             Сделал
           </Button>
@@ -362,15 +362,21 @@ export function DeadlinesScreen() {
     // «Сделал» / «Вернуть в работу» без сети — в очередь (SPEC §6.13 п.4), остальное требует сети.
     const queue =
       a === "done" || a === "undone"
-        ? () =>
-            queueAction({
+        ? async () => {
+            await queueAction({
               id: crypto.randomUUID(),
               userId,
               kind: `deadline.${a}`,
               url,
-              label: a === "done" ? `«${d.title}» — сделано` : `«${d.title}» — снова в работе`,
+              label: a === "done" ? `«${d.title}» — сделано` : `«${d.title}» — вернули в работу`,
               target: d.id,
-            })
+            });
+            toast({
+              tone: "info",
+              title: "Отметим, когда появится сеть",
+              description: "Отметка сохранена на телефоне.",
+            });
+          }
         : null;
     try {
       if (queue && !navigator.onLine) {

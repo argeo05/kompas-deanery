@@ -195,7 +195,9 @@
   }
   /* Плашка «Нет сети» прилипает под шапкой — фокус не должен уходить и под неё. */
   html:has([data-slot="offline-bar"][data-sticky]) {
-    scroll-padding-top: calc(var(--header-h) + var(--offline-bar-h) + 0.5rem);
+    scroll-padding-top: calc(
+      var(--header-h) + var(--offline-bar-actual, var(--offline-bar-h)) + 0.5rem
+    );
   }
   @media (min-width: 64rem) {
     html {

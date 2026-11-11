@@ -47,6 +47,25 @@ export interface FlushResult {
   stopped?: "network" | "auth" | "retry";
 }
 
+const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+
+/**
+ * Куда может уйти действие каждого вида. Очередь лежит в IndexedDB, а оттуда запрос уходит с cookie:
+ * подложенная запись не должна отправить POST на произвольный адрес (например, кабинета сотрудника).
+ */
+const ALLOWED_URL: Record<OutboxKind, RegExp> = {
+  "request.create": /^\/api\/me\/requests$/,
+  "request.resubmit": new RegExp(`^/api/me/requests/${UUID}/resubmit$`, "i"),
+  "request.message": new RegExp(`^/api/me/requests/${UUID}/messages$`, "i"),
+  "deadline.done": new RegExp(`^/api/me/deadlines/${UUID}/done$`, "i"),
+  "deadline.undone": new RegExp(`^/api/me/deadlines/${UUID}/undone$`, "i"),
+};
+
+export function isAllowedOutboxUrl(kind: OutboxKind, url: string): boolean {
+  const re = ALLOWED_URL[kind];
+  return re !== undefined && re.test(url);
+}
+
 const OPPOSITE: Partial<Record<OutboxKind, OutboxKind>> = {
   "deadline.done": "deadline.undone",
   "deadline.undone": "deadline.done",
@@ -83,15 +102,15 @@ export async function enqueue(
 export function failureText(kind: OutboxKind, status: number): string {
   if (status === 404)
     return kind.startsWith("deadline")
-      ? "Этого дедлайна больше нет."
+      ? "Этого дедлайна больше нет. Обновите список, чтобы убрать отметку."
       : "Заявка больше недоступна. Откройте список заявок.";
   if (status === 409)
     return kind === "request.resubmit"
-      ? "Эта заявка уже подана заново."
+      ? "Эта заявка уже отправлена."
       : "Пока вы были без сети, заявка изменилась. Откройте её и проверьте.";
   return kind.startsWith("request")
-    ? "Часть данных не подошла. Откройте форму, проверьте поля и отправьте ещё раз."
-    : "Не получилось сохранить отметку. Попробуйте ещё раз.";
+    ? "Часть данных не подошла. Удалите это действие, откройте форму, проверьте поля и отправьте заново."
+    : "Не получилось сохранить отметку. Удалите её и отметьте дедлайн снова.";
 }
 
 async function reasonOf(res: Response): Promise<string | null> {
@@ -115,6 +134,11 @@ export async function flush(
     .sort(byCreation);
 
   for (const item of queue) {
+    if (item.method !== "POST" || !isAllowedOutboxUrl(item.kind, item.url)) {
+      // Такого действия Компас не создаёт: не отправляем и убираем.
+      await storage.remove(item.id);
+      continue;
+    }
     let res: Response;
     try {
       res = await send(item);

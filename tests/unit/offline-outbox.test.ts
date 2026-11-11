@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { enqueue, flush, memoryStorage, type OutboxItem, type SendFn } from "@/lib/offline/outbox";
+import {
+  enqueue,
+  flush,
+  isAllowedOutboxUrl,
+  memoryStorage,
+  type OutboxItem,
+  type SendFn,
+} from "@/lib/offline/outbox";
 import { isDocumentFileUrl, isPersistable } from "@/lib/offline/policy";
 import { formatUpdatedAgo } from "@/lib/format";
 
 // Очередь офлайн-действий (SPEC §6.13 п.4, AC-13.3, D-014): порядок, «ровно один раз», конфликты.
+
+const U = "11111111-1111-4111-8111-111111111111";
 
 let n = 0;
 function item(over: Partial<OutboxItem> = {}): OutboxItem {
@@ -110,7 +119,7 @@ describe("flush", () => {
 
   it("данные не подошли (422) или заявки нет (404) — «Не отправлено» с причиной, очередь идёт дальше", async () => {
     const bad = item();
-    const gone = item({ kind: "request.message", url: "/api/me/requests/x/messages" });
+    const gone = item({ kind: "request.message", url: `/api/me/requests/${U}/messages` });
     const ok = item();
     const storage = memoryStorage([bad, gone, ok]);
     const statuses = new Map([
@@ -150,11 +159,11 @@ describe("flush", () => {
 describe("enqueue", () => {
   it("«Сделал» и сразу «Вернуть в работу» без сети гасят друг друга", async () => {
     const storage = memoryStorage();
-    const done = item({ kind: "deadline.done", url: "/api/me/deadlines/d1/done", target: "d1" });
+    const done = item({ kind: "deadline.done", url: `/api/me/deadlines/${U}/done`, target: "d1" });
     await enqueue(storage, done);
     const undone = item({
       kind: "deadline.undone",
-      url: "/api/me/deadlines/d1/undone",
+      url: `/api/me/deadlines/${U}/undone`,
       target: "d1",
     });
     expect(await enqueue(storage, undone)).toBeNull();
@@ -220,5 +229,29 @@ describe("formatUpdatedAgo", () => {
     expect(formatUpdatedAgo(new Date("2026-11-11T19:05:00+03:00"), now)).toBe(
       "обновлено вчера в 19:05",
     );
+  });
+});
+
+describe("адреса действий из очереди", () => {
+  it("уходят только на свои адреса: подложенная запись не отправит POST куда угодно", async () => {
+    expect(isAllowedOutboxUrl("request.create", "/api/me/requests")).toBe(true);
+    expect(isAllowedOutboxUrl("request.message", `/api/me/requests/${U}/messages`)).toBe(true);
+    expect(isAllowedOutboxUrl("deadline.done", `/api/me/deadlines/${U}/done`)).toBe(true);
+    expect(isAllowedOutboxUrl("request.create", "/api/staff/requests")).toBe(false);
+    expect(isAllowedOutboxUrl("deadline.done", `/api/me/deadlines/${U}/star`)).toBe(false);
+    expect(isAllowedOutboxUrl("request.message", "https://evil.example/api/me/requests")).toBe(
+      false,
+    );
+
+    const forged = item({ url: "/api/staff/announcements" });
+    const storage = memoryStorage([forged]);
+    let calls = 0;
+    const result = await flush(storage, "anna", async () => {
+      calls += 1;
+      return json(201);
+    });
+    expect(calls).toBe(0);
+    expect(result.sent).toEqual([]);
+    expect(storage.items.size).toBe(0);
   });
 });

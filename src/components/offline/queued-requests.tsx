@@ -47,7 +47,12 @@ export function QueuedRequests({ userId, onSent }: { userId: string; onSent: () 
                     variant="secondary"
                     size="sm"
                     className="self-start"
-                    onClick={() => void removeQueued(i.id)}
+                    aria-label={`Удалить неотправленную заявку «${i.label}»`}
+                    onClick={() => {
+                      void removeQueued(i.id);
+                      // Карточка исчезает вместе с фокусом: возвращаем его к списку заявок (2.4.3).
+                      document.getElementById("content")?.focus();
+                    }}
                   >
                     Удалить
                   </Button>

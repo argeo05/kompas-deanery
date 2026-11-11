@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { ReleaseDevice } from "@/components/offline/release-device";
 import { AppShell } from "@/components/shell/app-shell";
 import { StaffProvider } from "@/components/shell/staff-context";
 import { getPageSession } from "@/server/auth/page-session";
@@ -24,6 +25,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
 
   return (
     <AppShell role="staff" initials={me.initials}>
+      <ReleaseDevice />
       <StaffProvider
         value={{ userId: session.user.id, displayName: me.displayName, unit: me.unit }}
       >

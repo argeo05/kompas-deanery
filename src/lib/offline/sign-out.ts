@@ -1,6 +1,6 @@
 "use client";
 
-import { clearSignedOut, markSignedOut, wipeDeviceData } from "./device-data";
+import { clearSignedOut, lockDevice, markSignedOut, wipeDeviceData } from "./device-data";
 
 // Выход (SPEC §6.1, §6.13 п.5, AC-1.3, AC-13.4). Сначала стираем всё личное на устройстве — это
 // работает и без сети. Потом просим сервер закрыть сессию. Без сети сервер об этом не узнает, поэтому
@@ -24,8 +24,13 @@ async function serverSignOut(): Promise<boolean> {
 
 /** Выйти. "server" — сессия закрыта; "device" — данные стёрты, сервер узнает, когда появится сеть. */
 export async function signOut(): Promise<"server" | "device"> {
+  // С этого момента вкладка ничего не сохраняет: запросы «в полёте» не вернут данные обратно.
+  lockDevice();
   await wipeDeviceData();
-  if (await serverSignOut()) return "server";
+  const closed = await serverSignOut();
+  // Пока шёл запрос, кабинет мог успеть что-то записать (например, «кто вошёл»): стираем ещё раз.
+  await wipeDeviceData();
+  if (closed) return "server";
   await markSignedOut();
   return "device";
 }

@@ -9,11 +9,14 @@ import type { FlushResult } from "./outbox";
 // отправить при возвращении сети (SPEC §6.13 п.4, §6.5 «Офлайн»).
 
 let snapshot: OutboxItem[] = [];
+/** Очередь хотя бы раз прочитана из IndexedDB (до этого snapshot пустой не потому, что очереди нет). */
+let loaded = false;
 const listeners = new Set<() => void>();
 let channel: BroadcastChannel | null = null;
 
 async function refresh() {
   snapshot = (await outboxStorage.all()).sort(byCreation);
+  loaded = true;
   for (const l of listeners) l();
 }
 
@@ -105,6 +108,24 @@ export async function flushOutbox(userId: string): Promise<FlushResult> {
   const result = await flushLocked(userId);
   await refresh();
   return result;
+}
+
+/**
+ * Сколько действий на устройстве ещё не дошло до сервера — ждут отправки или не отправились
+ * (для предупреждения при выходе). null — очередь ещё читается.
+ */
+export function useUnsentCount(): number | null {
+  const all = React.useSyncExternalStore(
+    subscribe,
+    () => snapshot,
+    () => EMPTY,
+  );
+  const ready = React.useSyncExternalStore(
+    subscribe,
+    () => loaded,
+    () => false,
+  );
+  return ready ? all.length : null;
 }
 
 /** Сколько действий на устройстве ждёт отправки (очередь принадлежит одному человеку: D-014). */

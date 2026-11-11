@@ -1,8 +1,8 @@
 /// <reference lib="webworker" />
 import {
-  CacheFirst,
   CacheableResponsePlugin,
   ExpirationPlugin,
+  NetworkFirst,
   NetworkOnly,
   Serwist,
   type PrecacheEntry,
@@ -18,7 +18,9 @@ import { flushOutboxFromWorker } from "../lib/offline/outbox-worker";
 //   а она рисует экран из данных в IndexedDB текущего пользователя (src/lib/offline);
 // • данные API кэширует сам экран в IndexedDB с меткой времени (stale-while-revalidate в useApi):
 //   там же привязка к пользователю и очистка при выходе. SW их не трогает;
-// • PDF выданных справок — Cache Storage «kompas-docs», CacheFirst (документ не меняется после выдачи).
+// • PDF выданных справок — Cache Storage «kompas-docs», NetworkFirst: при сети сервер решает, можно ли
+//   отдать файл (сессия закончилась, справку отозвали → 401/404, копия на устройстве удаляется);
+//   без сети или при ответе дольше 4 с — копия с устройства.
 
 declare const self: ServiceWorkerGlobalScope;
 declare const __KOMPAS_PRECACHE__: (PrecacheEntry | string)[];
@@ -34,10 +36,23 @@ const serwist = new Serwist({
   runtimeCaching: [
     {
       matcher: ({ url, sameOrigin }) => sameOrigin && isDocumentFileUrl(url.pathname),
-      handler: new CacheFirst({
+      handler: new NetworkFirst({
         cacheName: DOCS_CACHE,
+        networkTimeoutSeconds: 4,
         plugins: [
           new CacheableResponsePlugin({ statuses: [200] }),
+          {
+            // Сервер больше не отдаёт файл этому человеку — копия на устройстве тоже не нужна.
+            fetchDidSucceed: async ({ request, response }) => {
+              const cache = await caches.open(DOCS_CACHE);
+              if (response.status === 401 || response.status === 404)
+                await cache.delete(request.url);
+              // Лимит или сбой сервера — отдаём сохранённую копию, если она есть.
+              if (response.status === 429 || response.status >= 500)
+                return (await cache.match(request.url)) ?? response;
+              return response;
+            },
+          },
           new ExpirationPlugin({ maxEntries: 40, maxAgeSeconds: 180 * 24 * 3600 }),
         ],
       }),

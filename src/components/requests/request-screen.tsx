@@ -70,7 +70,7 @@ function Messages({ request, onSent }: { request: RequestDetailDTO; onSent: () =
       toast({
         tone: "info",
         title: "Отправим, когда появится сеть",
-        description: "Ответ сохранён на телефоне.",
+        description: "Текст сохранён на телефоне.",
       });
     };
     try {
@@ -92,7 +92,7 @@ function Messages({ request, onSent }: { request: RequestDetailDTO; onSent: () =
       toast({ tone: "success", title: needsReply ? "Ответ отправлен" : "Сообщение отправлено" });
       onSent();
     } catch {
-      setError("Не получилось отправить. Текст остался в поле: нажмите «Отправить» ещё раз.");
+      setError("Не получилось отправить. Текст остался в поле — отправьте его ещё раз.");
     } finally {
       setPending(false);
     }
@@ -100,11 +100,11 @@ function Messages({ request, onSent }: { request: RequestDetailDTO; onSent: () =
 
   return (
     <section aria-labelledby="messages-title" className="flex flex-col gap-3">
-      <h2 id="messages-title" className="type-h2">
+      <h2 id="messages-title" tabIndex={-1} className="type-h2 outline-none">
         Переписка
       </h2>
       {request.messages.length === 0 ? (
-        <p className="text-ink-2">Сообщений пока нет.</p>
+        queued.length === 0 && <p className="text-ink-2">Сообщений пока нет.</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {request.messages.map((m: MessageDTO) => (
@@ -134,6 +134,7 @@ function Messages({ request, onSent }: { request: RequestDetailDTO; onSent: () =
               data-testid="queued-message"
               className="flex flex-col gap-2 self-end rounded-card bg-surface-2 p-3"
             >
+              <p className="type-caption text-ink-2">Вы</p>
               <p className="whitespace-pre-wrap">{(m.body as { body: string }).body}</p>
               <OutboxBadge state={m.state} />
               {m.state === "failed" && (
@@ -143,7 +144,11 @@ function Messages({ request, onSent }: { request: RequestDetailDTO; onSent: () =
                     variant="secondary"
                     size="sm"
                     className="self-start"
-                    onClick={() => void removeQueued(m.id)}
+                    aria-label="Удалить неотправленное сообщение"
+                    onClick={() => {
+                      void removeQueued(m.id);
+                      document.getElementById("messages-title")?.focus();
+                    }}
                   >
                     Удалить
                   </Button>

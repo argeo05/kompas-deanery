@@ -28,7 +28,22 @@ export async function readCachedResponse<T>(
 }
 
 export async function writeCachedResponse<T>(entry: CachedResponse<T>): Promise<void> {
+  if (locked) return;
   await idb.put("data", dataKey(entry.userId, entry.url), entry);
+}
+
+// ── Замок на время выхода ────────────────────────────────────────────────────
+// Запросы, начатые до «Выйти», могут вернуться после очистки и снова записать данные. После начала
+// выхода вкладка больше ничего не сохраняет (она уходит на /login).
+
+let locked = false;
+
+export function lockDevice() {
+  locked = true;
+}
+
+export function isDeviceLocked(): boolean {
+  return locked;
 }
 
 // ── Кто вошёл на этом устройстве ─────────────────────────────────────────────
@@ -51,10 +66,21 @@ export function readDeviceUser(): Promise<DeviceUser | undefined> {
  * другого человека, они стираются до того, как экран что-то сохранит.
  */
 export async function claimDevice(user: DeviceUser): Promise<void> {
+  if (locked) return;
   const prev = await readDeviceUser();
-  // Экран нового человека мог успеть сохранить свои данные раньше этой проверки — их не трогаем.
-  if (prev && prev.userId !== user.userId) await wipeDeviceData(user.userId);
+  // «Кто вошёл» не записан (или записан другой), а данные могут лежать чужие — стираем всё, кроме
+  // данных и очереди нового человека: его экран мог успеть сохранить своё раньше этой проверки.
+  if (prev?.userId !== user.userId) await wipeDeviceData(user.userId);
+  if (locked) return;
   await idb.put("meta", USER_KEY, user);
+}
+
+/**
+ * Вошёл не студент (сотрудник): личные данные прошлого студента на устройстве не нужны никому.
+ */
+export async function releaseDevice(): Promise<void> {
+  const [prev, keys] = await Promise.all([readDeviceUser(), idb.keys("data")]);
+  if (prev || keys.length > 0) await wipeDeviceData();
 }
 
 /** Выход без сети: сервер о нём ещё не знает. Флаг живёт до успешного выхода на сервере. */
@@ -94,7 +120,17 @@ export async function wipeDeviceData(keepUserId?: string): Promise<void> {
           ),
         )
     : idb.clear("data");
-  await Promise.all([clearData, idb.clear("outbox"), idb.clear("meta")]);
+  // Очередь: у нового человека остаются только его действия, остальное стирается.
+  const clearOutbox = keepUserId
+    ? idb
+        .getAll<{ id: string; userId: string }>("outbox")
+        .then((items) =>
+          Promise.all(
+            items.filter((i) => i.userId !== keepUserId).map((i) => idb.delete("outbox", i.id)),
+          ),
+        )
+    : idb.clear("outbox");
+  await Promise.all([clearData, clearOutbox, idb.clear("meta")]);
   try {
     if ("caches" in globalThis) await caches.delete(DOCS_CACHE);
   } catch {

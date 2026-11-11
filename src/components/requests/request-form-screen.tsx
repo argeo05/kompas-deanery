@@ -181,10 +181,10 @@ function Queued({ type }: { type: RequestTypeDTO }) {
   React.useEffect(() => headingRef.current?.focus(), []);
   return (
     <Card className="gap-4" data-testid="request-queued">
-      <OutboxBadge state="pending" />
       <h1 ref={headingRef} tabIndex={-1} className="type-h1 outline-none">
         Заявка будет отправлена, когда появится сеть
       </h1>
+      <OutboxBadge state="pending" />
       <p>
         {type.title}. Мы сохранили её на телефоне и отправим сами — второй раз нажимать не нужно.
       </p>
@@ -324,7 +324,7 @@ function Form({
       if (res.status === 429) {
         setFormError("Вы отправили много заявок за последний час. Попробуйте снова через час.");
       } else if (res.status === 409) {
-        setFormError("Эта заявка уже подана заново. Откройте её в списке заявок.");
+        setFormError("Эта заявка уже отправлена. Откройте её в списке заявок.");
       } else if (res.status === 422) {
         const err = (await res.json().catch(() => null)) as ApiErrorBody | null;
         void err;
@@ -334,11 +334,13 @@ function Form({
         );
       } else {
         setFormError(
-          "Не получилось отправить заявку. Ваши данные сохранены: нажмите «Отправить» ещё раз.",
+          "Не получилось отправить заявку. Ваши данные сохранены: нажмите «Отправить ещё раз».",
         );
       }
     } catch {
-      setFormError("Не получилось отправить. Ваши данные сохранены: нажмите «Отправить» ещё раз.");
+      setFormError(
+        "Не получилось отправить заявку. Ваши данные сохранены: нажмите «Отправить ещё раз».",
+      );
     } finally {
       setPending(false);
     }
@@ -483,7 +485,7 @@ function Form({
       </div>
       {formError && <InlineError>{formError}</InlineError>}
       <Button type="submit" size="lg" loading={pending}>
-        {formError && !pending ? "Повторить отправку" : "Отправить"}
+        {formError && !pending ? "Отправить ещё раз" : "Отправить"}
       </Button>
     </form>
   );

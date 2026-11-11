@@ -26,6 +26,17 @@ export const outboxStorage: OutboxStorage = {
   },
 };
 
+/** Чья сессия в cookie: userId, null (не вошли) или "network" (сервер недоступен). */
+async function sessionUserId(): Promise<string | null | "network"> {
+  try {
+    const res = await fetch("/api/me", { credentials: "same-origin", cache: "no-store" });
+    if (!res.ok) return res.status >= 500 ? "network" : null;
+    return ((await res.json()) as { userId?: string }).userId ?? null;
+  } catch {
+    return "network";
+  }
+}
+
 /** Канал «очередь изменилась» между вкладками и service worker. */
 export const OUTBOX_CHANNEL = "kompas-outbox";
 
@@ -47,7 +58,14 @@ export function sendItem(item: OutboxItem): Promise<Response> {
  * Без Web Locks (старый Safari) защита — Idempotency-Key на сервере.
  */
 export async function flushLocked(userId: string): Promise<FlushResult> {
-  const run = () => flush(outboxStorage, userId, sendItem);
+  const run = async (): Promise<FlushResult> => {
+    // Отправляем только от имени того, чья сессия в cookie: в другой вкладке мог войти другой человек,
+    // и действия прошлого не должны уйти в его аккаунт.
+    const owner = await sessionUserId();
+    if (owner === "network") return { sent: [], failed: [], stopped: "network" };
+    if (owner !== userId) return { sent: [], failed: [], stopped: "auth" };
+    return flush(outboxStorage, userId, sendItem);
+  };
   const locks = (globalThis as { navigator?: { locks?: LockManager } }).navigator?.locks;
   const result = locks ? await locks.request("kompas-outbox", run) : await run();
   if (result.sent.length > 0 || result.failed.length > 0) notifyOutboxChanged();
