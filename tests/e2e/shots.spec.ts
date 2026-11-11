@@ -32,6 +32,7 @@ const studentScreens = [
   { name: "support-new", path: "/support/new" },
   { name: "search", path: "/search?q=%D0%B2%D0%BE%D0%B5%D0%BD%D0%BA%D0%BE%D0%BC%D0%B0%D1%82" },
   { name: "help-article", path: "/help/resit-exam" },
+  { name: "help-ask", path: "/help/ask" },
   { name: "profile", path: "/profile" },
   { name: "profile-privacy", path: "/profile/privacy" },
   { name: "verify", path: `/verify/${"0".repeat(64)}` },
@@ -145,6 +146,29 @@ for (const scheme of ["light", "dark"] as const) {
         await page.waitForTimeout(400);
         await page.screenshot({
           path: `docs/process/shots/${screen.name}-${info.project.name}-${scheme}.png`,
+          fullPage: true,
+        });
+      });
+    }
+  });
+}
+
+// C9: помощник «Спросить Компас» с ответом и с отказом «не нашёл».
+for (const scheme of ["light", "dark"] as const) {
+  test.describe(`@shots assistant ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    for (const [name, question] of [
+      ["help-ask-answer", "Как пересдать экзамен?"],
+      ["help-ask-notfound", "Где припарковать машину у корпуса?"],
+    ] as const) {
+      test(`@shots ${name} ${scheme}`, async ({ context, page, baseURL }, info) => {
+        await loginAs(context, "anna", baseURL!);
+        await page.goto("/help/ask");
+        await page.getByLabel("Ваш вопрос").fill(question);
+        await page.getByRole("button", { name: "Спросить" }).click();
+        await page.getByText("Сегодня можно задать ещё").waitFor();
+        await page.screenshot({
+          path: `docs/process/shots/${name}-${info.project.name}-${scheme}.png`,
           fullPage: true,
         });
       });

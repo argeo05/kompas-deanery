@@ -20,9 +20,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export default async function NewTicketPage({
   searchParams,
 }: {
-  searchParams: Promise<{ topic?: string; kind?: string; id?: string }>;
+  searchParams: Promise<{ topic?: string; kind?: string; id?: string; text?: string }>;
 }) {
-  const { topic, kind, id } = await searchParams;
+  const { topic, kind, id, text } = await searchParams;
   const t = TOPICS.has(topic as TicketTopic) ? (topic as TicketTopic) : "other";
   const link: TicketCreateBody["link"] | null =
     (kind === "class" || kind === "course" || kind === "request") && id && UUID_RE.test(id)
@@ -30,7 +30,7 @@ export default async function NewTicketPage({
       : null;
   return (
     <Suspense>
-      <NewTicketScreen topic={t} link={link} />
+      <NewTicketScreen topic={t} link={link} initialBody={(text ?? "").slice(0, 2000)} />
     </Suspense>
   );
 }

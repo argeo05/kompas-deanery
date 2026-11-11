@@ -130,14 +130,17 @@ export function SupportScreen() {
 export function NewTicketScreen({
   topic: initialTopic,
   link,
+  initialBody = "",
 }: {
   topic: TicketTopic;
   link: TicketCreateBody["link"] | null;
+  /** Черновик текста, например вопрос из «Спросить Компас». */
+  initialBody?: string;
 }) {
   const router = useRouter();
   const toast = useToast();
   const [topic, setTopic] = React.useState<TicketTopic>(initialTopic);
-  const [body, setBody] = React.useState("");
+  const [body, setBody] = React.useState(initialBody);
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const key = React.useRef(crypto.randomUUID());

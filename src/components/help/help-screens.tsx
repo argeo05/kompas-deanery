@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowLeft, BookOpen } from "lucide-react";
+import { ArrowLeft, BookOpen, Sparkles } from "lucide-react";
 import { ApiView } from "@/components/screens/api-view";
 import { useStudent } from "@/components/shell/student-context";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { useApi } from "@/lib/use-api";
 
 // Справочник студента (SPEC §11.4): список статей и статья. Правила вымышленные, это сказано в тексте.
 
-export function HelpListScreen() {
+export function HelpListScreen({ assistant = false }: { assistant?: boolean }) {
   const { userId } = useStudent();
   const api = useApi<KbListDTO>("/api/me/kb", { scope: userId });
   return (
@@ -26,6 +26,14 @@ export function HelpListScreen() {
         Как пересдать, оформить академический отпуск, получить справку. Правила вымышленные: это
         концепт. Не нашли ответ? <Link href="/support/new">Напишите в деканат</Link>.
       </p>
+      {assistant && (
+        <Button asChild className="self-start">
+          <Link href="/help/ask">
+            <Sparkles aria-hidden />
+            Спросить Компас
+          </Link>
+        </Button>
+      )}
       <ApiView
         api={api}
         skeleton={

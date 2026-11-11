@@ -28,7 +28,13 @@ export type RefusalReason = "injection" | "foreign_data" | "promise";
 export const MAX_ANSWER_WORDS = 120;
 export const MAX_QUESTION_CHARS = 500;
 
-const norm = (s: string) => s.toLowerCase().replaceAll("ё", "е");
+// NFKC и удаление невидимых и комбинируемых знаков: «игно\u200Bрируй» не обходит фильтр провокаций.
+const norm = (s: string) =>
+  s
+    .normalize("NFKC")
+    .replace(/[\p{Cf}\p{Mn}]/gu, "")
+    .toLowerCase()
+    .replaceAll("ё", "е");
 
 // ── Отказы на провокации ────────────────────────────────────────────────────
 

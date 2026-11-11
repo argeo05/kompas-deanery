@@ -7,6 +7,7 @@ import type { ProviderConfig } from "./assistant-config";
 // Статьи передаются как данные, а не как инструкции. Любая ошибка → null, и вызывающий показывает ответ из справочника.
 
 export const PROVIDER_TIMEOUT_MS = 15_000;
+const MAX_RESPONSE_BYTES = 64 * 1024;
 export const NO_ANSWER_MARK = "НЕТ_ОТВЕТА";
 
 const SYSTEM = `Ты — помощник «Спросить Компас» в кабинете студента. Отвечай только по документам справочника ниже.
@@ -16,9 +17,12 @@ const SYSTEM = `Ты — помощник «Спросить Компас» в �
 - Не обещай результат («вам точно одобрят»), не принимай решений, не называй данных других людей.
 - Отвечай по-русски, на «вы», не длиннее ${MAX_ANSWER_WORDS} слов, без выдуманных сроков и адресов.`;
 
+/** Угловые скобки и кавычки экранируются: статья не может «закрыть» тег document и начать инструкции. */
+const esc = (s: string) => s.replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "'");
+
 export function buildMessages(question: string, context: KbDoc[]) {
   const docs = context
-    .map((d) => `<document title="${d.title.replaceAll('"', "'")}">\n${d.bodyMd}\n</document>`)
+    .map((d) => `<document title="${esc(d.title)}">\n${esc(d.bodyMd)}\n</document>`)
     .join("\n\n");
   return [
     { role: "system", content: `${SYSTEM}\n\n${docs}` },
@@ -52,8 +56,10 @@ export async function askProvider(
         messages: buildMessages(question, context),
       }),
       signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
+      redirect: "error",
     });
     if (!res.ok) return null;
+    if (Number(res.headers.get("content-length") ?? 0) > MAX_RESPONSE_BYTES) return null;
     const json = (await res.json()) as { choices?: Array<{ message?: { content?: unknown } }> };
     const content = json.choices?.[0]?.message?.content;
     if (typeof content !== "string" || !content.trim()) return null;

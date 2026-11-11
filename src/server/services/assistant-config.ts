@@ -23,6 +23,27 @@ export interface AssistantConfig {
   provider: ProviderConfig | null;
 }
 
+/** Только https, без логина в адресе, не localhost и не частная сеть. */
+export function isSafeProviderUrl(raw: string): boolean {
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== "https:" || u.username || u.password) return false;
+    const h = u.hostname.toLowerCase();
+    return !(
+      h === "localhost" ||
+      h.endsWith(".local") ||
+      h.endsWith(".internal") ||
+      h.startsWith("[") ||
+      /^(127|10|0)\./.test(h) ||
+      /^192\.168\./.test(h) ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(h) ||
+      /^169\.254\./.test(h)
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function readAssistantConfig(
   env: Record<string, string | undefined> = process.env,
 ): AssistantConfig {
@@ -31,7 +52,7 @@ export function readAssistantConfig(
   const key = env.AI_API_KEY?.trim();
   const model = env.AI_MODEL?.trim();
   const provider =
-    enabled && url && key && model && url.startsWith("https://")
+    enabled && url && key && model && isSafeProviderUrl(url)
       ? { url, key, model, scheme: env.AI_AUTH_SCHEME?.trim() || "Bearer" }
       : null;
   return { enabled, mode: provider ? "ai" : "deterministic", provider };
