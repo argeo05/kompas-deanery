@@ -1,6 +1,7 @@
 import "server-only";
 import { asc, eq } from "drizzle-orm";
 import type { KbArticleDTO, KbListDTO } from "@/contracts/api";
+import type { KbDoc } from "@/lib/assistant/engine";
 import { toMsk } from "@/lib/time";
 import { kbArticles } from "../../../db/schema";
 import type { Tx } from "../db";
@@ -25,4 +26,17 @@ export async function getKbArticle(tx: Tx, slug: string): Promise<KbArticleDTO |
     bodyMd: row.bodyMd,
     updatedAt: toMsk(row.updatedAt),
   };
+}
+
+/** Все статьи целиком — для помощника (SPEC §6.8.2): справочник общий, условия по владельцу нет. */
+export async function listKbDocs(tx: Tx): Promise<KbDoc[]> {
+  return tx
+    .select({
+      slug: kbArticles.slug,
+      title: kbArticles.title,
+      tags: kbArticles.tags,
+      bodyMd: kbArticles.bodyMd,
+    })
+    .from(kbArticles)
+    .orderBy(asc(kbArticles.slug));
 }

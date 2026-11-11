@@ -475,6 +475,16 @@ export const apiRoutes: ApiRouteSpec[] = [
     case: () => ({ params: { slug: "resit-exam" } }),
   },
 
+  // ── C9. Помощник «Спросить Компас» (в тестах AI_ASSISTANT включён, см. vitest.config.ts) ──
+  { method: "GET", path: "/api/me/assistant", access: "student", ticket: "C9" },
+  {
+    method: "POST",
+    path: "/api/me/assistant",
+    access: "student",
+    ticket: "C9",
+    case: () => ({ body: { question: "Как пересдать экзамен?" } }),
+  },
+
   // ── DS-32. Изменения расписания ──────────────────────────────────────────
   {
     method: "GET",

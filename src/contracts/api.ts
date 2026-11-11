@@ -669,6 +669,41 @@ export interface KbArticleDTO extends KbItemDTO {
   updatedAt: ISODateTime;
 }
 
+// ── Помощник «Спросить Компас» (C9, SPEC §6.8.2) ────────────────────────────
+
+export type AssistantMode = "deterministic" | "ai";
+export type AssistantRefusal = "injection" | "foreign_data" | "promise";
+
+/** GET /api/me/assistant */
+export interface AssistantStatusDTO {
+  /** Флаг AI_ASSISTANT. Выключен — экран помощника и ссылка на него не показываются. */
+  enabled: boolean;
+  mode: AssistantMode;
+  dailyLimit: number;
+}
+
+export interface AssistantSourceDTO {
+  slug: string;
+  title: string;
+  /** Раздел статьи, откуда взят текст (у первой ссылки). */
+  section: string | null;
+  href: string;
+}
+
+/** POST /api/me/assistant { question } */
+export interface AssistantAnswerDTO {
+  kind: "answer" | "not_found" | "refused";
+  mode: AssistantMode;
+  /** ИИ не ответил (сеть, тайм-аут, ошибка): показан ответ из справочника без генерации (AC-8.3). */
+  fallback: boolean;
+  /** Текст ответа; пустой при отказе. Тексты отказов пишет интерфейс. */
+  text: string;
+  sources: AssistantSourceDTO[];
+  refusal?: AssistantRefusal;
+  /** Сколько вопросов осталось на сегодня. */
+  remaining: number;
+}
+
 // ── Сеансы и демо-сброс (C8) ────────────────────────────────────────────────
 
 export interface SessionItemDTO {
