@@ -17,10 +17,20 @@ export async function loginAs(
   target: Page | BrowserContext,
   who: keyof typeof DEMO,
   baseURL: string,
+  options: { onboarding?: "keep" } = {},
 ): Promise<void> {
   const res = await target.request.post("/api/auth/sign-in/username", {
     data: { username: DEMO[who].login, password: DEMO[who].password },
     headers: { origin: baseURL, "x-real-ip": nextIp() },
   });
   expect(res.status(), "вход демо-аккаунта").toBe(200);
+  // Тур первого входа (C8) открывается поверх экрана и закрыл бы его от теста: помечаем пройденным,
+  // как это сделал бы студент кнопкой «Пропустить». Сам тур проверяет tests/e2e/profile.spec.ts.
+  if (who !== "elena" && options.onboarding !== "keep") {
+    const done = await target.request.patch("/api/me", {
+      data: { onboardingDone: true },
+      headers: { origin: baseURL },
+    });
+    expect(done.status(), "тур отмечен пройденным").toBe(200);
+  }
 }

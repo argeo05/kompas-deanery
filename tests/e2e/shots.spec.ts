@@ -7,6 +7,8 @@ const screens = [
   { name: "home", path: "/" },
   { name: "login", path: "/login" },
   { name: "jury", path: "/jury" },
+  { name: "about", path: "/about" },
+  { name: "security", path: "/security" },
   { name: "offline-no-user", path: "/offline" },
   { name: "dev-ui", path: "/dev/ui" },
   { name: "dev-ui-staff", path: "/dev/ui/staff" },
@@ -30,6 +32,8 @@ const studentScreens = [
   { name: "support-new", path: "/support/new" },
   { name: "search", path: "/search?q=%D0%B2%D0%BE%D0%B5%D0%BD%D0%BA%D0%BE%D0%BC%D0%B0%D1%82" },
   { name: "help-article", path: "/help/resit-exam" },
+  { name: "profile", path: "/profile" },
+  { name: "profile-privacy", path: "/profile/privacy" },
   { name: "verify", path: `/verify/${"0".repeat(64)}` },
 ];
 
@@ -41,6 +45,7 @@ const staffScreens = [
   { name: "staff-announcements", path: "/staff/announcements" },
   { name: "staff-announcement-new", path: "/staff/announcements/new" },
   { name: "staff-schedule", path: "/staff/schedule" },
+  { name: "staff-profile", path: "/staff/profile" },
 ];
 
 /** REQUEST_CARD — первая заявка Анны (новые первыми). */

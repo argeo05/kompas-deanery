@@ -1,3 +1,4 @@
+import { PublicFooter } from "@/components/shell/footer-links";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -104,36 +105,39 @@ export default async function VerifyPage({ params }: { params: Promise<{ code: s
   const { code } = await params;
   const outcome = await check(code);
   return (
-    <main
-      id="content"
-      tabIndex={-1}
-      className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-6 px-4 py-8 outline-none"
-    >
-      <Verdict outcome={outcome} />
-      <section aria-labelledby="verify-shows" className="flex flex-col gap-2">
-        <h2 id="verify-shows" className="type-h3">
-          Что мы подтверждаем
-        </h2>
-        <p className="text-ink-2">
-          Что документ действительно выдан через «Компас», какого он типа и когда выдан, а также
-          действует ли он сейчас.
+    <>
+      <main
+        id="content"
+        tabIndex={-1}
+        className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-6 px-4 py-8 outline-none"
+      >
+        <Verdict outcome={outcome} />
+        <section aria-labelledby="verify-shows" className="flex flex-col gap-2">
+          <h2 id="verify-shows" className="type-h3">
+            Что мы подтверждаем
+          </h2>
+          <p className="text-ink-2">
+            Что документ действительно выдан через «Компас», какого он типа и когда выдан, а также
+            действует ли он сейчас.
+          </p>
+        </section>
+        <section aria-labelledby="verify-hides" className="flex flex-col gap-2">
+          <h2 id="verify-hides" className="type-h3">
+            Чего мы не показываем
+          </h2>
+          <p className="text-ink-2">
+            Имя владельца, группу, номер заявки и содержание справки. Так мы защищаем личные данные.
+            Содержание вам может показать сам владелец, у него есть файл.
+          </p>
+        </section>
+        <p className="type-caption text-ink-2">
+          «Компас» — учебный концепт: документы здесь образцовые и не имеют юридической силы.{" "}
+          <Link href="/" className="text-accent underline">
+            На главную
+          </Link>
         </p>
-      </section>
-      <section aria-labelledby="verify-hides" className="flex flex-col gap-2">
-        <h2 id="verify-hides" className="type-h3">
-          Чего мы не показываем
-        </h2>
-        <p className="text-ink-2">
-          Имя владельца, группу, номер заявки и содержание справки. Так мы защищаем личные данные.
-          Содержание вам может показать сам владелец, у него есть файл.
-        </p>
-      </section>
-      <p className="type-caption text-ink-2">
-        «Компас» — учебный концепт: документы здесь образцовые и не имеют юридической силы.{" "}
-        <Link href="/" className="text-accent underline">
-          На главную
-        </Link>
-      </p>
-    </main>
+      </main>
+      <PublicFooter />
+    </>
   );
 }

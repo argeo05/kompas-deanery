@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { InlineError } from "@/components/ui/error-state";
@@ -8,7 +9,14 @@ import { InlineError } from "@/components/ui/error-state";
 // Форма входа (SPEC §6.1, минимум для кабинета): логин и пароль → Better Auth /sign-in/username.
 // Сообщение об ошибке одинаково для неверного логина и пароля (AC-1.2): по нему нельзя перебирать логины.
 
-const DEMO = { login: "anna.demo", password: "kompas-demo-anna" };
+export interface QuickAccount {
+  key: string;
+  name: string;
+  /** Подпись на кнопке: кто это. */
+  caption: string;
+  login: string;
+  password: string;
+}
 
 /** Только путь внутри сайта: «//host» и «/\host» открыли бы чужой адрес. */
 function safeNext(next: string | undefined): string | null {
@@ -22,30 +30,36 @@ function safeNext(next: string | undefined): string | null {
 const inputClass =
   "min-h-11 w-full rounded-control border border-line-strong bg-surface px-3 text-base text-ink";
 
-export function LoginForm({ next }: { next?: string }) {
+export function LoginForm({ next, accounts }: { next?: string; accounts: QuickAccount[] }) {
   const router = useRouter();
   const [error, setError] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
   const loginRef = React.useRef<HTMLInputElement>(null);
   const passwordRef = React.useRef<HTMLInputElement>(null);
 
-  async function submit(e: React.FormEvent) {
+  function submit(e: React.FormEvent) {
     e.preventDefault();
+    void signIn(loginRef.current?.value ?? "", passwordRef.current?.value ?? "");
+  }
+
+  // Тот же вход, что и по кнопке «Войти»: отдельного входа в обход пароля нет (SPEC §6.1 п.2).
+  async function signIn(username: string, password: string) {
     setPending(true);
     setError(null);
     try {
       const res = await fetch("/api/auth/sign-in/username", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          username: loginRef.current?.value ?? "",
-          password: passwordRef.current?.value ?? "",
-        }),
+        body: JSON.stringify({ username, password }),
       });
       if (res.status === 429) {
         setError("Слишком много попыток входа. Подождите минуту и попробуйте снова.");
       } else if (!res.ok) {
-        setError("Логин или пароль не подошли. Проверьте раскладку и попробуйте ещё раз.");
+        setError(
+          res.status >= 500
+            ? "Сервис временно не отвечает. Попробуйте через минуту."
+            : "Логин или пароль не подходят. Проверьте раскладку и Caps Lock и попробуйте ещё раз.",
+        );
       } else {
         const body = (await res.json()) as { user?: { role?: string } };
         const fallback = body.user?.role === "staff" ? "/staff/queue" : "/today";
@@ -91,22 +105,38 @@ export function LoginForm({ next }: { next?: string }) {
       <Button type="submit" size="lg" loading={pending}>
         Войти
       </Button>
-      <div className="flex flex-col gap-2 border-t border-line pt-4">
+      <section
+        aria-labelledby="jury-quick"
+        className="flex flex-col gap-3 border-t border-line pt-4"
+      >
+        <h2 id="jury-quick" className="type-h3">
+          Вы из жюри?
+        </h2>
         <p className="type-caption text-ink-2">
-          Все данные вымышленные. Для проверки можно войти под демо-аккаунтом Анны.
+          Войдите в один клик — логины и пароли вымышленных аккаунтов открыты на странице{" "}
+          <Link href="/jury">«Для жюри»</Link>.
         </p>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => {
-            if (loginRef.current) loginRef.current.value = DEMO.login;
-            if (passwordRef.current) passwordRef.current.value = DEMO.password;
-            passwordRef.current?.focus();
-          }}
-        >
-          Подставить демо-аккаунт
-        </Button>
-      </div>
+        <ul className="flex flex-col gap-2">
+          {accounts.map((a) => (
+            <li key={a.key}>
+              <Button
+                type="button"
+                variant="secondary"
+                className="h-auto w-full flex-wrap justify-between gap-x-3 py-2 whitespace-normal"
+                disabled={pending}
+                onClick={() => {
+                  if (loginRef.current) loginRef.current.value = a.login;
+                  if (passwordRef.current) passwordRef.current.value = a.password;
+                  void signIn(a.login, a.password);
+                }}
+              >
+                <span>Войти как {a.name}</span>
+                <span className="type-caption font-normal text-ink-2">{a.caption}</span>
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </section>
     </form>
   );
 }

@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { Onboarding } from "@/components/profile/onboarding";
 import { OfflineSession } from "@/components/offline/offline-session";
 import { AppShell } from "@/components/shell/app-shell";
 import { StudentProvider } from "@/components/shell/student-context";
@@ -41,6 +42,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
             initials: shell.initials,
           }}
         />
+        <Onboarding />
         {children}
       </StudentProvider>
     </AppShell>

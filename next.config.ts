@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
   // Шрифты для PDF читаются с диска во время запроса: без явного указания в standalone их не будет.
   outputFileTracingIncludes: {
     "/api/me/documents/[id]/file": ["./src/server/pdf/fonts/*.ttf"],
+    // Демо-сброс засевает базу заново и читает статьи справочника с диска (db/seed/kb.ts).
+    "/api/demo/reset": ["./content/kb/*.md"],
   },
   async headers() {
     return [

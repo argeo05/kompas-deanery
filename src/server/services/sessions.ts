@@ -6,7 +6,7 @@ import { deleteUserSession, deleteUserSessions, listUserSessions } from "../repo
 /** Название устройства по User-Agent: «Chrome · Windows». Строка UA наружу не уходит целиком. */
 export function describeDevice(userAgent: string | null): string {
   if (!userAgent) return "Неизвестное устройство";
-  const ua = userAgent;
+  const ua = userAgent.slice(0, 256);
   const os = /iPhone|iPad/.test(ua)
     ? "iOS"
     : /Android/.test(ua)

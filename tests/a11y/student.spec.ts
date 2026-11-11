@@ -6,6 +6,8 @@ import { loginAs } from "../e2e/support/auth";
 const routes = [
   "/login",
   "/today",
+  "/profile",
+  "/profile/privacy",
   "/schedule",
   "/schedule?view=week",
   "/study",

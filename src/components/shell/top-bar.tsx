@@ -78,7 +78,10 @@ export function TopBar({
             <NavBadge kind="notifications" value={unread} className="absolute top-1.5 right-1" />
           </Link>
         )}
-        <Link href="/profile" className="grid size-11 place-items-center rounded-full no-underline">
+        <Link
+          href={role === "staff" ? "/staff/profile" : "/profile"}
+          className="grid size-11 place-items-center rounded-full no-underline"
+        >
           <span
             aria-hidden
             className="grid size-9 place-items-center rounded-full bg-info-bg text-sm font-semibold text-info-fg"

@@ -40,10 +40,14 @@ export function parseKbFile(raw: string): KbFile {
 }
 
 export function readKbFiles(dir = join(process.cwd(), "content", "kb")): KbFile[] {
-  return readdirSync(dir)
+  // turbopackIgnore: путь динамический; нужные файлы добавлены в трассировку в next.config.ts.
+  return readdirSync(/* turbopackIgnore: true */ dir)
     .filter((f) => f.endsWith(".md"))
     .sort()
-    .map((f) => parseKbFile(readFileSync(join(dir, f), "utf8")));
+    .map((f) => {
+      const file = join(/* turbopackIgnore: true */ dir, f);
+      return parseKbFile(readFileSync(/* turbopackIgnore: true */ file, "utf8"));
+    });
 }
 
 export async function seedKb(db: SeedDb) {

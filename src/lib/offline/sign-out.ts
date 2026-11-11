@@ -43,3 +43,9 @@ export async function finishPendingSignOut(): Promise<boolean> {
   await clearSignedOut();
   return true;
 }
+
+/** Все сеансы закрыты на сервере («Выйти на всех устройствах»): остаётся стереть данные здесь. */
+export async function wipeAfterRevokeAll(): Promise<void> {
+  lockDevice();
+  await wipeDeviceData();
+}

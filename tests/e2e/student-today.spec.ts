@@ -16,8 +16,8 @@ test("гость уходит на вход, после входа попада�
   const page = await ctx.newPage();
   await page.goto("/today");
   await expect(page).toHaveURL(/\/login\?next=%2Ftoday/);
-  await page.getByRole("button", { name: "Подставить демо-аккаунт" }).click();
-  await page.getByRole("button", { name: "Войти", exact: true }).click();
+  // Q-1.2: вход демо-аккаунтом — одно касание, тот же вход по логину и паролю.
+  await page.getByRole("button", { name: /Войти как Аня/ }).click();
   await expect(page).toHaveURL(/\/today$/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText(/Аня|Анна/);
   await ctx.close();

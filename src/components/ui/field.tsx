@@ -48,7 +48,7 @@ export function Field({
         "aria-invalid": error ? true : undefined,
       })}
       {error && (
-        <p id={errId} className="type-caption text-coral-fg">
+        <p id={errId} role="alert" className="type-caption text-coral-fg">
           {error}
         </p>
       )}

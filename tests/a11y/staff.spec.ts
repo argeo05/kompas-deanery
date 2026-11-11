@@ -10,6 +10,7 @@ const routes = [
   "/staff/announcements",
   "/staff/announcements/new",
   "/staff/schedule",
+  "/staff/profile",
   "SCHEDULE_SHEET",
 ];
 

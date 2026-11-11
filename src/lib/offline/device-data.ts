@@ -6,6 +6,7 @@
 
 import { idb } from "./idb";
 import { DATA_MAX_AGE_MS, DOCS_CACHE } from "./policy";
+import { isOfflineStoreEnabled } from "./prefs";
 
 export interface CachedResponse<T> {
   userId: string;
@@ -28,7 +29,8 @@ export async function readCachedResponse<T>(
 }
 
 export async function writeCachedResponse<T>(entry: CachedResponse<T>): Promise<void> {
-  if (locked) return;
+  // Выход начат или человек выключил хранение на устройстве — ничего не записываем.
+  if (locked || !isOfflineStoreEnabled()) return;
   await idb.put("data", dataKey(entry.userId, entry.url), entry);
 }
 
@@ -152,6 +154,30 @@ export async function wipeDeviceData(keepUserId?: string): Promise<void> {
 function safeStorage(name: "localStorage" | "sessionStorage"): Storage | null {
   try {
     return window[name];
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * «Очистить сохранённые данные» в профиле: ответы API, PDF и отметка о подготовке к офлайну.
+ * Очередь неотправленных действий и «кто вошёл» остаются: человек не вышел и ничего не терял.
+ */
+export async function clearSavedData(): Promise<void> {
+  for (const fn of memoryWipers) fn();
+  await Promise.all([idb.clear("data"), idb.delete("meta", "warmed-at")]);
+  try {
+    if ("caches" in globalThis) await caches.delete(DOCS_CACHE);
+  } catch {
+    // Cache Storage закрыт: в нём и нечего стирать.
+  }
+}
+
+/** Сколько места занимают данные Компаса на устройстве, байт; null — браузер не говорит. */
+export async function savedDataBytes(): Promise<number | null> {
+  try {
+    const estimate = await navigator.storage?.estimate?.();
+    return estimate?.usage ?? null;
   } catch {
     return null;
   }

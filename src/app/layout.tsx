@@ -4,7 +4,14 @@ import { cookies } from "next/headers";
 import { ConceptBar } from "@/components/shell/concept-bar";
 import { StatusRegion } from "@/components/ui/status-region";
 import { SkipLink } from "@/components/shell/skip-link";
-import { THEME_COOKIE, parseTheme } from "@/lib/theme";
+import {
+  MOTION_COOKIE,
+  TEXT_COOKIE,
+  THEME_COOKIE,
+  parseMotion,
+  parseTextSize,
+  parseTheme,
+} from "@/lib/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -31,9 +38,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   // рендеринге, статический HTML собирается без заголовков и его скрипты CSP бы заблокировал (D-005).
   await connection();
   // Тему сервер берёт из cookie и сразу ставит data-theme: без мигания и без inline-скрипта (D-007).
-  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
+  const jar = await cookies();
+  const theme = parseTheme(jar.get(THEME_COOKIE)?.value);
+  const textSize = parseTextSize(jar.get(TEXT_COOKIE)?.value);
+  const motion = parseMotion(jar.get(MOTION_COOKIE)?.value);
   return (
-    <html lang="ru" data-theme={theme} className="h-full">
+    <html lang="ru" data-theme={theme} data-text={textSize} data-motion={motion} className="h-full">
       <body className="flex min-h-full flex-col">
         <SkipLink />
         <StatusRegion />

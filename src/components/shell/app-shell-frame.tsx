@@ -5,6 +5,7 @@ import { ServiceWorkerManager } from "@/components/offline/service-worker-manage
 import type { ThemePref } from "@/lib/theme";
 import { BottomNav } from "./bottom-nav";
 import { CONCEPT_TEXT } from "./concept-bar";
+import { FooterLinks } from "./footer-links";
 import { SideNav } from "./side-nav";
 import { TopBar } from "./top-bar";
 import type { NavBadges } from "./nav";
@@ -43,7 +44,8 @@ export function AppShellFrame({
             {children}
           </main>
           <footer className="mx-auto w-full max-w-(--content-max) px-4 pt-4 pb-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom)+1rem)] text-xs text-ink-2 md:px-6 lg:pb-6">
-            {CONCEPT_TEXT}
+            <p>{CONCEPT_TEXT}</p>
+            <FooterLinks />
           </footer>
         </div>
       </div>

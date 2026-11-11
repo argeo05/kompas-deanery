@@ -17,6 +17,9 @@ const ipLimit = new RateLimiterMemory({ points: 1, duration: 300 });
 
 export type ResetResult = { ok: true; resetAt: string } | { ok: false; retryAfterSec: number };
 
+/** Таблицы, которые сброс не трогает. */
+const KEEP_TABLES = new Set(["rate_limits"]);
+
 let running: Promise<void> | null = null;
 
 export async function resetDemoData(ip: string): Promise<ResetResult> {
@@ -40,7 +43,14 @@ export async function resetDemoData(ip: string): Promise<ResetResult> {
   running ??= truncateAndSeed().finally(() => {
     running = null;
   });
-  await running;
+  try {
+    await running;
+  } catch (e) {
+    // Сброс упал: окно не сжигаем, чтобы можно было повторить.
+    await ipLimit.reward(ip);
+    await globalLimit.reward("all");
+    throw e;
+  }
   return { ok: true, resetAt: now().toISOString() };
 }
 
@@ -51,10 +61,12 @@ async function truncateAndSeed(): Promise<void> {
     const tables = await tx.execute<{ name: string }>(
       sql`SELECT quote_ident(tablename) AS name FROM pg_tables WHERE schemaname = 'public'`,
     );
-    if (tables.length > 0) {
+    // Счётчики ограничения входа не стираем: сброс не должен обнулять защиту от подбора пароля.
+    const wipe = tables.filter((t) => !KEEP_TABLES.has(t.name));
+    if (wipe.length > 0) {
       await tx.execute(
         sql.raw(
-          `TRUNCATE ${tables.map((t) => `public.${t.name}`).join(", ")} RESTART IDENTITY CASCADE`,
+          `TRUNCATE ${wipe.map((t) => `public.${t.name}`).join(", ")} RESTART IDENTITY CASCADE`,
         ),
       );
     }

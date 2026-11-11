@@ -7,6 +7,7 @@ import { fetchJson, storeApiData } from "@/lib/use-api";
 import { isDeviceLocked, onDeviceWipe } from "./device-data";
 import { idb } from "./idb";
 import { DOCS_CACHE } from "./policy";
+import { isOfflineStoreEnabled } from "./prefs";
 
 // Подготовка к офлайну (SPEC §6.13, AC-13.1): после входа, когда сеть есть, в фоне сохраняем то,
 // что студенту может понадобиться в коридоре без интернета: «Сегодня», расписание на эту и следующую
@@ -98,6 +99,7 @@ export async function offlineCapable(timeoutMs = 30_000): Promise<boolean> {
  */
 export async function warmOfflineData(userId: string, force = false): Promise<boolean> {
   try {
+    if (!isOfflineStoreEnabled()) return false;
     const last = await idb.get<number>("meta", WARM_KEY);
     if (!force && last && Date.now() - last < WARM_EVERY_MS) return false;
     if (!(await offlineCapable())) return false;

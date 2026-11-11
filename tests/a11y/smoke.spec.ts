@@ -4,6 +4,7 @@ import { expect, test } from "@playwright/test";
 // WCAG 2.2 AA (SPEC §7.7) в светлой и тёмной теме. Каждый новый экран добавляется сюда списком маршрутов.
 const routes = [
   "/",
+  "/about",
   "/security",
   "/jury",
   "/offline",
