@@ -7,6 +7,7 @@ import { ChevronRight } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { NavBadge } from "./nav-badge";
 import { STUDENT_MORE, isActive, type NavBadges } from "./nav";
+import { SignOutButton } from "./sign-out-button";
 import { ThemeToggle } from "./theme-toggle";
 import type { ThemePref } from "@/lib/theme";
 
@@ -56,6 +57,7 @@ export function MoreSheet({
           );
         })}
       </ul>
+      <SignOutButton className="mt-2 border-t border-line pt-2" />
       <ThemeToggle initial={theme} className="mt-4" />
     </Sheet>
   );

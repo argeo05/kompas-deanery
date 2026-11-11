@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { OfflineSession } from "@/components/offline/offline-session";
 import { AppShell } from "@/components/shell/app-shell";
 import { StudentProvider } from "@/components/shell/student-context";
 import { getPageSession } from "@/server/auth/page-session";
@@ -33,6 +34,13 @@ export default async function StudentLayout({ children }: { children: React.Reac
   return (
     <AppShell role="student" initials={shell.initials} badges={shell.badges}>
       <StudentProvider value={{ userId: student.userId, displayName: shell.displayName }}>
+        <OfflineSession
+          user={{
+            userId: student.userId,
+            displayName: shell.displayName,
+            initials: shell.initials,
+          }}
+        />
         {children}
       </StudentProvider>
     </AppShell>

@@ -6,6 +6,8 @@ import {
   CircleCheck,
   CircleSlash,
   CircleX,
+  Clock,
+  CloudAlert,
   Inbox,
   LoaderCircle,
   MessageCircle,
@@ -97,5 +99,27 @@ export function Badge({
       {Icon && <Icon aria-hidden strokeWidth={2} />}
       <span className="min-w-0">{children}</span>
     </span>
+  );
+}
+
+/**
+ * Действие из офлайн-очереди (SPEC §6.13 п.4, §7.4 «Офлайн»): «Ожидает отправки» — нейтральный
+ * с часами; «Не отправлено» — коралловый, причина рядом текстом.
+ */
+export function OutboxBadge({
+  state,
+  className,
+}: {
+  state: "pending" | "failed";
+  className?: string;
+}) {
+  return state === "pending" ? (
+    <Badge tone="neutral" icon={Clock} className={className} data-outbox="pending">
+      Ожидает отправки
+    </Badge>
+  ) : (
+    <Badge tone="coral" icon={CloudAlert} className={className} data-outbox="failed">
+      Не отправлено
+    </Badge>
   );
 }

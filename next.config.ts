@@ -12,7 +12,17 @@ const nextConfig: NextConfig = {
     "/api/me/documents/[id]/file": ["./src/server/pdf/fonts/*.ttf"],
   },
   async headers() {
-    return [{ source: "/:path*", headers: [...staticSecurityHeaders] }];
+    return [
+      { source: "/:path*", headers: [...staticSecurityHeaders] },
+      // Service worker: всегда свежая проверка версии (SPEC §6.13 п.6).
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+    ];
   },
   turbopack: {
     rules: {

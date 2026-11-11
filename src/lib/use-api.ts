@@ -2,24 +2,32 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import {
+  onDeviceWipe,
+  readCachedResponse,
+  wipeDeviceData,
+  writeCachedResponse,
+} from "@/lib/offline/device-data";
+import { onReconnect, reportNetworkError, reportNetworkOk } from "@/lib/offline/network";
+import { isPersistable } from "@/lib/offline/policy";
 
-// Загрузка данных экрана из API (SPEC §6.2 «Состояния»): повторный вход показывает кэш мгновенно и
-// обновляет в фоне; при ошибке остаются последние данные и время, когда они получены.
-// Это лёгкий кэш в sessionStorage (живёт до закрытия вкладки, TTL сутки) на время до C7 (service worker, SPEC §6.13): ключ включает id
-// пользователя, чтобы на общем устройстве данные одного студента не попали другому.
+// Загрузка данных экрана из API (SPEC §6.2 «Состояния», §6.13): stale-while-revalidate.
+// Сначала показываем сохранённое (память вкладки, затем IndexedDB устройства), параллельно идём в сеть;
+// ответ сервера заменяет данные и время «обновлено». Ошибка или пустой ответ хорошие данные не затирают.
+// На устройстве хранятся только данные студента (policy.ts), ключ включает id пользователя.
 
 export type ApiError = "offline" | "server" | "not_found" | "unauthorized";
 
 export interface ApiState<T> {
   data: T | undefined;
-  /** Когда получены показанные данные (мс, время устройства). */
+  /** Когда получены показанные данные (мс, время устройства) — время последнего успешного обновления. */
   fetchedAt: number | null;
   /** Данных ещё нет, идёт первая загрузка. */
   loading: boolean;
   /** Идёт фоновое обновление поверх уже показанных данных. */
   refreshing: boolean;
   error: ApiError | null;
-  /** Данные пришли только из кэша (последнее обновление не удалось). */
+  /** Показаны сохранённые данные (последнее обновление не удалось или ещё идёт). */
   stale: boolean;
   reload: () => void;
   /** Обновление только что завершилось успешно (для плашки «Обновлено только что»). */
@@ -39,47 +47,42 @@ interface Entry<T> {
   at: number;
 }
 
+/** Сколько ждать ответа: при «белых списках» запрос может висеть минутами — лучше показать кэш. */
+const FETCH_TIMEOUT_MS = 12_000;
+
 const memory = new Map<string, Entry<unknown>>();
-const TTL_MS = 24 * 3600_000;
+onDeviceWipe(() => memory.clear());
 
-/** Стирает локальный кэш данных: при выходе и при потере сессии. */
-export function wipeApiCache() {
-  memory.clear();
-  try {
-    for (const key of Object.keys(window.sessionStorage)) {
-      if (key.startsWith("kompas:api:v1:")) window.sessionStorage.removeItem(key);
-    }
-  } catch {
-    // Хранилище недоступно: нечего чистить.
-  }
-}
-const storageKey = (scope: string, url: string) => `kompas:api:v1:${scope}:${url}`;
-
-function readCache<T>(scope: string, url: string): Entry<T> | null {
-  const key = storageKey(scope, url);
-  const hit = memory.get(key);
-  if (hit) return Date.now() - hit.at < TTL_MS ? (hit as Entry<T>) : null;
-  try {
-    const raw = window.sessionStorage.getItem(key);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Entry<T>;
-    if (parsed.url !== url || typeof parsed.at !== "number" || Date.now() - parsed.at > TTL_MS)
-      return null;
-    memory.set(key, parsed);
-    return parsed;
-  } catch {
-    return null;
-  }
+/** Стирает локальные данные: при выходе и при потере сессии. */
+export function wipeApiCache(): Promise<void> {
+  return wipeDeviceData();
 }
 
-function writeCache<T>(scope: string, entry: Entry<T>) {
-  const key = storageKey(scope, entry.url);
-  memory.set(key, entry);
-  try {
-    window.sessionStorage.setItem(key, JSON.stringify(entry));
-  } catch {
-    // Хранилище закрыто или переполнено: кэш в памяти остаётся.
-  }
+const memoryKey = (scope: string, url: string) => `${scope}|${url}`;
+
+async function readCache<T>(scope: string, url: string): Promise<Entry<T> | null> {
+  const hit = memory.get(memoryKey(scope, url));
+  if (hit) return hit as Entry<T>;
+  if (!isPersistable(url)) return null;
+  const stored = await readCachedResponse<T>(scope, url);
+  if (!stored) return null;
+  const entry = { url, data: stored.data, at: stored.at };
+  memory.set(memoryKey(scope, url), entry);
+  return entry;
+}
+
+/** Сохранить ответ API (экран или фоновая подготовка офлайна). */
+export async function storeApiData<T>(scope: string, url: string, data: T, at = Date.now()) {
+  memory.set(memoryKey(scope, url), { url, data, at });
+  if (isPersistable(url)) await writeCachedResponse({ userId: scope, url, data, at });
+}
+
+export function fetchJson(url: string): Promise<Response> {
+  return fetch(url, {
+    credentials: "same-origin",
+    cache: "no-store",
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
 }
 
 export function useApi<T>(url: string | null, { scope, refreshMs }: Options): ApiState<T> {
@@ -96,18 +99,20 @@ export function useApi<T>(url: string | null, { scope, refreshMs }: Options): Ap
       if (url === null) return;
       const mine = ++seq.current;
       if (initial) {
-        // Смена адреса: сначала кэш этого адреса (если есть), потом обновление.
-        const cached = readCache<T>(scope, url);
+        // Смена адреса: сначала сохранённое для этого адреса (если есть), потом обновление.
+        setError(null);
+        const cached = await readCache<T>(scope, url);
+        if (mine !== seq.current) return;
         setEntry(cached);
         setFromCache(cached !== null);
-        setError(null);
       }
       setFetching(true);
       try {
-        const res = await fetch(url, { credentials: "same-origin", cache: "no-store" });
+        const res = await fetchJson(url);
         if (mine !== seq.current) return;
+        reportNetworkOk();
         if (res.status === 401) {
-          wipeApiCache();
+          await wipeApiCache();
           setError("unauthorized");
           router.replace(`/login?next=${encodeURIComponent(window.location.pathname)}`);
           return;
@@ -122,15 +127,23 @@ export function useApi<T>(url: string | null, { scope, refreshMs }: Options): Ap
         }
         const data = (await res.json()) as T;
         if (mine !== seq.current) return;
+        if (data === null || data === undefined) {
+          // Пустой ответ не затирает хорошие данные (SPEC §6.13 «Тонкости»).
+          setError("server");
+          return;
+        }
         const next = { url, data, at: Date.now() };
-        writeCache(scope, next);
+        await storeApiData(scope, url, data, next.at);
+        if (mine !== seq.current) return;
         setEntry(next);
         setError(null);
         setFromCache(false);
         setJustUpdated(true);
       } catch {
         if (mine !== seq.current) return;
-        setError(navigator.onLine ? "server" : "offline");
+        // Запрос не дошёл до сервера (нет сети, «белый список», таймаут).
+        reportNetworkError();
+        setError("offline");
       } finally {
         if (mine === seq.current) setFetching(false);
       }
@@ -165,12 +178,12 @@ export function useApi<T>(url: string | null, { scope, refreshMs }: Options): Ap
     const id = refreshMs ? window.setInterval(refresh, refreshMs) : undefined;
     document.addEventListener("visibilitychange", refresh);
     window.addEventListener("focus", refresh);
-    window.addEventListener("online", refresh);
+    const offReconnect = onReconnect(refresh);
     return () => {
       if (id) window.clearInterval(id);
       document.removeEventListener("visibilitychange", refresh);
       window.removeEventListener("focus", refresh);
-      window.removeEventListener("online", refresh);
+      offReconnect();
     };
   }, [url, refreshMs, load]);
 

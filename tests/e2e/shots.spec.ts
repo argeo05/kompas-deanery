@@ -1,4 +1,4 @@
-import { test, type BrowserContext } from "@playwright/test";
+import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { loginAs } from "./support/auth";
 
 // pnpm shots: скриншоты экранов в светлой и тёмной теме для docs/process/shots/ (SPEC §12.4 п.5).
@@ -6,6 +6,8 @@ import { loginAs } from "./support/auth";
 const screens = [
   { name: "home", path: "/" },
   { name: "login", path: "/login" },
+  { name: "jury", path: "/jury" },
+  { name: "offline-no-user", path: "/offline" },
   { name: "dev-ui", path: "/dev/ui" },
   { name: "dev-ui-staff", path: "/dev/ui/staff" },
 ];
@@ -54,6 +56,52 @@ async function resolvePath(context: BrowserContext, path: string): Promise<strin
     items: { id: string }[];
   };
   return `/requests/${list.items[0]!.id}`;
+}
+
+// Офлайн (C7): кабинет из данных устройства без сети. Максим — чтобы не трогать данные Анны.
+async function shootOffline(page: Page, name: string, project: string, scheme: string) {
+  await page.locator("[aria-busy=true]").waitFor({ state: "detached" });
+  await page.waitForTimeout(400);
+  await page.screenshot({
+    path: `docs/process/shots/${name}-${project}-${scheme}.png`,
+    fullPage: true,
+  });
+}
+
+for (const scheme of ["light", "dark"] as const) {
+  test.describe(`@shots offline ${scheme}`, () => {
+    test.use({ colorScheme: scheme, serviceWorkers: "allow" });
+    test(`@shots offline ${scheme}`, async ({ context, page, baseURL }, info) => {
+      await loginAs(context, "maxim", baseURL!);
+      await page.goto("/today");
+      await expect
+        .poll(() => page.evaluate(() => navigator.serviceWorker.controller !== null), {
+          timeout: 20_000,
+        })
+        .toBe(true);
+      // Подготовка офлайна идёт в фоне: ждём, пока сохранится расписание следующей недели.
+      await page.waitForTimeout(3000);
+      await context.setOffline(true);
+      const p = info.project.name;
+      await page.goto("/today");
+      await shootOffline(page, "offline-today", p, scheme);
+      await page.goto("/schedule");
+      await shootOffline(page, "offline-schedule", p, scheme);
+      await page.goto("/requests/new/study_cert");
+      await page.getByLabel("Куда предоставляется справка").fill("Военкомат");
+      await page.getByRole("radio", { name: /Электронно/ }).check();
+      await page.getByLabel("Данные верны").check();
+      await page.getByRole("button", { name: "Отправить" }).click();
+      await page.getByTestId("request-queued").waitFor();
+      await shootOffline(page, "offline-request-queued", p, scheme);
+      await page.getByRole("link", { name: "К заявкам" }).click();
+      await page.getByTestId("queued-request").waitFor();
+      await shootOffline(page, "offline-requests", p, scheme);
+      await page.goto("/search");
+      await shootOffline(page, "offline-not-available", p, scheme);
+      // Контекст закрывается без сети: заявка из очереди на сервер не уходит.
+    });
+  });
 }
 
 for (const scheme of ["light", "dark"] as const) {

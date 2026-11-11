@@ -86,7 +86,8 @@ export const config = {
     "/staff/:path*",
     {
       // Страницы, но не API и статика: у них CSP не нужен.
-      source: "/((?!api/|_next/static/|_next/image/|favicon\\.ico$).*)",
+      source:
+        "/((?!api/|_next/static/|_next/image/|favicon\\.ico$|sw\\.js$|manifest\\.webmanifest$|icons/).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },

@@ -89,3 +89,15 @@ export function formatWhen(value: Date | string, nowValue: Date): string {
   if (diffDays === -1) return `вчера в ${time}`;
   return `${formatWeekdayShort(target)}, ${formatDayMonth(target)} в ${time}`;
 }
+
+/**
+ * «обновлено только что», «обновлено 12 мин назад», «обновлено вчера в 08:14» — свежесть данных
+ * (SPEC §6.13: время последнего успешного обновления, а не последней попытки).
+ */
+export function formatUpdatedAgo(at: number | Date, nowValue: Date): string {
+  const target = typeof at === "number" ? new Date(at) : at;
+  const minutes = Math.floor((nowValue.getTime() - target.getTime()) / 60_000);
+  if (minutes < 1) return "обновлено только что";
+  if (minutes < 60) return `обновлено ${minutes} мин назад`;
+  return `обновлено ${formatWhen(target, nowValue)}`;
+}

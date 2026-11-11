@@ -8,6 +8,7 @@ import { ApiView } from "@/components/screens/api-view";
 import { useStudent } from "@/components/shell/student-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { OutboxBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InlineError } from "@/components/ui/error-state";
 import { LoadingRegion, SkeletonCard } from "@/components/ui/skeleton";
@@ -33,6 +34,7 @@ import {
   validateForm,
   type FormValues,
 } from "@/lib/request-form";
+import { queueAction } from "@/lib/offline/use-outbox";
 import { useApi } from "@/lib/use-api";
 import { cn } from "cn";
 
@@ -40,6 +42,11 @@ import { cn } from "cn";
 // экземпляры, «Данные верны». Черновик живёт в localStorage; при отправке уходит Idempotency-Key,
 // который сохраняется до успеха: повтор при плохой связи не создаст вторую заявку (AC-5.4).
 // Режим from=<id> — «Подать заново» после отказа: поля исходной заявки, способ и число экземпляров прежние.
+// Без сети (или запрос не дошёл) заявка встаёт в офлайн-очередь с тем же ключом и уйдёт сама, когда
+// появится связь (SPEC §6.5 «Офлайн», §6.13 п.4, AC-13.3).
+
+/** Сколько ждать ответа на отправку: при «белых списках» запрос может висеть минутами. */
+const SUBMIT_TIMEOUT_MS = 15_000;
 
 const INPUT =
   "min-h-11 w-full rounded-control border bg-surface px-3 py-2 text-base text-ink aria-invalid:border-2 aria-invalid:border-coral";
@@ -169,6 +176,28 @@ function Success({ created, type }: { created: RequestDTO; type: RequestTypeDTO 
   );
 }
 
+function Queued({ type }: { type: RequestTypeDTO }) {
+  const headingRef = React.useRef<HTMLHeadingElement>(null);
+  React.useEffect(() => headingRef.current?.focus(), []);
+  return (
+    <Card className="gap-4" data-testid="request-queued">
+      <OutboxBadge state="pending" />
+      <h1 ref={headingRef} tabIndex={-1} className="type-h1 outline-none">
+        Заявка будет отправлена, когда появится сеть
+      </h1>
+      <p>
+        {type.title}. Мы сохранили её на телефоне и отправим сами — второй раз нажимать не нужно.
+      </p>
+      <p className="type-caption text-ink-2">
+        На iPhone отправка сработает, когда вы откроете Компас с интернетом.
+      </p>
+      <Button asChild size="lg">
+        <Link href="/requests">К заявкам</Link>
+      </Button>
+    </Card>
+  );
+}
+
 function Form({
   type,
   me,
@@ -195,6 +224,7 @@ function Form({
   const [formError, setFormError] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
   const [created, setCreated] = React.useState<RequestDTO | null>(null);
+  const [queued, setQueued] = React.useState(false);
   const [focusErrors, setFocusErrors] = React.useState(0);
   const idemKey = React.useRef<string | null>(null);
   const restored = React.useRef(false);
@@ -223,11 +253,12 @@ function Form({
 
   // Сохраняем черновик при каждом изменении, пока заявка не отправлена.
   React.useEffect(() => {
-    if (original || created || !restored.current) return;
+    if (original || created || queued || !restored.current) return;
     saveDraft(userId, type.code, { values, delivery, copies });
-  }, [values, delivery, copies, original, created, userId, type.code]);
+  }, [values, delivery, copies, original, created, queued, userId, type.code]);
 
   if (created) return <Success created={created} type={type} />;
+  if (queued) return <Queued type={type} />;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -241,24 +272,50 @@ function Form({
       setFocusErrors((n) => n + 1);
       return;
     }
-    idemKey.current ??= crypto.randomUUID();
+    const key = (idemKey.current ??= crypto.randomUUID());
+    const body = original
+      ? { fields: toFields(fields, values) }
+      : ({
+          typeCode: type.code,
+          delivery,
+          copies,
+          fields: toFields(fields, values),
+        } satisfies RequestCreateBody);
+    const url = original ? `/api/me/requests/${original.id}/resubmit` : "/api/me/requests";
+    // В очередь — с тем же ключом: если запрос всё-таки дошёл, повтор вернёт ту же заявку.
+    const queue = async () => {
+      await queueAction({
+        id: key,
+        userId,
+        kind: original ? "request.resubmit" : "request.create",
+        url,
+        body,
+        label: type.title,
+        target: original?.id,
+      });
+      clearDraft(userId, type.code);
+      setQueued(true);
+    };
     setPending(true);
     try {
-      const body = original
-        ? { fields: toFields(fields, values) }
-        : ({
-            typeCode: type.code,
-            delivery,
-            copies,
-            fields: toFields(fields, values),
-          } satisfies RequestCreateBody);
-      const url = original ? `/api/me/requests/${original.id}/resubmit` : "/api/me/requests";
-      const res = await fetch(url, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "content-type": "application/json", "idempotency-key": idemKey.current },
-        body: JSON.stringify(body),
-      });
+      if (!navigator.onLine) {
+        await queue();
+        return;
+      }
+      let res: Response;
+      try {
+        res = await fetch(url, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "content-type": "application/json", "idempotency-key": key },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(SUBMIT_TIMEOUT_MS),
+        });
+      } catch {
+        // Запрос не дошёл или завис: заявка не теряется, уйдёт из очереди.
+        await queue();
+        return;
+      }
       if (res.status === 201) {
         setCreated((await res.json()) as RequestDTO);
         clearDraft(userId, type.code);
@@ -281,9 +338,7 @@ function Form({
         );
       }
     } catch {
-      setFormError(
-        "Не получилось отправить: пропал интернет. Ваши данные сохранены, проверьте сеть и нажмите «Отправить» ещё раз.",
-      );
+      setFormError("Не получилось отправить. Ваши данные сохранены: нажмите «Отправить» ещё раз.");
     } finally {
       setPending(false);
     }

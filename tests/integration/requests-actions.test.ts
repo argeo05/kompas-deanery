@@ -305,6 +305,35 @@ describe("POST /api/me/requests/:id/messages", () => {
     expect(res.body).toEqual({ error: { code: "NOT_FOUND" } });
   });
 
+  it("с Idempotency-Key (офлайн-очередь C7) повтор не создаёт второе сообщение", async () => {
+    const id = fx.requests.anna[0];
+    const before = await apiAs("anna").get<RequestDetailDTO>(`/api/me/requests/${id}`);
+    const send = () =>
+      apiAs("anna").post<RequestMessageCreatedDTO>(
+        `/api/me/requests/${id}/messages`,
+        { body: "Отправлено без сети" },
+        { headers: idem("c7-offline-message-0001") },
+      );
+    const first = await send();
+    const replay = await send();
+    expect(first.status).toBe(201);
+    expect(replay.status).toBe(201);
+    expect(replay.headers.get("idempotent-replayed")).toBe("true");
+    expect(replay.body.message.id).toBe(first.body.message.id);
+    const after = await apiAs("anna").get<RequestDetailDTO>(`/api/me/requests/${id}`);
+    expect(after.body.messages.length).toBe(before.body.messages.length + 1);
+  });
+
+  it("Idempotency-Key на чужую заявку → 404, ключ не занят", async () => {
+    const res = await apiAs("maxim").post<ApiErrorBody>(
+      `/api/me/requests/${fx.requests.anna[0]}/messages`,
+      { body: "чужая заявка" },
+      { headers: idem("c7-foreign-message-0001") },
+    );
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: { code: "NOT_FOUND" } });
+  });
+
   it("гость → 401, сотрудник → 403", async () => {
     const id = fx.requests.anna[0];
     expect(

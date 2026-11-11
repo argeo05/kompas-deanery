@@ -10,6 +10,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Компас",
   description: "Личный кабинет студента — концепт",
+  // PWA (SPEC §6.13): манифест — src/app/manifest.ts; для iOS — иконка и режим «как приложение».
+  appleWebApp: { capable: true, title: "Компас", statusBarStyle: "default" },
+  icons: { apple: "/icons/apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = {

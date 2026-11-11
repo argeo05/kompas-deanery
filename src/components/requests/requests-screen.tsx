@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { FileText, Plus } from "lucide-react";
+import { QueuedRequests } from "@/components/offline/queued-requests";
 import { ApiView } from "@/components/screens/api-view";
 import { useStudent } from "@/components/shell/student-context";
 import { Button } from "@/components/ui/button";
@@ -94,6 +95,7 @@ export function RequestsScreen() {
           </Button>
         ))}
       </div>
+      <QueuedRequests userId={userId} onSent={api.reload} />
       <ApiView
         api={api}
         skeleton={

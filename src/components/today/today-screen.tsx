@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { InstallPrompt } from "@/components/offline/install-guide";
 import { ApiView } from "@/components/screens/api-view";
 import { useStudent } from "@/components/shell/student-context";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -126,6 +127,7 @@ export function TodayScreen() {
       <ApiView api={api} skeleton={<TodaySkeleton />}>
         {(today) => <TodayContent today={today} />}
       </ApiView>
+      <InstallPrompt />
     </>
   );
 }

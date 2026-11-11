@@ -360,6 +360,9 @@ export const apiRoutes: ApiRouteSpec[] = [
     case: () => ({ params: { token: `${"0".repeat(64)}.ics` } }),
   },
 
+  // ── C7. «Пульс» индикатора сети (SPEC §6.13 п.3): без сессии и без данных ─────
+  { method: "GET", path: "/api/health", access: "public", ticket: "C7" },
+
   // ── DS-23. Проверка подлинности справки ──────────────────────────────────
   {
     method: "GET",

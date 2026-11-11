@@ -11,7 +11,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { InlineError } from "@/components/ui/error-state";
 import { Sheet } from "@/components/ui/sheet";
 import { LoadingRegion, SkeletonCard } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/status-badge";
+import { Badge, OutboxBadge } from "@/components/ui/status-badge";
 import { useToast } from "@/components/ui/toast";
 import type {
   DeadlineDTO,
@@ -21,6 +21,8 @@ import type {
   TimeWindow,
 } from "@/contracts/api";
 import { formatTimeMsk, formatWeekdayLong, formatWhen } from "@/lib/format";
+import type { OutboxItem } from "@/lib/offline/outbox";
+import { queueAction, useOutbox } from "@/lib/offline/use-outbox";
 import { sendJson } from "@/lib/send-json";
 import { useApi } from "@/lib/use-api";
 import { useNow } from "@/lib/use-now";
@@ -185,18 +187,22 @@ function PlanSheet({
 }
 
 function DeadlineCard({
-  d,
+  d: server,
   now,
   busy,
+  queued,
   onAct,
   onPlan,
 }: {
   d: DeadlineDTO;
   now: Date;
   busy: boolean;
+  /** Отметка из офлайн-очереди: показываем её сразу, сервер узнает позже. */
+  queued?: OutboxItem;
   onAct: (d: DeadlineDTO, a: "star" | "unstar" | "done" | "undone") => void;
   onPlan: (d: DeadlineDTO) => void;
 }) {
+  const d = queued ? { ...server, done: queued.kind === "deadline.done" } : server;
   const canPlan = !d.done && (d.starred || d.risk);
   return (
     <Card id={`d-${d.id}`} className="scroll-mt-24 gap-2 p-3">
@@ -211,6 +217,7 @@ function DeadlineCard({
           </Badge>
         )}
       </p>
+      {queued && <OutboxBadge state={queued.state} />}
       {d.plan && (
         <p className="rounded-control bg-info-bg p-2 type-body text-info-fg">
           {planSentence(d.plan)}
@@ -334,6 +341,14 @@ export function DeadlinesScreen() {
   const now = useNow();
   const [planFor, setPlanFor] = React.useState<DeadlineDTO | null>(null);
   const [busy, setBusy] = React.useState<string | null>(null);
+  const queued = useOutbox(userId, (i) => i.kind.startsWith("deadline."));
+  const queuedCount = React.useRef(queued.length);
+  const reload = api.reload;
+  // Отметки из очереди ушли на сервер — перечитываем список.
+  React.useEffect(() => {
+    if (queued.length < queuedCount.current) reload();
+    queuedCount.current = queued.length;
+  }, [queued.length, reload]);
 
   React.useEffect(() => {
     if (!api.data) return;
@@ -343,8 +358,33 @@ export function DeadlinesScreen() {
 
   async function act(d: DeadlineDTO, a: "star" | "unstar" | "done" | "undone") {
     setBusy(d.id);
+    const url = `/api/me/deadlines/${d.id}/${a}`;
+    // «Сделал» / «Вернуть в работу» без сети — в очередь (SPEC §6.13 п.4), остальное требует сети.
+    const queue =
+      a === "done" || a === "undone"
+        ? () =>
+            queueAction({
+              id: crypto.randomUUID(),
+              userId,
+              kind: `deadline.${a}`,
+              url,
+              label: a === "done" ? `«${d.title}» — сделано` : `«${d.title}» — снова в работе`,
+              target: d.id,
+            })
+        : null;
     try {
-      const res = await sendJson("POST", `/api/me/deadlines/${d.id}/${a}`);
+      if (queue && !navigator.onLine) {
+        await queue();
+        return;
+      }
+      let res: Response;
+      try {
+        res = await sendJson("POST", url);
+      } catch (err) {
+        if (!queue) throw err;
+        await queue();
+        return;
+      }
       if (!res.ok) throw new Error(String(res.status));
       api.reload();
     } catch {
@@ -393,6 +433,7 @@ export function DeadlinesScreen() {
                             d={d}
                             now={now}
                             busy={busy === d.id}
+                            queued={queued.findLast((q) => q.target === d.id)}
                             onAct={act}
                             onPlan={setPlanFor}
                           />

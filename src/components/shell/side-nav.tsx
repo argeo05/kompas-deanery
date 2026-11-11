@@ -13,6 +13,7 @@ import {
   type NavBadges,
   type NavItem,
 } from "./nav";
+import { SignOutButton } from "./sign-out-button";
 import { ThemeToggle } from "./theme-toggle";
 import type { ThemePref } from "@/lib/theme";
 
@@ -82,7 +83,10 @@ export function SideNav({
           </ul>
         )}
       </nav>
-      <ThemeToggle initial={theme} className="px-1" />
+      <div className="flex flex-col gap-2">
+        <SignOutButton />
+        <ThemeToggle initial={theme} className="px-1" />
+      </div>
     </div>
   );
 }

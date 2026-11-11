@@ -19,6 +19,9 @@ export default defineConfig({
     locale: "ru-RU",
     timezoneId: "Europe/Moscow",
     trace: "retain-on-failure",
+    // Service worker включаем только там, где проверяем офлайн (tests/e2e/offline.spec.ts):
+    // иначе каждый тест ставит SW и фоново сохраняет офлайн-набор, а моки page.route видят не всё.
+    serviceWorkers: "block",
   },
   projects: [
     {

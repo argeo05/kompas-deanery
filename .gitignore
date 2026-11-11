@@ -53,3 +53,6 @@ next-env.d.ts
 # local Claude settings
 .claude/settings.local.json
 .claude/worktrees/
+
+# service worker собирается при pnpm build (scripts/build-sw.mjs)
+/public/sw.js
