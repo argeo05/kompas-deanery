@@ -12,3 +12,4 @@
 - C5 | sonnet | done: verify 957, e2e 227/7skip, axe 104; D-012; хвост: 1 разовое падение unit в verify (2 повторных прогона зелёные) | 28 мин
   | C6 | sonnet | done: verify 988, e2e+axe 265/7skip; D-013; демо-сброс → C8 | 26 мин |
   | C7 | opus | done: verify 1017, e2e+axe 295/7skip; D-014; SW Serwist; хвост: старый next-server на :3100 (e2e гонять с E2E_PORT=3101) | 28 мин |
+  | C8 | sonnet | done: verify 1048, e2e+axe 337 (2 падения починены); D-015; не сделано: AC-1.8 (SHOULD), 3 замечания a11y | 29 мин |
