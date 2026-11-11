@@ -668,3 +668,23 @@ export interface KbArticleDTO extends KbItemDTO {
   bodyMd: string;
   updatedAt: ISODateTime;
 }
+
+// ── Сеансы и демо-сброс (C8) ────────────────────────────────────────────────
+
+export interface SessionItemDTO {
+  id: UUID;
+  /** «Chrome · Windows»; строка User-Agent целиком не отдаётся. */
+  device: string;
+  createdAt: string;
+  lastSeenAt: string;
+  /** Это устройство, с которого идёт запрос. */
+  current: boolean;
+}
+
+export interface SessionsDTO {
+  items: SessionItemDTO[];
+}
+
+export interface DemoResetDTO {
+  resetAt: string;
+}

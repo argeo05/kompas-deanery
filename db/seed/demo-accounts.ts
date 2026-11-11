@@ -6,6 +6,7 @@ import { formatRequestNumber } from "../../src/lib/request-number";
 import { mskParts } from "../../src/lib/time";
 import { renderNotification } from "../../src/server/notify-templates";
 import type { SeedDates } from "./dates";
+import { DEMO_ACCOUNTS } from "./demo-credentials";
 
 // Демо-аккаунты для жюри и их сценарии (SPEC §11.1). Файл ведёт Claude (DEEPSEEK-TASKS §1).
 // Все люди и данные вымышленные. Пароли — публичные демо-пароли: их показывает страница /jury,
@@ -13,13 +14,7 @@ import type { SeedDates } from "./dates";
 
 export type SeedDb = PostgresJsDatabase<typeof schema>;
 
-export const DEMO_ACCOUNTS = {
-  anna: { login: "anna.demo", password: "kompas-demo-anna", role: "student" },
-  maxim: { login: "maxim.demo", password: "kompas-demo-maxim", role: "student" },
-  elena: { login: "elena.staff", password: "kompas-demo-elena", role: "staff" },
-  /** Сотрудник деканата другого факультета — для тестов «чужой факультет → 404». Жюри не показывается. */
-  oleg: { login: "oleg.staff", password: "kompas-demo-oleg", role: "staff" },
-} as const;
+export { DEMO_ACCOUNTS } from "./demo-credentials";
 
 export type DemoLogin = keyof typeof DEMO_ACCOUNTS;
 

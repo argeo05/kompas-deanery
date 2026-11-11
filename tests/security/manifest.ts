@@ -360,6 +360,10 @@ export const apiRoutes: ApiRouteSpec[] = [
     case: () => ({ params: { token: `${"0".repeat(64)}.ics` } }),
   },
 
+  // ── C8. Сеансы, экспорт данных, демо-сброс ──────────────────────────────
+  { method: "GET", path: "/api/me/sessions", access: "student", ticket: "C8" },
+  { method: "GET", path: "/api/me/export", access: "student", ticket: "C8" },
+
   // ── C7. «Пульс» индикатора сети (SPEC §6.13 п.3): без сессии и без данных ─────
   { method: "GET", path: "/api/health", access: "public", ticket: "C7" },
 
@@ -536,8 +540,17 @@ export const apiRoutes: ApiRouteSpec[] = [
   { method: "GET", path: "/api/staff/audience", access: "staff", ticket: "C6" },
 ];
 
-/** Маршруты Better Auth обслуживает сама библиотека; матрица их не проверяет. */
-export const ignoredRouteFiles = ["src/app/api/auth/[...all]/route.ts"];
+/**
+ * Маршруты Better Auth обслуживает сама библиотека; матрица их не проверяет.
+ * Остальные меняют общее состояние (закрывают сеанс Ани, стирают БД) и проверяются отдельно:
+ * tests/integration/profile.test.ts (сеансы: свой/чужой/гость; демо-сброс: лимит и результат).
+ */
+export const ignoredRouteFiles = [
+  "src/app/api/auth/[...all]/route.ts",
+  "src/app/api/me/sessions/[id]/route.ts",
+  "src/app/api/me/sessions/revoke-all/route.ts",
+  "src/app/api/demo/reset/route.ts",
+];
 
 /** Страницы кабинета сотрудника (SPEC §5.4). Студент получает 403, гость — редирект на вход. */
 export const staffPages = [
@@ -548,6 +561,7 @@ export const staffPages = [
   "/staff/announcements",
   "/staff/announcements/new",
   "/staff/schedule",
+  "/staff/profile",
   // Варианты записи пути не должны обходить проверку (аудит C1).
   "/staff/",
   "/STAFF/queue",
