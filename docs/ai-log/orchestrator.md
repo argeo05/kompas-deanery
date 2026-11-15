@@ -14,3 +14,4 @@
   | C7 | opus | done: verify 1017, e2e+axe 295/7skip; D-014; SW Serwist; хвост: старый next-server на :3100 (e2e гонять с E2E_PORT=3101) | 28 мин |
   | C8 | sonnet | done: verify 1048, e2e+axe 337 (2 падения починены); D-015; не сделано: AC-1.8 (SHOULD), 3 замечания a11y | 29 мин |
   | C9 | sonnet | done: verify 1083, e2e+axe 511/7skip; D-016; детерминированный режим, флаг AI_ASSISTANT выключен; eval 12/15 на контроле | 17 мин |
+  | C10 | sonnet | blocked: needs human — деплой-пакет готов (D-017), verify 1084; Lighthouse A11y 100, Perf <90 на /today /study /documents; e2e: 2 теста красные ночью из-за quiet hours | 9 мин |
