@@ -101,3 +101,15 @@ export function formatUpdatedAgo(at: number | Date, nowValue: Date): string {
   if (minutes < 60) return `обновлено ${minutes} мин назад`;
   return `обновлено ${formatWhen(target, nowValue)}`;
 }
+
+const scoreFormat = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 });
+
+/** Баллы с десятичной запятой: «11,5», «24». */
+export function formatScore(value: number): string {
+  return scoreFormat.format(value);
+}
+
+/** Доля 0,87 → «87%» (вверх: «нужно 86,2%» честнее показать как 87%). */
+export function formatNeedShare(share: number): string {
+  return `${Math.ceil(share * 100 - 1e-9)}%`;
+}

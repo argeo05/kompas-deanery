@@ -1,8 +1,8 @@
 import "server-only";
 import type { CourseGradesDTO, GradesDTO, MarkDTO, UUID } from "@/contracts/api";
-import { MARK_THRESHOLDS } from "../../../config/grading";
+import { MARK_THRESHOLDS, MAX_TOTAL } from "../../../config/grading";
 import type { Item } from "@/lib/grading";
-import { markFor, neededFor, totalScore } from "@/lib/grading";
+import { markFor, neededFor, needShare, totalScore } from "@/lib/grading";
 import { semesterStatus } from "@/lib/semester-status";
 import { now } from "@/lib/clock";
 import { startOfDayMsk, toMsk } from "@/lib/time";
@@ -214,7 +214,7 @@ export async function semesterGrades(
   const riskCourseIds = new Set(standing.reasons.map((r) => r.courseId));
 
   const courses: GradesCourseDTO[] = calcList
-    .map(({ calc: c }) => ({
+    .map(({ calc: c, passThreshold }) => ({
       courseId: c.courseId,
       title: c.title,
       control: c.control,
@@ -223,6 +223,7 @@ export async function semesterGrades(
       mark: c.mark,
       credit: c.credit,
       risk: riskCourseIds.has(c.courseId),
+      passNeedShare: needShare(c.grading, passThreshold),
     }))
     // SPEC §6.4 п.2: сначала дисциплины с рисками, дальше по названию.
     .sort(
@@ -230,10 +231,14 @@ export async function semesterGrades(
         Number(b.risk) - Number(a.risk) || (a.title < b.title ? -1 : a.title > b.title ? 1 : 0),
     );
 
-  // Средний балл «предварительно»: по дисциплинам, где уже есть хоть одна оценка.
+  // Средний балл «предварительно» по шкале итога 0–100: по каждой дисциплине, где уже есть
+  // оценки, — доля набранного от возможного на сегодня (итог из final_results — из 100).
+  // Сумма накопленных баллов в середине семестра («23,8») читалась как провал (C11, D-018).
   const gradedTotals = calcList
-    .filter(({ calc: c }) => c.maxSoFar > 0)
-    .map(({ calc: c }) => c.total);
+    .filter(({ calc: c }) => c.maxSoFar > 0 || finalsByCourse.has(c.courseId))
+    .map(({ calc: c }) =>
+      finalsByCourse.has(c.courseId) ? c.total : (c.total / c.maxSoFar) * MAX_TOTAL,
+    );
   const averagePreliminary =
     gradedTotals.length === 0
       ? null

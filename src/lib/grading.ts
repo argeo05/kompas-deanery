@@ -44,3 +44,14 @@ export function neededFor(
   );
   return { needed, achievable: needed <= maxPossible, maxPossible };
 }
+
+/**
+ * Доля оставшихся баллов до цели: 0,87 → «87% оставшихся». Одна формула для сводки «Учёбы»,
+ * «Что поможет» и стартовых значений «Что если» (C11: раньше там было три разных ответа).
+ * null — цель уже набрана или несданных элементов нет; больше 1 — цель не набрать.
+ */
+export function needShare(items: Item[], targetTotal: number): number | null {
+  const { needed, maxPossible } = neededFor(items, targetTotal);
+  if (needed === 0 || maxPossible === 0) return null;
+  return Math.round((needed / maxPossible) * 1000) / 1000;
+}

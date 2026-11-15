@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { MoreLink } from "@/components/ui/more-link";
 import { CalendarClock, TriangleAlert } from "lucide-react";
 import { ApiView } from "@/components/screens/api-view";
 import { useStudent } from "@/components/shell/student-context";
@@ -65,9 +65,7 @@ export function DeadlinesBlock() {
                   <Item key={d.id} d={d} now={now} />
                 ))}
               </ul>
-              <Link href="/study/deadlines" className="type-body">
-                Все дедлайны и планы
-              </Link>
+              <MoreLink href="/study/deadlines">Все дедлайны и планы</MoreLink>
               {rest > 0 && (
                 <p className="type-caption text-ink-2">
                   И ещё {rest} {plural(rest, ["дедлайн", "дедлайна", "дедлайнов"])} на этой неделе.

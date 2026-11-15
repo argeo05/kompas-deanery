@@ -53,6 +53,25 @@ for (const s of statuses) {
   });
 }
 
+test("C11: средний балл со шкалой, в причине риска — та же цифра, что на странице дисциплины", async ({
+  page,
+}) => {
+  const grades = makeGrades({
+    status: { status: "risk", reasons: [{ courseId: C1, reason: "NEED_OVER_70" }] },
+    averagePreliminary: 64.3,
+  });
+  grades.courses[0] = { ...grades.courses[0]!, risk: true, passNeedShare: 0.87 };
+  await mockJson(page, "**/api/me/grades", grades);
+  await page.goto("/study");
+  const summary = page.getByRole("region", { name: "Итог семестра" });
+  await expect(summary).toContainText(
+    "для «удовлетворительно» нужно набрать 87% оставшихся баллов",
+  );
+  await expect(summary).not.toContainText("больше 70%");
+  await expect(summary).toContainText("64,3");
+  await expect(summary).toContainText("из 100");
+});
+
 test("AC-4.4: в интерфейсе нет данных группы и рейтинга", async ({ page }) => {
   await page.goto("/study");
   await expect(page.locator("[aria-busy=true]")).toHaveCount(0);
@@ -80,9 +99,19 @@ test("дисциплина: баллы, история, что поможет, �
   await page.goto(`/study/subjects/${C1}`);
   await expect(page.getByRole("heading", { level: 1, name: "Макроэкономика" })).toBeVisible();
   await expect(page.getByText("исправлено с 7 на 8/10")).toBeVisible();
-  await expect(page.getByText(/нужно ещё 23 из 60 возможных баллов/)).toBeVisible();
+  // C11 (CW-12): одна формула — 23 из 60 оставшихся = 39%, за эссе (из 10) — не меньше 4.
+  await expect(
+    page.getByText(
+      "«Удовлетворительно» (3): нужно набрать 39% оставшихся баллов — за «Эссе» не меньше 4 из 10.",
+    ),
+  ).toBeVisible();
   await expect(page.getByText("Это прогноз, а не оценка", { exact: false })).toBeVisible();
   const slider = page.getByRole("slider", { name: /Эссе/ });
+  // Ползунок стартует с минимума для «Удовлетворительно», а не с нуля («Неудовлетворительно»).
+  await expect(slider).toHaveValue("4");
+  await expect(
+    page.locator("#whatif-title").locator("xpath=..").locator("[data-slot=grade-scale]"),
+  ).toContainText("Удовлетворительно");
   await slider.focus();
   for (let i = 0; i < 10; i++) await page.keyboard.press("ArrowRight");
   await expect(page.locator("output")).toContainText("10 из 10");

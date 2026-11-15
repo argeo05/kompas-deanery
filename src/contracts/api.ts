@@ -144,7 +144,10 @@ export interface GradesDTO {
     status: SemesterStatus;
     reasons: Array<{ courseId: UUID; reason: SemesterStatusReason }>;
   };
-  /** 1 знак после запятой. */
+  /**
+   * Предварительный средний балл по шкале итога 0–100: среднее по дисциплинам с оценками
+   * долей «набрано / возможно на сегодня». 1 знак после запятой.
+   */
   averagePreliminary: number | null;
   daysToSession: number | null;
   courses: Array<{
@@ -158,6 +161,11 @@ export interface GradesDTO {
     /** Только для зачёта. */
     credit: { passed: boolean | null; conditions: Array<{ label: string; met: boolean }> } | null;
     risk: boolean;
+    /**
+     * Доля оставшихся баллов (0,87 = 87%), нужная до «удовлетворительно» или «зачтено»;
+     * null — порог уже набран или несданных работ нет; больше 1 — не набрать.
+     */
+    passNeedShare: number | null;
   }>;
 }
 
