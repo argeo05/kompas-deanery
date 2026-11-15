@@ -632,7 +632,8 @@ export interface ScheduleChangeCreateBody {
 
 // ── Поиск (C5, SPEC §6.10) ──────────────────────────────────────────────────
 
-export type SearchGroupKey = "actions" | "schedule" | "teachers" | "rooms" | "kb" | "announcements";
+export type SearchGroupKey =
+  "actions" | "requests" | "deadlines" | "schedule" | "teachers" | "rooms" | "kb" | "announcements";
 
 export interface SearchHitDTO {
   id: string;

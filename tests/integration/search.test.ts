@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import type { SearchDTO } from "@/contracts/api";
+import type { Paged, RequestDTO, SearchDTO } from "@/contracts/api";
 import { apiAs, freezeTime, resetDb } from "../helpers/api";
 
 // Поиск (SPEC §6.10): AC-10.1 «военкомат» → первое действие, AC-10.2 опечатка находит дисциплину,
@@ -49,6 +49,37 @@ describe("поиск", () => {
     expect(
       anna.body.groups.flatMap((g) => g.hits).some((h) => /Медиааналитика/.test(h.title)),
     ).toBe(false);
+  });
+
+  // C11, раунд 1: поиск показывал перенесённую пару по старому времени.
+  it("перенесённая пара — по новому времени и с меткой переноса", async () => {
+    const res = await find("макро");
+    const hits = res.body.groups.find((g) => g.key === "schedule")?.hits ?? [];
+    const today = hits.filter((h) => /^Макро, сегодня в /.test(h.title));
+    expect(today.map((h) => h.title)).toContain("Макро, сегодня в 15:20");
+    expect(today.map((h) => h.title)).not.toContain("Макро, сегодня в 12:40");
+    const moved = today.find((h) => h.title === "Макро, сегодня в 15:20");
+    expect(moved?.hint).toBe("Перенесена, было 12:40 · ауд. 4012");
+  });
+
+  // C11: подсказка в шапке «пары, заявки, дедлайны» — дедлайны и заявки находятся.
+  it("свои дедлайны находятся по названию", async () => {
+    const res = await find("эссе");
+    const hits = res.body.groups.find((g) => g.key === "deadlines")?.hits ?? [];
+    expect(hits.some((h) => h.title === "Эссе по денежной политике")).toBe(true);
+    expect(hits.every((h) => h.href.startsWith("/study/deadlines#d-"))).toBe(true);
+  });
+
+  it("свои заявки находятся по номеру; чужой номер не находится (AC-10.3)", async () => {
+    const mine = await apiAs("anna").get<Paged<RequestDTO>>("/api/me/requests?tab=all");
+    const r = mine.body.items[0]!;
+    const res = await find(r.number);
+    const hits = res.body.groups.find((g) => g.key === "requests")?.hits ?? [];
+    expect(hits[0]).toMatchObject({ id: r.id, href: `/requests/${r.id}` });
+    expect(hits[0]?.title).toContain(r.number);
+
+    const maxim = await find(r.number, "maxim");
+    expect(maxim.body.groups.flatMap((g) => g.hits).some((h) => h.id === r.id)).toBe(false);
   });
 
   it("короткий и пустой запрос отвергается, гость не ищет", async () => {

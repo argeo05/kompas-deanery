@@ -8,6 +8,8 @@ import type { SearchDTO, SearchGroupKey } from "@/contracts/api";
 
 export const GROUP_LABEL: Record<SearchGroupKey, string> = {
   actions: "Действия",
+  requests: "Мои заявки",
+  deadlines: "Дедлайны",
   schedule: "Расписание и дисциплины",
   teachers: "Преподаватели",
   rooms: "Аудитории",
