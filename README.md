@@ -1,26 +1,79 @@
 # Компас — личный кабинет студента
 
-Концепт для MGIMO AI Challenge 2026, номинация «Вайб-кодинг». Спецификация — [docs/SPEC.md](docs/SPEC.md), решения — [docs/DECISIONS.md](docs/DECISIONS.md).
+Концепт для MGIMO AI Challenge 2026, номинация «Вайб-кодинг», задание «Цифровой деканат будущего». Это не официальный сервис, все данные вымышлены, подключений к системам вуза нет.
 
-## Запуск
+Что внутри: расписание с переносами, учёба (статус семестра и «сколько нужно до зачёта»), заказ справок с трекером статусов и PDF с QR-проверкой, уведомления с дайджестом, дедлайны, обращения в деканат, кабинет сотрудника, офлайн-режим (PWA), страницы `/jury`, `/security`, `/about`. Весь код написан с ИИ-ассистентами (Claude Code, GLM 5.3 Flash в OpenCode); процесс описан в [docs/submission/process-description.pdf](docs/submission/process-description.pdf).
 
-Нужны Node ≥ 24, pnpm 12, Docker.
+## Тестовые аккаунты
+
+Вымышленные, пароли публичны по условиям задания (источник: `db/seed/demo-credentials.ts`).
+
+| Роль                   | Логин         | Пароль              |
+| ---------------------- | ------------- | ------------------- |
+| Студент (бакалавриат)  | `anna.demo`   | `kompas-demo-anna`  |
+| Студент (магистратура) | `maxim.demo`  | `kompas-demo-maxim` |
+| Сотрудник деканата     | `elena.staff` | `kompas-demo-elena` |
+
+Маршрут проверки за 3 минуты: страница `/jury`.
+
+## Запуск для разработки
+
+Нужны Node ≥ 24, pnpm 12 и Docker (только для PostgreSQL 16).
 
 ```bash
 pnpm install
-cp .env.example .env   # заполнить значения
-pnpm db:up && pnpm db:migrate && pnpm db:seed
-pnpm dev               # http://localhost:3000
+cp .env.example .env # заполнить значения (секреты не коммитим)
+pnpm db:up           # PostgreSQL в Docker, базы kompas_dev и kompas_test
+pnpm db:migrate && pnpm db:seed
+pnpm dev             # http://localhost:3000
 ```
+
+Команды базы: `pnpm db:reset` (сброс и миграции), `pnpm db:generate` (новая миграция), `pnpm db:down`.
+
+Production-режим локально: `pnpm build && pnpm start` (сборка `standalone`, запуск через `scripts/start-standalone.mjs`).
 
 ## Проверки
 
 ```bash
-pnpm typecheck && pnpm lint && pnpm test:unit && pnpm test:security
-pnpm test:integration                 # нужна БД
-pnpm exec playwright install chromium # один раз
-pnpm test:e2e                         # mobile-360 и desktop-1440, с axe
-docker build -t kompas .
+pnpm verify                  # типы, eslint + prettier, юнит, интеграционные и безопасность (нужна БД)
+pnpm test:unit               # только юнит
+pnpm test:integration        # репозитории и сервисы на настоящей PostgreSQL
+pnpm test:security           # матрица изоляции (IDOR, роли, RLS)
+pnpm exec playwright install chromium   # один раз
+pnpm test:e2e                # сценарии на mobile-360 и desktop-1440 (production-сборка)
+pnpm test:a11y               # axe-core, обе темы
+pnpm shots                   # скриншоты экранов в docs/process/shots/
+pnpm eval:assistant          # проверка помощника «Спросить Компас»
 ```
 
+Если на порту 3100 уже работает чужой сервер, задайте другой: `E2E_PORT=3101 pnpm test:e2e`.
+
 Коммиты проверяет gitleaks (`.githooks/pre-commit`, подключается при `pnpm install`): `brew install gitleaks`.
+
+## Структура
+
+| Путь                                | Что там                                                                                       |
+| ----------------------------------- | --------------------------------------------------------------------------------------------- |
+| `src/app`                           | Страницы и маршруты Next.js (`(student)`, `staff`, `api`, `jury`, `security`, `verify`)       |
+| `src/components`                    | Компоненты интерфейса и оболочка (`ui`, `shell`)                                              |
+| `src/server`                        | Серверная часть: авторизация, репозитории, сервисы, PDF; доступ к БД только через репозитории |
+| `src/lib`, `src/styles`             | Чистая логика (оценки, дайджест, время) и токены дизайн-системы                               |
+| `db`                                | Схема Drizzle, миграции (в том числе RLS), сид вымышленных данных                             |
+| `tests`                             | `unit`, `integration`, `security`, `e2e`, `a11y`, `assistant`                                 |
+| `deploy`                            | Docker Compose для production, Caddy, бэкап, healthcheck, cron                                |
+| `scripts`                           | Сборка service worker, ночной пересев, хуки агентов, архив для сдачи                          |
+| `.claude`, `CLAUDE.md`, `AGENTS.md` | Правила, субагенты и хуки для ИИ-ассистентов                                                  |
+
+## Документы
+
+- [docs/SPEC.md](docs/SPEC.md): спецификация, источник истины (требования, критерии приёмки AC, дизайн-система, чек-лист сдачи).
+- [docs/DECISIONS.md](docs/DECISIONS.md): журнал решений D-001…D-020.
+- [docs/ai-log](docs/ai-log): журнал работы с ИИ, ошибки ИИ (`errors.md`), учёт моделей (`models.md`), прогресс фазы C (`PROGRESS-C.md`).
+- [docs/qa](docs/qa): экспертная оценка удобства (синтетическая, не по живым пользователям) и KLM.
+- [docs/submission](docs/submission): материалы для сдачи: PDF «Описание процесса», комментарий к работе, сценарий видео, чек-лист приложения E.
+- [docs/deploy/CHECKLIST.md](docs/deploy/CHECKLIST.md): шаги деплоя и проверки перед сдачей. Деплой ещё не выполнен, пакет в `deploy/` не проверен на реальном сервере.
+- [LICENSES.md](LICENSES.md): сторонние библиотеки, шрифты и их лицензии.
+
+## Сборка архива исходников
+
+`scripts/make-submission-archive.sh` собирает `.tar.gz` с исходниками без `node_modules`, `.env`, `.git` и тяжёлых скриншотов оценщиков (`docs/qa/shots`).
