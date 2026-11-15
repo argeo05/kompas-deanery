@@ -9,6 +9,8 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { LoadingRegion, Skeleton, SkeletonCard } from "@/components/ui/skeleton";
 import type { TodayDTO } from "@/contracts/api";
 import { formatDateLong } from "@/lib/format";
+import { mskParts } from "@/lib/time";
+import { greetingOf } from "@/lib/today";
 import { useApi } from "@/lib/use-api";
 import { useNow } from "@/lib/use-now";
 import { DayFeed } from "./day-feed";
@@ -90,22 +92,23 @@ function TodayContent({ today }: { today: TodayDTO }) {
   );
 }
 
-export function TodayScreen() {
+/** serverNow — время сервера для первого HTML; в офлайн-оболочке его нет, тогда дата ждёт данных. */
+export function TodayScreen({ serverNow }: { serverNow?: string }) {
   const { userId, displayName } = useStudent();
   const api = useApi<TodayDTO>("/api/me/today", { scope: userId, refreshMs: POLL_MS });
   usePullToRefresh(api.reload);
-  const now = useNow(api.data?.now);
+  const now = useNow(api.data?.now ?? serverNow);
+  const greeting = api.data?.greeting ?? (serverNow ? greetingOf(mskParts(serverNow).hour) : null);
+  const showDate = !!(api.data || serverNow);
 
   return (
     <>
       <header className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-1">
           <h1 className="type-h1 lg:type-display">
-            {api.data
-              ? `${GREETING[api.data.greeting]}, ${displayName}`
-              : `Здравствуйте, ${displayName}`}
+            {greeting ? GREETING[greeting] : "Здравствуйте"}, {displayName}
           </h1>
-          {api.data && (
+          {showDate && (
             <p className="type-body text-ink-2">
               {formatDateLong(now)} · по Москве
               {api.justUpdated && !api.error && " · обновлено только что"}

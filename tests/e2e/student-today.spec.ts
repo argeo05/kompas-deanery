@@ -93,6 +93,38 @@ const branches = [
   },
 ] as const;
 
+test("C11 (CW-01): изменилась не ближайшая пара — крупное время у ближайшей", async ({ page }) => {
+  await mockJson(page, "**/api/me/today", branches[0].dto());
+  await page.goto("/today");
+  const hero = page.locator("[data-hero=change]");
+  await expect(hero).toContainText("Пара перенесена: Макроэкономика");
+  const nearest = hero.getByTestId("hero-nearest");
+  await expect(nearest).toContainText("Ближайшая пара");
+  await expect(nearest).toContainText("Английский язык");
+  // Крупное время одно — у ближайшей пары.
+  await expect(hero.locator(".type-display")).toHaveCount(1);
+  await expect(nearest.locator(".type-display")).toHaveText("09:30");
+});
+
+test("C11 (WCAG 1.4.10): кнопки hero не вылезают за карточку на 320 px с крупным текстом", async ({
+  browser,
+  baseURL,
+}) => {
+  const ctx = await browser.newContext({ baseURL, viewport: { width: 320, height: 740 } });
+  await loginAs(ctx, "anna", baseURL!);
+  await ctx.addCookies([{ name: "kompas-text", value: "large", url: baseURL! }]);
+  const page = await ctx.newPage();
+  await mockJson(page, "**/api/me/today", branches[0].dto());
+  await page.goto("/today");
+  const hero = page.locator("[data-slot=hero] [data-hero]");
+  await expect(hero).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+  const card = (await hero.boundingBox())!;
+  const button = (await hero.getByRole("button", { name: /^В календарь/ }).boundingBox())!;
+  expect(button.x + button.width).toBeLessThanOrEqual(card.x + card.width);
+  await ctx.close();
+});
+
 for (const b of branches) {
   test(`hero: ветка ${b.name}`, async ({ page }) => {
     await mockJson(page, "**/api/me/today", b.dto());

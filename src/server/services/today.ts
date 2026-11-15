@@ -2,7 +2,7 @@ import "server-only";
 import type { DeadlineDTO, HotItem, TodayDTO } from "@/contracts/api";
 import { now } from "@/lib/clock";
 import { addDaysMsk, mskParts, toMsk, toMskDate } from "@/lib/time";
-import { pickHero } from "@/lib/today";
+import { greetingOf, pickHero } from "@/lib/today";
 import type { StudentCtx } from "../auth/guards";
 import type { Tx } from "../db";
 import type { MyScheduleKeys } from "../repositories/schedule";
@@ -32,14 +32,6 @@ const HOT_REQUEST_STATUSES = ["ready", "needs_info"] as const;
 
 function scheduleKeys(ctx: StudentCtx): MyScheduleKeys {
   return { studentId: ctx.studentId, groupId: ctx.groupId };
-}
-
-/** Приветствие по московскому времени: 5–11 утро, 12–17 день, 18–22 вечер, остальное — ночь. */
-function greetingOf(hour: number): TodayDTO["greeting"] {
-  if (hour < 5) return "night";
-  if (hour < 12) return "morning";
-  if (hour < 18) return "day";
-  return hour < 23 ? "evening" : "night";
 }
 
 /** GET /api/me/today: сборка TodayDTO одним порядковым набором запросов — без N+1. */

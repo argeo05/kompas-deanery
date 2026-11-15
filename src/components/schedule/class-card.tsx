@@ -31,9 +31,18 @@ export function ChangeNote({ cls }: { cls: ClassDTO }) {
       break;
     case "moved":
       if (prev) {
-        detail = sameDay(prev.startsAt, cls.startsAt)
-          ? `${formatTimeMsk(prev.startsAt)} → ${formatTimeMsk(cls.startsAt)}`
-          : `Перенесена с ${formatWeekdayShort(prev.startsAt)}, ${formatDayMonth(prev.startsAt)} ${formatTimeMsk(prev.startsAt)}`;
+        detail = sameDay(prev.startsAt, cls.startsAt) ? (
+          <>
+            <span aria-hidden>
+              {formatTimeMsk(prev.startsAt)} → {formatTimeMsk(cls.startsAt)}
+            </span>
+            <span className="sr-only">
+              с {formatTimeMsk(prev.startsAt)} на {formatTimeMsk(cls.startsAt)}
+            </span>
+          </>
+        ) : (
+          `Перенесена с ${formatWeekdayShort(prev.startsAt)}, ${formatDayMonth(prev.startsAt)} ${formatTimeMsk(prev.startsAt)}`
+        );
       }
       break;
     case "room_changed":
