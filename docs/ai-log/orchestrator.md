@@ -15,3 +15,4 @@
   | C8 | sonnet | done: verify 1048, e2e+axe 337 (2 падения починены); D-015; не сделано: AC-1.8 (SHOULD), 3 замечания a11y | 29 мин |
   | C9 | sonnet | done: verify 1083, e2e+axe 511/7skip; D-016; детерминированный режим, флаг AI_ASSISTANT выключен; eval 12/15 на контроле | 17 мин |
   | C10 | sonnet | blocked: needs human — деплой-пакет готов (D-017), verify 1084; Lighthouse A11y 100, Perf <90 на /today /study /documents; e2e: 2 теста красные ночью из-за quiet hours | 9 мин |
+  | C11 | opus/sonnet | ⚠️ done: Q-HE-1, Q-KLM-1…3 ✅; Q-HE-2 (16 находок сер.2 при цели ≤3) и Q-CW ❌; verify 1096, a11y 176; D-018, D-019; сер.3: 9→3→0 | 2 раунда |
