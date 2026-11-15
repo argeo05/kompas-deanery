@@ -8,6 +8,7 @@ import { finishPendingSignOut } from "@/lib/offline/sign-out";
 import { flushOutbox } from "@/lib/offline/use-outbox";
 import { warmOfflineData } from "@/lib/offline/warm";
 import { plural } from "@/lib/format";
+import { Announce } from "@/components/ui/status-region";
 
 // Офлайн-обвязка кабинета студента (SPEC §6.13, D-014). Живёт в layout (student):
 // • привязывает данные устройства к вошедшему (другой человек → старое стирается);
@@ -80,10 +81,8 @@ export function OfflineSession({ user }: { user: DeviceUser }) {
 
   if (!closing) return null;
   return (
-    <div
-      role="status"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-bg p-6 text-center"
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg p-6 text-center">
+      <Announce message="Завершаем выход…" />
       <p className="type-h3">Завершаем выход…</p>
     </div>
   );

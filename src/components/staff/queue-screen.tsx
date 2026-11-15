@@ -6,7 +6,7 @@ import { Inbox, SlidersHorizontal } from "lucide-react";
 import { ApiView } from "@/components/screens/api-view";
 import { useStaff } from "@/components/shell/staff-context";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardLink } from "@/components/ui/card";
 import { CheckRow, Field, SelectInput } from "@/components/ui/field";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingRegion, SkeletonCard } from "@/components/ui/skeleton";
@@ -83,9 +83,7 @@ function RowCard({ r, now }: { r: StaffRequestRowDTO; now: number }) {
     <Card variant="interactive" className="gap-2" data-testid="queue-row">
       <div className="flex items-start justify-between gap-2">
         <h2 className="min-w-0 type-h3">
-          <Link href={`/staff/requests/${r.id}`} className="card-link">
-            {r.typeTitle}
-          </Link>
+          <CardLink href={`/staff/requests/${r.id}`}>{r.typeTitle}</CardLink>
         </h2>
         <StatusBadge kind="request" status={r.status} />
       </div>

@@ -268,6 +268,16 @@ html[data-text="large"] {
   a {
     text-underline-offset: 0.2em;
   }
+  /* Ссылка в тексте отличается не только цветом (WCAG 1.4.1): акцент и подчёркивание.
+     Только для <a> без классов внутри текста; у кнопок-ссылок и карточек свои стили. */
+  :where(p, li, dd, td, figcaption, blockquote) a:where(:not([class])) {
+    color: var(--accent);
+    text-decoration-line: underline;
+    text-decoration-thickness: from-font;
+  }
+  :where(p, li, dd, td, figcaption, blockquote) a:where(:not([class])):hover {
+    color: var(--accent-hover);
+  }
 
   /* Кольцо фокуса 2 px + отступ 2 px (§7.2), только при клавиатурной навигации. */
   :focus-visible {

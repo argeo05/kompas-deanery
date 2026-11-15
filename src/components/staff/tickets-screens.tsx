@@ -6,7 +6,7 @@ import { ArrowLeft, CircleCheck, MessagesSquare, Send } from "lucide-react";
 import { ApiView } from "@/components/screens/api-view";
 import { useStaff } from "@/components/shell/staff-context";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardLink } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field, TextArea } from "@/components/ui/field";
 import { LoadingRegion, SkeletonCard } from "@/components/ui/skeleton";
@@ -99,9 +99,7 @@ export function TicketsScreen() {
                       <Badge tone={STATUS[t.status].tone}>{STATUS[t.status].label}</Badge>
                     </div>
                     <h2 className="type-h3">
-                      <Link href={`/staff/tickets/${t.id}`} className="card-link">
-                        {TOPIC[t.topic]}
-                      </Link>
+                      <CardLink href={`/staff/tickets/${t.id}`}>{TOPIC[t.topic]}</CardLink>
                     </h2>
                     <p className="type-caption text-ink-2">
                       {t.student.fullName}, {t.student.group} · {formatDayMonth(t.lastMessageAt)}

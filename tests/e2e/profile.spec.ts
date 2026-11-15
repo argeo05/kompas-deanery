@@ -34,7 +34,8 @@ test("AC-1.7: профиль показывает 5 обязательных п�
 
   // Смена пароля в демо отключена и объясняет почему.
   await page.getByRole("button", { name: "Сменить пароль" }).click();
-  await expect(page.getByText("смена пароля отключена")).toBeVisible();
+  // Текст виден на экране и уходит в общий живой регион #app-status (хвост C8, WCAG 4.1.3).
+  await expect(page.locator("#content").getByText("смена пароля отключена")).toBeVisible();
   await ctx.close();
 });
 

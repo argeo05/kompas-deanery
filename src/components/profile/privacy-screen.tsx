@@ -46,6 +46,8 @@ const STORED: { title: string; text: string }[] = [
   },
 ];
 
+const SESSIONS_TITLE_ID = "sessions-title";
+
 function SessionList({ data, reload }: { data: SessionsDTO; reload: () => void }) {
   const toast = useToast();
   const [busy, setBusy] = React.useState<string | null>(null);
@@ -54,6 +56,20 @@ function SessionList({ data, reload }: { data: SessionsDTO; reload: () => void }
   const [all, setAll] = React.useState(false);
   const LIMIT = 5;
   const items = all ? data.items : data.items.slice(0, LIMIT);
+  // После «Завершить» строка исчезает вместе с кнопкой: фокус переводим на соседнюю кнопку
+  // «Завершить», а если их больше нет — на заголовок «Где вы вошли» (WCAG 2.4.3, хвост C8).
+  const listRef = React.useRef<HTMLUListElement>(null);
+  const focusAfter = React.useRef<number | null>(null);
+  React.useEffect(() => {
+    const index = focusAfter.current;
+    if (index === null) return;
+    focusAfter.current = null;
+    const buttons = listRef.current?.querySelectorAll<HTMLButtonElement>("[data-end-session]");
+    const next = buttons?.[Math.min(index, buttons.length - 1)];
+    if (next) next.focus();
+    else document.getElementById(SESSIONS_TITLE_ID)?.focus();
+    // Срабатывает, когда после reload() пришёл новый список.
+  }, [data]);
 
   async function end(id: string) {
     setBusy(id);
@@ -62,6 +78,7 @@ function SessionList({ data, reload }: { data: SessionsDTO; reload: () => void }
       const res = await sendJson("DELETE", `/api/me/sessions/${id}`);
       if (!res.ok && res.status !== 404) throw new Error(String(res.status));
       toast({ tone: "success", title: "Сеанс завершён" });
+      focusAfter.current = items.filter((s) => !s.current).findIndex((s) => s.id === id);
       reload();
     } catch {
       setError("Не получилось завершить сеанс. Проверьте интернет и попробуйте ещё раз.");
@@ -73,7 +90,7 @@ function SessionList({ data, reload }: { data: SessionsDTO; reload: () => void }
   return (
     <>
       {error && <InlineError>{error}</InlineError>}
-      <ul className="flex flex-col divide-y divide-line">
+      <ul ref={listRef} className="flex flex-col divide-y divide-line">
         {items.map((s) => (
           <li key={s.id} className="flex items-center justify-between gap-3 py-2">
             <div className="min-w-0">
@@ -92,6 +109,7 @@ function SessionList({ data, reload }: { data: SessionsDTO; reload: () => void }
                 variant="secondary"
                 size="sm"
                 loading={busy === s.id}
+                data-end-session
                 onClick={() => void end(s.id)}
                 aria-label={`Завершить сеанс: ${s.device}, вход ${formatDayMonth(s.createdAt)}`}
               >
@@ -211,7 +229,9 @@ export function PrivacyScreen() {
       </Card>
 
       <Card className="gap-3 p-4">
-        <h2 className="type-h3">Где вы вошли</h2>
+        <h2 id={SESSIONS_TITLE_ID} tabIndex={-1} className="type-h3">
+          Где вы вошли
+        </h2>
         <ApiView
           api={api}
           skeleton={

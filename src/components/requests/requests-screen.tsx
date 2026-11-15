@@ -7,7 +7,7 @@ import { QueuedRequests } from "@/components/offline/queued-requests";
 import { ApiView } from "@/components/screens/api-view";
 import { useStudent } from "@/components/shell/student-context";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardLink } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingRegion, SkeletonCard } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -42,10 +42,10 @@ function RequestRow({ r }: { r: RequestDTO }) {
     <Card variant="interactive" className="gap-2" data-testid="request-row">
       <div className="flex items-start justify-between gap-2">
         <h2 className="min-w-0 type-h3">
-          <Link href={`/requests/${r.id}`} className="card-link">
+          <CardLink href={`/requests/${r.id}`}>
             {r.type.title}
             {r.unseen && <span className="sr-only">, есть новое</span>}
-          </Link>
+          </CardLink>
         </h2>
         {r.unseen && (
           <span className="mt-0.5 flex shrink-0 items-center gap-1.5 type-caption text-accent">

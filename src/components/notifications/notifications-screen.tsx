@@ -6,7 +6,7 @@ import { Bell, Megaphone, Settings } from "lucide-react";
 import { ApiView } from "@/components/screens/api-view";
 import { useStudent } from "@/components/shell/student-context";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardLink } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingRegion, SkeletonCard } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/status-badge";
@@ -62,14 +62,10 @@ function NotificationRow({
     <Card variant="interactive" className={cn("gap-1 p-3", unread && "border-accent")}>
       <div className="flex items-start justify-between gap-2">
         <h3 className="min-w-0 type-body-strong">
-          <Link
-            href={linkHref(n.link.kind, n.link.id)}
-            className="card-link"
-            onClick={() => onOpen(n)}
-          >
+          <CardLink href={linkHref(n.link.kind, n.link.id)} onClick={() => onOpen(n)}>
             {unread && <span className="sr-only">Новое. </span>}
             {n.title}
-          </Link>
+          </CardLink>
         </h3>
         {unread && <span aria-hidden className="mt-1.5 size-2.5 shrink-0 rounded-full bg-accent" />}
       </div>

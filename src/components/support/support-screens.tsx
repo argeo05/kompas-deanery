@@ -7,7 +7,7 @@ import { ArrowLeft, CircleCheck, Clock, MessageSquare, Plus, Send } from "lucide
 import { ApiView } from "@/components/screens/api-view";
 import { useStudent } from "@/components/shell/student-context";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardLink } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InlineError } from "@/components/ui/error-state";
 import { LoadingRegion, SkeletonCard } from "@/components/ui/skeleton";
@@ -95,10 +95,10 @@ export function SupportScreen() {
                     <Card variant="interactive" className="gap-2" data-testid="ticket-row">
                       <div className="flex items-start justify-between gap-2">
                         <h2 className="min-w-0 type-h3">
-                          <Link href={`/support/${t.id}`} className="card-link">
+                          <CardLink href={`/support/${t.id}`}>
                             {topicLabel(t.topic)}
                             {t.unread && <span className="sr-only">, есть новый ответ</span>}
-                          </Link>
+                          </CardLink>
                         </h2>
                         {t.unread && (
                           <span className="mt-0.5 flex shrink-0 items-center gap-1.5 type-caption text-accent">

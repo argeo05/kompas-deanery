@@ -37,6 +37,7 @@ import {
 import { queueAction } from "@/lib/offline/use-outbox";
 import { useApi } from "@/lib/use-api";
 import { cn } from "cn";
+import { Announce } from "@/components/ui/status-region";
 
 // Форма заявки (SPEC §6.5 п.2–3): поля по formSchema типа, блок «Данные из профиля», способ получения,
 // экземпляры, «Данные верны». Черновик живёт в localStorage; при отправке уходит Idempotency-Key,
@@ -370,7 +371,8 @@ function Form({
         </Card>
       )}
       {draftRestored && (
-        <p role="status" className="type-caption text-ink-2">
+        <p className="type-caption text-ink-2">
+          <Announce message="Мы вернули то, что вы вводили раньше." />
           Мы вернули то, что вы вводили раньше.{" "}
           <button
             type="button"

@@ -22,6 +22,7 @@ import { useApi } from "@/lib/use-api";
 import { AppearanceSection } from "./appearance-section";
 import { OfflineSection } from "./offline-section";
 import { openTour } from "./onboarding";
+import { Announce } from "@/components/ui/status-region";
 
 // Профиль и настройки студента (SPEC §6.1 п.7, §6.11). Учебные данные — только чтение: их ведёт
 // деканат, а ошибку в них можно сообщить заявкой «Нашли ошибку в данных?». Редактируется только
@@ -245,7 +246,8 @@ function PasswordNote() {
         Сменить пароль
       </Button>
       {shown && (
-        <p role="status" className="type-caption text-ink-2">
+        <p className="type-caption text-ink-2">
+          <Announce message="В демо-аккаунтах смена пароля отключена, чтобы все члены жюри могли войти." />
           В демо-аккаунтах смена пароля отключена, чтобы все члены жюри могли войти.
         </p>
       )}
