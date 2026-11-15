@@ -159,7 +159,7 @@ test("заказ справки об обучении за 4 касания: «�
   baseURL,
 }) => {
   const ctx = await browser.newContext({ baseURL });
-  await loginAs(ctx, "anna", baseURL!);
+  await loginAs(ctx, "maxim", baseURL!);
   const page = await ctx.newPage();
   await page.goto("/today");
   let taps = 0;

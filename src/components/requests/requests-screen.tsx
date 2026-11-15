@@ -76,7 +76,12 @@ function QuickOrder() {
       </h2>
       <div className="flex flex-wrap gap-2">
         {popular.slice(0, 3).map((t) => (
-          <Button key={t.code} asChild variant="secondary">
+          <Button
+            key={t.code}
+            asChild
+            variant="secondary"
+            className="h-auto max-w-full py-2 whitespace-normal"
+          >
             <Link href={`/requests/new/${t.code}`}>Заказать: {t.title.toLowerCase()}</Link>
           </Button>
         ))}

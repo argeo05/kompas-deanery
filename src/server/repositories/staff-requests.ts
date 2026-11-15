@@ -27,7 +27,7 @@ export type StaffListCursor = {
   id: string;
 };
 
-/** Недопустимые (закрытые) статусы — по ним «срок прошёл» не считается просрочкой. */
+/** Открытые статусы: у закрытых «срок прошёл» просрочкой не считается. */
 export const OPEN_STATUSES = ["submitted", "in_progress", "needs_info"] as const;
 
 /**

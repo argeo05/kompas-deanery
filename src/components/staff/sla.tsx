@@ -27,7 +27,7 @@ export function SlaBadge({
     // Ход за студентом: срок не «горит» для сотрудника, показываем ожидание нейтрально.
     return (
       <Badge tone="neutral" icon={Hourglass}>
-        Ждём студента
+        Ждём ответа студента
       </Badge>
     );
   }

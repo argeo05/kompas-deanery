@@ -297,7 +297,7 @@ function Form({
     e.preventDefault();
     if (pending) return;
     const found = validateForm(fields, values);
-    if (hasDelivery && delivery === null) found.delivery = "Выберите, как получить документ";
+    if (hasDelivery && delivery === null) found.delivery = "Выберите, как получить справку";
     setErrors(found);
     setFormError(null);
     if (Object.keys(found).length > 0) {
@@ -422,8 +422,8 @@ function Form({
         <Card className="gap-1 border-l-4 border-l-warn" role="note">
           <p className="font-medium">Такая заявка у вас уже в работе</p>
           <p className="text-ink-2">
-            {duplicate.number}, ждём к {formatDateLong(duplicate.dueAt).toLowerCase()}. Если нужна
-            справка для другой цели, подавайте новую.{" "}
+            {duplicate.number}, готово к {formatDateLong(duplicate.dueAt).toLowerCase()}. Для другой
+            цели подайте новую заявку.{" "}
             <Link href={`/requests/${duplicate.id}`}>Открыть заявку {duplicate.number}</Link>
           </p>
         </Card>
@@ -507,7 +507,7 @@ function Form({
         </div>
       )}
       <p className="type-caption text-ink-2">
-        Отправляя заявку, вы подтверждаете, что данные из профиля верны.
+        Нажимая «Отправить», вы подтверждаете, что данные верны.
       </p>
       {formError && <InlineError>{formError}</InlineError>}
       <Button type="submit" size="lg" loading={pending}>
