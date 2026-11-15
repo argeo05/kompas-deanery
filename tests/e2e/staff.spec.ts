@@ -1,11 +1,7 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
-import type {
-  MeDTO,
-  NotificationsDTO,
-  ScheduleDTO,
-  StaffClassesDTO,
-} from "../../src/contracts/api";
+import type { MeDTO, NotificationsDTO, ScheduleDTO } from "../../src/contracts/api";
 import { loginAs } from "./support/auth";
+import { disableQuietHours } from "./support/prefs";
 
 // C6: кабинет сотрудника (SPEC §6.9, AC-9.1…9.3). Два контекста: elena.staff и anna.demo.
 
@@ -51,11 +47,18 @@ test("перенос пары: у anna.demo срочное уведомлени�
   const sched = (await (
     await student.request.get(`/api/me/schedule?from=${today}&to=${today}`)
   ).json()) as ScheduleDTO;
-  const target = sched.classes.find((c) => c.change?.type !== "cancelled");
+  // Проекты берут разные пары (первую и последнюю подходящую) и не ту, что уже стоит на этом
+  // времени после прошлых прогонов: иначе «перенос» ничего не меняет.
+  const candidates = sched.classes.filter(
+    (c) => c.change?.type !== "cancelled" && !c.startsAt.includes(`T${slot[0]}:`),
+  );
+  const target = info.project.name === "mobile-360" ? candidates[0] : candidates.at(-1);
   test.skip(!target, "у Анны сегодня нет пары (выходной): сценарий проверяется в будни");
   const titleBefore = target!.course.title;
   const startBefore = target!.startsAt;
 
+  // Ночью (тихие часы 23:00–07:00) срочное уведомление ждёт 07:00 — выключаем их явно.
+  await disableQuietHours(student, baseURL!);
   const page = await staff.newPage();
   await page.goto("/staff/schedule");
   await expect(page.getByRole("heading", { level: 1, name: "Изменения расписания" })).toBeVisible();

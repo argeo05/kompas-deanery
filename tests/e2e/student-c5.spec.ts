@@ -1,5 +1,6 @@
 import { expect, test, type BrowserContext } from "@playwright/test";
 import { loginAs } from "./support/auth";
+import { disableQuietHours } from "./support/prefs";
 
 // C5: уведомления и объявления, дедлайны и планы, обращения, поиск и ⌘K, подписка на календарь.
 // Студент — anna.demo, сотрудник — elena.staff (действует через API: её кабинет делается в C6).
@@ -22,6 +23,8 @@ test("объявление: опасный Markdown остаётся текст�
   await loginAs(anna, "anna", baseURL!);
   await loginAs(elena, "elena", baseURL!);
   const title = `Проверка ${Date.now()}`;
+  // «Важное» приходит срочным уведомлением; ночью тихие часы отложили бы его до 07:00.
+  await disableQuietHours(anna, baseURL!);
   await staffPost(elena, baseURL!, "/api/staff/announcements", {
     title,
     bodyMd:
@@ -65,6 +68,9 @@ test("настройки уведомлений сохраняются, «Тол
 }, info) => {
   // Проекты идут параллельно: у каждого свой студент, чтобы настройки не мешали друг другу.
   await loginAs(context, info.project.name === "mobile-360" ? "anna" : "maxim", baseURL!);
+  // Тихие часы у Ани выключают и сценарии с переносом и «Важным» объявлением (support/prefs.ts).
+  // Выключаем их заранее: форма загрузится уже с ними, и параллельный PUT не перетрёт сохранённое.
+  await disableQuietHours(context, baseURL!);
   await page.goto("/notifications/settings");
   await page.getByRole("button", { name: "Вечерний: 12:00, 17:30, 21:30" }).click();
   await page.getByRole("group", { name: "Оценки" }).getByRole("button", { name: "Сразу" }).click();

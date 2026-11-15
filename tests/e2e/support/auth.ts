@@ -10,8 +10,10 @@ export const DEMO = {
   elena: { login: "elena.staff", password: "kompas-demo-elena" },
 } as const;
 
-let counter = 0;
-const nextIp = () => `192.0.2.${((Date.now() + counter++ * 7 + process.pid) % 250) + 1}`;
+// Случайный адрес из 10.0.0.0/8: при 250 адресах параллельные воркеры попадали на один IP
+// и упирались в лимит 5 входов за 30 с (C11: jury-path получал 429).
+const octet = () => Math.floor(Math.random() * 254) + 1;
+const nextIp = () => `10.${octet()}.${octet()}.${octet()}`;
 
 export async function loginAs(
   target: Page | BrowserContext,
