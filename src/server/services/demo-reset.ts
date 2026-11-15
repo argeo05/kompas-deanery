@@ -1,85 +1,50 @@
 import "server-only";
-import { sql } from "drizzle-orm";
-import { RateLimiterMemory } from "rate-limiter-flexible";
-import { seed } from "@db/seed/seed";
-import type { SeedDb } from "@db/seed/demo-accounts";
+import { truncateAndSeed } from "@db/seed/reset-demo";
 import { now } from "@/lib/clock";
 import { getDb } from "../db";
+import { claimWindow, releaseWindow } from "../repositories/rate-limits";
 
-// Сброс демо-данных (SPEC §6.1 «Тонкости», §6.9 п.6, §6.12, D-015). Вся база Компаса — вымышленные
+// Сброс демо-данных (SPEC §6.1 «Тонкости», §6.9 п.6, §6.12, D-015, D-017). Вся база Компаса — вымышленные
 // данные, поэтому сброс возвращает её целиком к сиду: даты пересчитываются от сегодняшнего дня.
 // Все сеансы закрываются — входить нужно заново (пароли демо-аккаунтов публичны на /jury).
 
+const WINDOW_MS = 300_000;
 /** Не чаще раза в 5 минут на весь сервис: сброс общий для всех, второй подряд бессмыслен. */
-const globalLimit = new RateLimiterMemory({ points: 1, duration: 300 });
+const GLOBAL_KEY = "kompas:demo-reset:global";
 /** И не чаще раза в 5 минут с одного адреса — чтобы один посетитель не занимал окно у остальных. */
-const ipLimit = new RateLimiterMemory({ points: 1, duration: 300 });
+const ipKey = (ip: string) => `kompas:demo-reset:ip:${ip}`;
 
 export type ResetResult = { ok: true; resetAt: string } | { ok: false; retryAfterSec: number };
-
-/** Таблицы, которые сброс не трогает. */
-const KEEP_TABLES = new Set(["rate_limits"]);
 
 let running: Promise<void> | null = null;
 
 export async function resetDemoData(ip: string): Promise<ResetResult> {
-  try {
-    await ipLimit.consume(ip);
-  } catch (e) {
-    return {
-      ok: false,
-      retryAfterSec: Math.ceil(((e as { msBeforeNext?: number }).msBeforeNext ?? 300_000) / 1000),
-    };
+  const db = getDb();
+  const t = now().getTime();
+  // Лимиты лежат в БД (rate_limits): переживают перезапуск и общие для всех экземпляров.
+  const byIp = await claimWindow(db, ipKey(ip), WINDOW_MS, t);
+  if (!byIp.ok) return { ok: false, retryAfterSec: Math.ceil(byIp.retryAfterMs / 1000) };
+  const global = await claimWindow(db, GLOBAL_KEY, WINDOW_MS, t);
+  if (!global.ok) {
+    await releaseWindow(db, ipKey(ip));
+    return { ok: false, retryAfterSec: Math.ceil(global.retryAfterMs / 1000) };
   }
-  try {
-    await globalLimit.consume("all");
-  } catch (e) {
-    await ipLimit.reward(ip);
-    return {
-      ok: false,
-      retryAfterSec: Math.ceil(((e as { msBeforeNext?: number }).msBeforeNext ?? 300_000) / 1000),
-    };
-  }
-  running ??= truncateAndSeed().finally(() => {
+  running ??= truncateAndSeed(db).finally(() => {
     running = null;
   });
   try {
     await running;
   } catch (e) {
     // Сброс упал: окно не сжигаем, чтобы можно было повторить.
-    await ipLimit.reward(ip);
-    await globalLimit.reward("all");
+    await releaseWindow(db, ipKey(ip));
+    await releaseWindow(db, GLOBAL_KEY);
     throw e;
   }
   return { ok: true, resetAt: now().toISOString() };
 }
 
-async function truncateAndSeed(): Promise<void> {
-  await getDb().transaction(async (tx) => {
-    // Один сброс на весь кластер (на случай нескольких реплик); блокировка снимается с транзакцией.
-    await tx.execute(sql`SELECT pg_advisory_xact_lock(8_008_001)`);
-    const tables = await tx.execute<{ name: string }>(
-      sql`SELECT quote_ident(tablename) AS name FROM pg_tables WHERE schemaname = 'public'`,
-    );
-    // Счётчики ограничения входа не стираем: сброс не должен обнулять защиту от подбора пароля.
-    const wipe = tables.filter((t) => !KEEP_TABLES.has(t.name));
-    if (wipe.length > 0) {
-      await tx.execute(
-        sql.raw(
-          `TRUNCATE ${wipe.map((t) => `public.${t.name}`).join(", ")} RESTART IDENTITY CASCADE`,
-        ),
-      );
-    }
-    const sequences = await tx.execute<{ name: string }>(
-      sql`SELECT quote_ident(sequencename) AS name FROM pg_sequences WHERE schemaname = 'public'`,
-    );
-    for (const s of sequences) await tx.execute(sql.raw(`ALTER SEQUENCE public.${s.name} RESTART`));
-    await seed(tx as unknown as SeedDb);
-  });
-}
-
 /** Для тестов: сбросить счётчики лимитов. */
 export async function __resetLimits(ip: string) {
-  await ipLimit.delete(ip);
-  await globalLimit.delete("all");
+  await releaseWindow(getDb(), ipKey(ip));
+  await releaseWindow(getDb(), GLOBAL_KEY);
 }

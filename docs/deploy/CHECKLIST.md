@@ -1,0 +1,44 @@
+# Деплой Компаса: чек-лист (этап C10)
+
+Статус: **blocked: needs human**. В сессии не было ни сервера (SSH), ни домена, поэтому всё подготовлено локально и **не проверено на реальном хосте**. Образ Docker на этой машине собрать не удалось (нет buildx/BuildKit), так что `Dockerfile` с двумя новыми блоками (`tools`, `HEALTHCHECK`) в сборке не проверен; проверены только синтаксис compose (`docker compose config`) и shell-скрипты (`bash -n`).
+
+## Что нужно от человека
+
+1. Хостинг в РФ с Docker (VPS 2 vCPU / 2–4 ГБ, Ubuntu 22.04+) и root/SSH-доступ. Открыть порты 80 и 443.
+2. Домен (или поддомен) с A-записью на сервер, TTL 300 с (SPEC §8.3, «план Б»).
+3. Решение: включать ли `AI_ASSISTANT=true` (по умолчанию нет; см. D-016).
+
+## Шаги на сервере
+
+1. `git clone` репозитория в `/opt/kompas`, `cd /opt/kompas`.
+2. Docker и compose-плагин установлены (`docker compose version`). Нужен BuildKit (`docker buildx version`).
+3. Создать `.env.prod` в корне репозитория (права `chmod 600`, в git не коммитить). Имена и безопасные значения — `docs/process/env-example-additions.md`. Обязательно:
+   - `KOMPAS_DOMAIN=ваш-домен`, `BETTER_AUTH_URL=https://ваш-домен`
+   - `POSTGRES_PASSWORD`, `BETTER_AUTH_SECRET`, `VERIFY_SECRET` — случайные, `openssl rand -hex 32`
+   - `DEMO_RESET_ENABLED=true`, `AI_ASSISTANT=false`
+4. `deploy/scripts/first-run.sh` — сборка, миграции, сид, запуск.
+5. `crontab -e` и вставить `deploy/crontab.example` (пересев 04:00 МСК, бэкап 03:30 МСК, самопроверка раз в 5 минут). Каталог копий: `/var/backups/kompas`.
+6. `deploy/scripts/healthcheck.sh https://ваш-домен` — все строки `ok`.
+7. Один раз проверить восстановление: `deploy/scripts/backup.sh`, затем `deploy/scripts/restore.sh <файл>` на копии стенда (не на боевом).
+8. Внешний мониторинг (UptimeRobot-подобный или российский аналог) на `https://ваш-домен/api/health` раз в 5 минут с уведомлением в Telegram/MAX/почту (SPEC §8.3).
+9. Выгрузка копий за пределы сервера (rsync/scp на другой хост): копии на том же диске не спасают от потери хоста.
+
+## Проверка перед сдачей (после деплоя)
+
+- [ ] `curl -sI https://ваш-домен/login` из двух разных внешних точек (свой ноутбук и, например, чужой VPS/сайт-проверялка): код 200, есть `strict-transport-security` и `content-security-policy` с nonce.
+- [ ] Открыть сайт с мобильного интернета **трёх операторов (Билайн, МТС, МегаФон) без VPN**: `/login`, быстрый вход «Войти как Аня», `/today` загружается, `/jury` открывается. Записать результат по каждому оператору.
+- [ ] Открыть сайт из Wi-Fi вуза или домашнего без VPN. Если где-то не открывается — проверить, не блокирует ли оператор IP хостинга.
+- [ ] Вход `anna.demo`, `maxim.demo`, `elena.staff`; «Сбросить демо-данные» работает, второй раз подряд — «подождите N минут».
+- [ ] 25 неверных паролей подряд для `anna.demo` не блокируют вход под верным паролем (D-017); а для обычного логина 21-я попытка даёт ограничение.
+- [ ] Режим полёта: открыть `/today` после одного входа, выключить сеть, обновить (AC-13.1). SW работает только по HTTPS.
+- [ ] «Установить на экран» на Android (Chrome) и iPhone (Safari): иконка и запуск без адресной строки.
+- [ ] Следующим утром (после 04:00 МСК) дата в «Сегодня» сдвинулась, данные Ани исходные: проверка ночного пересева; смотреть `/var/log/kompas-reseed.log`.
+- [ ] Mozilla Observatory (https://developer.mozilla.org/en-US/observatory) по боевому домену: цель ≥ A. Локально не измерялся (сервис внешний). Заголовки на месте: CSP с nonce, HSTS, nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy, COOP; возможное снижение балла: `style-src-attr 'unsafe-inline'`.
+- [ ] Lighthouse CI по боевому адресу: `npx @lhci/cli autorun` (конфиг `lighthouserc.json`, адреса заменить на боевые).
+- [ ] Первая страховочная сдача в форму конкурса сразу после успешной проверки выше.
+
+## Откат и «план Б»
+
+- Откат версии: `git checkout <тег>` и `docker compose --env-file .env.prod -f deploy/docker-compose.prod.yml up -d --build`. Миграции вперёд-совместимые, при откате схема остаётся.
+- Второй экземпляр на другом хостинге: те же шаги 1–5, `deploy/scripts/first-run.sh` (сид идентичен), переключение A-записи (TTL 300 с).
+- Быстрое «вернуть демо»: `deploy/scripts/reseed.sh` (меньше минуты).

@@ -1,0 +1,11 @@
+# Установка: crontab -e на сервере (пользователь с доступом к docker). Время сервера — UTC.
+# 04:00 МСК = 01:00 UTC (Москва UTC+3 круглый год). Если часовой пояс сервера Europe/Moscow — ставьте 0 4.
+CRON_TZ=UTC
+KOMPAS=/opt/kompas
+
+# Ночной пересев демо-данных, 04:00 МСК.
+0 1 * * *   $KOMPAS/deploy/scripts/reseed.sh >> /var/log/kompas-reseed.log 2>&1
+# Резервная копия БД, 03:30 МСК (до пересева: копия хранит данные жюри за сутки).
+30 0 * * *  $KOMPAS/deploy/scripts/backup.sh >> /var/log/kompas-backup.log 2>&1
+# Самопроверка раз в 5 минут; при сбое — строка в журнале (уведомление в Telegram — на внешнем мониторинге).
+*/5 * * * * $KOMPAS/deploy/scripts/healthcheck.sh http://127.0.0.1 >> /var/log/kompas-health.log 2>&1 || true

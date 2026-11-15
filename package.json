@@ -24,6 +24,7 @@
     "db:reset": "tsx db/reset.ts && tsx db/migrate.ts",
     "db:seed": "tsx db/seed/index.ts",
     "eval:assistant": "tsx scripts/eval-assistant.ts",
+    "reseed:nightly": "tsx scripts/nightly-reseed.ts",
     "db:seed-kb": "tsx db/seed/kb-cli.ts",
     "verify:ds": "pnpm typecheck && pnpm lint && vitest run --project unit --project integration",
     "prepare": "git config core.hooksPath .githooks || true"

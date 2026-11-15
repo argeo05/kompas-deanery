@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sessions, users } from "@db/schema";
 import { DEMO_ACCOUNTS } from "@db/seed/demo-accounts";
@@ -148,6 +148,14 @@ describe("демо-сброс", () => {
       { headers: { "x-real-ip": "203.0.113.50" } },
     );
     expect(sameIp.status).toBe(429);
+    // D-017: окна лежат в БД и переживают сам сброс (rate_limits не очищается).
+    const keys = await getDb().execute<{ key: string }>(
+      sql`SELECT key FROM rate_limits WHERE key LIKE 'kompas:demo-reset:%' ORDER BY key`,
+    );
+    expect(keys.map((k) => k.key)).toEqual([
+      "kompas:demo-reset:global",
+      "kompas:demo-reset:ip:203.0.113.50",
+    ]);
   });
 
   it("запрос с чужого origin отклоняется", async () => {
