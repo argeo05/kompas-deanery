@@ -172,7 +172,11 @@ test("объявление: аудитория, предпросмотр, пуб
   await expect(page.getByTestId("announcement-preview").locator("strong")).toHaveText("Важно");
   await page.getByRole("checkbox", { name: new RegExp(me.group.title) }).check();
   await expect(page.getByTestId("audience-count")).toContainText(/Увидят \d+ /);
-  await page.getByRole("button", { name: "Опубликовать" }).click();
+  // C11: кнопка называет число получателей, публикация — только после подтверждения.
+  await page.getByRole("button", { name: /^Опубликовать для \d+ студент/ }).click();
+  const confirm = page.getByRole("dialog", { name: "Опубликовать объявление?" });
+  await expect(confirm).toContainText(/Его увидят \d+ студент/);
+  await confirm.getByRole("button", { name: /^Опубликовать для \d+ студент/ }).click();
   await expect(page).toHaveURL(/\/staff\/announcements$/);
   await expect(page.getByText(title)).toBeVisible();
 
@@ -192,8 +196,11 @@ test("пустая форма объявления показывает ошиб
   await loginAs(staff, "elena", baseURL!);
   const page = await staff.newPage();
   await page.goto("/staff/announcements/new");
-  await page.getByRole("button", { name: "Опубликовать" }).click();
+  // C11: аудитория по умолчанию посчитана сразу, а не «Считаем получателей…» навсегда.
+  await expect(page.getByTestId("audience-count")).toContainText(/Увидят \d+ студент/);
+  await page.getByRole("button", { name: /^Опубликовать/ }).click();
   await expect(page.getByText("Напишите заголовок: он виден в ленте")).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Опубликовать объявление?" })).toHaveCount(0);
   await page.goto("/staff/tickets");
   await expect(page.getByRole("heading", { level: 1, name: "Обращения" })).toBeVisible();
   await page.goto("/staff/schedule");

@@ -9,6 +9,7 @@ import { useStaff } from "@/components/shell/staff-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CheckRow, Field, TextArea, TextInput } from "@/components/ui/field";
+import { Sheet } from "@/components/ui/sheet";
 import { LoadingRegion, SkeletonCard } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/status-badge";
 import { useToast } from "@/components/ui/toast";
@@ -72,11 +73,16 @@ function Form({ reference }: { reference: StaffReferenceDTO }) {
   const [expiresAt, setExpiresAt] = React.useState("");
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [busy, setBusy] = React.useState(false);
+  const [confirming, setConfirming] = React.useState(false);
   const idemKey = React.useRef(crypto.randomUUID());
 
   const multiFaculty = reference.faculties.length > 1;
-  // Сотрудник одного факультета публикует в свой факультет: без этого «1 курс» увидел бы весь вуз.
-  const effectiveFaculties = multiFaculty ? facultyIds : reference.faculties.map((f) => f.id);
+  // Ничего не выбрано — все факультеты, доступные сотруднику (их и показывает список).
+  // Так подсказка «если ничего не выбрано…» правдива, а счётчик получателей сразу считает
+  // аудиторию по умолчанию (C11: раньше он навсегда оставался «Считаем получателей…»).
+  // Сотрудник одного факультета публикует в свой: без этого «1 курс» увидел бы весь вуз.
+  const allFaculties = React.useMemo(() => reference.faculties.map((f) => f.id), [reference]);
+  const effectiveFaculties = multiFaculty && facultyIds.length > 0 ? facultyIds : allFaculties;
 
   const toggle = <T,>(list: T[], v: T) =>
     list.includes(v) ? list.filter((x) => x !== v) : [...list, v];
@@ -96,7 +102,8 @@ function Form({ reference }: { reference: StaffReferenceDTO }) {
       (!multiFaculty || facultyIds.length === 0 || facultyIds.includes(g.facultyId)),
   );
 
-  const submit = async (e: React.FormEvent) => {
+  // Сначала проверка и подтверждение «для N студентов», затем отправка (publish).
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const next: Record<string, string> = {};
     if (!title.trim()) next.title = "Напишите заголовок: он виден в ленте";
@@ -108,7 +115,10 @@ function Form({ reference }: { reference: StaffReferenceDTO }) {
       next.expiresAt = "Срок окончания должен быть позже публикации";
     setErrors(next);
     if (Object.keys(next).length) return;
+    setConfirming(true);
+  };
 
+  const publish = async () => {
     setBusy(true);
     const res = await sendJson(
       "POST",
@@ -128,15 +138,27 @@ function Form({ reference }: { reference: StaffReferenceDTO }) {
       idemKey.current,
     );
     setBusy(false);
+    setConfirming(false);
     if (res.ok) {
-      toast({ tone: "success", title: "Объявление опубликовано, студенты получили уведомление" });
+      toast({
+        tone: "success",
+        title:
+          when === "later"
+            ? "Объявление запланировано"
+            : important
+              ? "Объявление опубликовано. Студенты получат срочное уведомление"
+              : "Объявление опубликовано. Студенты увидят его в ленте и в ближайшем дайджесте",
+      });
       router.push("/staff/announcements");
     } else if (res.status === 422) {
-      setErrors({ form: "Проверьте аудиторию и даты: сервер не принял эти значения." });
+      setErrors({ form: "Проверьте аудиторию и даты: в них есть ошибка." });
     } else setErrors({ form: "Не получилось опубликовать. Повторите: дубль не создастся." });
   };
 
   const n = count.data?.students;
+  const forWhom =
+    n === undefined ? "" : ` для ${n} ${plural(n, ["студента", "студентов", "студентов"])}`;
+  const verb = when === "later" ? "Запланировать" : "Опубликовать";
 
   return (
     <form
@@ -211,7 +233,7 @@ function Form({ reference }: { reference: StaffReferenceDTO }) {
               {visibleGroups.map((g) => (
                 <CheckRow
                   key={g.id}
-                  label={`${g.title} (${g.students})`}
+                  label={`${g.title} · ${g.students} ${plural(g.students, ["студент", "студента", "студентов"])}`}
                   checked={groupIds.includes(g.id)}
                   onChange={() => setGroupIds(toggle(groupIds, g.id))}
                 />
@@ -219,8 +241,11 @@ function Form({ reference }: { reference: StaffReferenceDTO }) {
             </div>
           </div>
           <p className="type-caption text-ink-2">
-            Если ничего не выбрано, объявление увидит весь ваш факультет. Выбранные признаки сужают
-            аудиторию: курс и группа вместе дают только студентов этой группы нужного курса.
+            {multiFaculty
+              ? "Если ничего не выбрано, объявление увидят студенты всех факультетов из списка."
+              : "Если ничего не выбрано, объявление увидит весь ваш факультет."}{" "}
+            Выбранные признаки сужают аудиторию: курс и группа вместе дают только студентов этой
+            группы нужного курса.
           </p>
           <p
             id="audience-count"
@@ -229,18 +254,20 @@ function Form({ reference }: { reference: StaffReferenceDTO }) {
             className="inline-flex items-center gap-2 font-medium"
           >
             <Users aria-hidden className="size-5" />
-            {n === undefined
-              ? "Считаем получателей…"
-              : n === 0
-                ? "Под эти признаки не подходит ни один студент"
-                : `Увидят ${n} ${plural(n, ["студент", "студента", "студентов"])}`}
+            {count.error
+              ? "Не получилось посчитать получателей: проверьте интернет."
+              : n === undefined
+                ? "Считаем получателей…"
+                : n === 0
+                  ? "Под эти признаки не подходит ни один студент"
+                  : `Увидят ${n} ${plural(n, ["студент", "студента", "студентов"])}`}
           </p>
           {errors.audience && <p className="type-caption text-coral-fg">{errors.audience}</p>}
         </fieldset>
 
         <CheckRow
           label="Важно"
-          hint="Студенты получат срочное уведомление, объявление выделится в ленте."
+          hint="Студенты получат срочное уведомление (ночью — после окончания тихих часов), объявление выделится в ленте. Перед публикацией попросим подтвердить."
           checked={important}
           onChange={(e) => setImportant(e.target.checked)}
         />
@@ -290,10 +317,42 @@ function Form({ reference }: { reference: StaffReferenceDTO }) {
             {errors.form}
           </p>
         )}
-        <Button type="submit" loading={busy} className="self-start">
+        <Button type="submit" loading={busy} className="self-start whitespace-normal">
           <Send aria-hidden />
-          {when === "later" ? "Запланировать" : "Опубликовать"}
+          {verb}
+          {forWhom}
         </Button>
+        <Sheet
+          open={confirming}
+          onOpenChange={setConfirming}
+          title={when === "later" ? "Запланировать объявление?" : "Опубликовать объявление?"}
+          description={title.trim()}
+        >
+          <div className="flex flex-col gap-3" data-testid="announcement-confirm">
+            <p>
+              {n === undefined
+                ? "Число получателей ещё считается."
+                : `Его увидят ${n} ${plural(n, ["студент", "студента", "студентов"])}.`}{" "}
+              После публикации объявление можно только убрать в архив, изменить его нельзя.
+            </p>
+            {important && (
+              <p className="flex items-start gap-2 type-body-strong">
+                <TriangleAlert aria-hidden className="mt-0.5 size-5 shrink-0 text-warn" />
+                Отмечено «Важно»: каждый получит срочное уведомление, в тихие часы — после их
+                окончания.
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              <Button loading={busy} onClick={publish} className="whitespace-normal">
+                {verb}
+                {forWhom}
+              </Button>
+              <Button variant="secondary" onClick={() => setConfirming(false)}>
+                Вернуться к тексту
+              </Button>
+            </div>
+          </div>
+        </Sheet>
       </div>
       <Preview title={title} body={body} important={important} />
     </form>
