@@ -49,7 +49,7 @@ describe("GET /api/staff/requests", () => {
     // дефолтный limit = 50 (максимум Paged): страницы по 50, всего 71 заявка
     expect(res.body.items).toHaveLength(50);
     expect(res.body.nextCursor).not.toBeNull();
-    expect(res.body.counters).toEqual({ submitted: 4, inProgress: 6, overdue: 7 });
+    expect(res.body.counters).toEqual({ submitted: 4, inProgress: 6, overdue: 1 });
     expect(res.body.items[0]).toEqual(
       expect.objectContaining({
         number: expect.stringMatching(/^СП-\d{4}-\d{4}$/),
@@ -69,11 +69,22 @@ describe("GET /api/staff/requests", () => {
     expect(res.body.items).toHaveLength(9); // справка Ани + фоновые
   });
 
-  it("фильтр overdue=true: просрочены только открытые статусы", async () => {
+  it("фильтр overdue=true: просрочка только там, где ход за деканатом", async () => {
     const res = await apiAs("elena").get<StaffRequestsDTO>("/api/staff/requests?overdue=true");
-    expect(res.body.items).toHaveLength(7); // демо-просрочка + 6 needs_info популяции
-    const okStatuses = ["submitted", "in_progress", "needs_info"];
+    expect(res.body.items).toHaveLength(1); // демо-просрочка; needs_info популяции не в счёт
+    const okStatuses = ["submitted", "in_progress"];
     expect(res.body.items.every((r) => okStatuses.includes(r.status) && r.overdue)).toBe(true);
+  });
+
+  it("«Нужно уточнение» с прошедшим сроком не просрочена и не в счётчике (ход за студентом)", async () => {
+    const res = await apiAs("elena").get<StaffRequestsDTO>(
+      "/api/staff/requests?status=needs_info&limit=50",
+    );
+    const past = res.body.items.filter((r) => new Date(r.dueAt).getTime() < Date.now());
+    expect(past.length).toBeGreaterThan(0); // срок прошёл, но просрочкой это не называем
+    expect(res.body.items.every((r) => !r.overdue)).toBe(true);
+    const all = await apiAs("elena").get<StaffRequestsDTO>("/api/staff/requests?limit=50");
+    expect(all.body.counters.overdue).toBe(1);
   });
 
   it("фильтр mine=true: только заявки, назначенные Елене", async () => {
@@ -131,7 +142,7 @@ describe("GET /api/staff/requests", () => {
   it("Олег (деканат ФМО) видит только фоновые заявки своего факультета", async () => {
     const res = await apiAs("oleg").get<StaffRequestsDTO>("/api/staff/requests?limit=50");
     expect(res.status).toBe(200);
-    expect(res.body.counters).toEqual({ submitted: 0, inProgress: 0, overdue: 3 });
+    expect(res.body.counters).toEqual({ submitted: 0, inProgress: 0, overdue: 0 });
     // фоновые студенты ФМО; заявки Ани (экономика) и её очереди — не в списке
     expect([...new Set(res.body.items.map((r) => r.student.group))].sort()).toEqual([
       "Б-МН-101",

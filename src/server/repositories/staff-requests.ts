@@ -30,6 +30,12 @@ export type StaffListCursor = {
 /** Недопустимые (закрытые) статусы — по ним «срок прошёл» не считается просрочкой. */
 export const OPEN_STATUSES = ["submitted", "in_progress", "needs_info"] as const;
 
+/**
+ * Статусы, где ход за деканатом: только по ним считается просрочка сотрудника.
+ * «Нужно уточнение» — ход за студентом, сотрудник на срок повлиять не может (C11, R2-01).
+ */
+export const STAFF_TURN_STATUSES = ["submitted", "in_progress"] as const;
+
 export interface StaffListOpts {
   scope: StaffScope;
   filter: {
@@ -93,9 +99,9 @@ export function listRequestsForStaff(tx: Tx, opts: StaffListOpts) {
           opts.filter.status ? eq(requests.status, opts.filter.status) : undefined,
           opts.filter.openOnly ? inArray(requests.status, [...OPEN_STATUSES]) : undefined,
           opts.filter.typeCode ? eq(requests.typeCode, opts.filter.typeCode) : undefined,
-          // overdue=true: срок прошёл, а заявка ещё в работе (SPEC §6.5).
+          // overdue=true: срок прошёл, а ход за деканатом (SPEC §6.5); «Нужно уточнение» не в счёт.
           opts.filter.overdueOnly
-            ? and(lt(requests.dueAt, opts.now), inArray(requests.status, [...OPEN_STATUSES]))
+            ? and(lt(requests.dueAt, opts.now), inArray(requests.status, [...STAFF_TURN_STATUSES]))
             : undefined,
           opts.filter.mineAssigneeId
             ? eq(requests.assigneeId, opts.filter.mineAssigneeId)
@@ -126,7 +132,7 @@ export function loadStaffQueueCounters(tx: Tx, scope: StaffScope, now: Date) {
     .select({
       submitted: sql<number>`count(*) filter (where ${requests.status} = 'submitted')::int`,
       inProgress: sql<number>`count(*) filter (where ${requests.status} = 'in_progress')::int`,
-      overdue: sql<number>`count(*) filter (where ${requests.status} in ('submitted', 'in_progress', 'needs_info') and ${requests.dueAt} < ${now.toISOString()}::timestamptz)::int`,
+      overdue: sql<number>`count(*) filter (where ${requests.status} in ('submitted', 'in_progress') and ${requests.dueAt} < ${now.toISOString()}::timestamptz)::int`,
     })
     .from(requests)
     .innerJoin(studentProfiles, eq(studentProfiles.userId, requests.studentId))

@@ -71,7 +71,6 @@ for (const scheme of ["light", "dark"] as const) {
       await page.goto("/requests/new/study_cert");
       await page.getByLabel("Куда предоставляется справка").fill("axe офлайн");
       await page.getByRole("radio", { name: /Электронно/ }).check();
-      await page.getByLabel("Данные верны").check();
       await page.getByRole("button", { name: "Отправить" }).click();
       await expect(page.getByTestId("request-queued")).toBeVisible();
       await axe(page);

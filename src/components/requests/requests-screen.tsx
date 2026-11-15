@@ -11,7 +11,7 @@ import { Card, CardLink } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingRegion, SkeletonCard } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
-import type { Paged, RequestDTO, RequestsTab } from "@/contracts/api";
+import type { Paged, RequestDTO, RequestsTab, RequestTypesDTO } from "@/contracts/api";
 import { formatDayMonthFull, plural } from "@/lib/format";
 import { badgeLabel } from "@/lib/request-copy";
 import { useApi } from "@/lib/use-api";
@@ -63,6 +63,28 @@ function RequestRow({ r }: { r: RequestDTO }) {
   );
 }
 
+/** Частые справки в один шаг: сразу форма, без каталога (C11, R2-03). */
+function QuickOrder() {
+  const { userId } = useStudent();
+  const types = useApi<RequestTypesDTO>("/api/request-types", { scope: userId });
+  const popular = (types.data?.items ?? []).filter((t) => t.popular && t.delivery.length > 0);
+  if (popular.length === 0) return null;
+  return (
+    <section aria-labelledby="quick-title" className="flex flex-col gap-2">
+      <h2 id="quick-title" className="type-h3">
+        Частые справки
+      </h2>
+      <div className="flex flex-wrap gap-2">
+        {popular.slice(0, 3).map((t) => (
+          <Button key={t.code} asChild variant="secondary">
+            <Link href={`/requests/new/${t.code}`}>Заказать: {t.title.toLowerCase()}</Link>
+          </Button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function RequestsScreen() {
   const { userId } = useStudent();
   const [tab, setTab] = React.useState<(typeof TABS)[number]["id"]>("active");
@@ -82,6 +104,7 @@ export function RequestsScreen() {
           </Link>
         </Button>
       </header>
+      <QuickOrder />
       <div role="group" aria-label="Какие заявки показать" className="flex gap-2">
         {TABS.map((t) => (
           <Button

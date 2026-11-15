@@ -82,19 +82,53 @@ function Form({ initial, reload }: { initial: NotificationPrefsDTO; reload: () =
   };
   const urgentOnly = CATEGORIES.filter((c) => !c.locked).every((c) => disabled.has(c.id));
 
+  // Несохранённые изменения: сравниваем текущий выбор с тем, что пришло с сервера (C11, R2-02).
+  const snapshot = (sl: number[], qf: number, qt: number, im: Set<string>, di: Set<string>) =>
+    JSON.stringify([[...sl].sort((a, b) => a - b), qf, qt, [...im].sort(), [...di].sort()]);
+  // Эталон — то, что сохранено на сервере. Фоновое обновление данных его не трогает,
+  // иначе оно стирало бы правки, которые человек ещё не сохранил.
+  const [base, setBase] = React.useState(initial);
+  const dirty =
+    snapshot(slots, quietFrom, quietTo, immediate, disabled) !==
+    snapshot(
+      base.slots,
+      base.quietFrom,
+      base.quietTo,
+      new Set(base.immediateCategories),
+      new Set(base.disabledCategories),
+    );
+
+  React.useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+
+  function discard() {
+    setSlots(base.slots);
+    setQuietFrom(base.quietFrom);
+    setQuietTo(base.quietTo);
+    setImmediate(new Set(base.immediateCategories));
+    setDisabled(new Set(base.disabledCategories));
+    setCustomOpen(presetOf(base.slots) === "custom");
+    setError(null);
+  }
+
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setPending(true);
     setError(null);
     try {
-      const res = await sendJson("PUT", "/api/me/notification-prefs", {
+      const body = {
         slots: [...slots].sort((a, b) => a - b),
         preset,
         quietFrom,
         quietTo,
         immediateCategories: [...immediate],
         disabledCategories: [...disabled],
-      });
+      };
+      const res = await sendJson("PUT", "/api/me/notification-prefs", body);
       if (!res.ok) {
         setError(
           res.status === 422
@@ -103,6 +137,7 @@ function Form({ initial, reload }: { initial: NotificationPrefsDTO; reload: () =
         );
         return;
       }
+      setBase({ ...initial, ...body });
       toast({ tone: "success", title: "Настройки сохранены" });
       reload();
     } catch {
@@ -274,10 +309,24 @@ function Form({ initial, reload }: { initial: NotificationPrefsDTO; reload: () =
         </div>
       </fieldset>
 
-      {error && <InlineError>{error}</InlineError>}
-      <Button type="submit" loading={pending} className="self-start">
-        Сохранить
-      </Button>
+      <div className="sticky bottom-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom))] z-20 -mx-4 flex flex-col gap-2 border-t border-line bg-surface px-4 py-3 md:-mx-6 md:px-6 lg:bottom-0">
+        {error && <InlineError>{error}</InlineError>}
+        <p role="status" className="type-body-strong">
+          {dirty
+            ? "Есть несохранённые изменения. Нажмите «Сохранить», иначе они пропадут."
+            : "Все изменения сохранены."}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" loading={pending} disabled={!dirty && !pending}>
+            Сохранить
+          </Button>
+          {dirty && (
+            <Button type="button" variant="secondary" onClick={discard}>
+              Отменить
+            </Button>
+          )}
+        </div>
+      </div>
     </form>
   );
 }
@@ -305,7 +354,7 @@ export function NotificationSettingsScreen() {
           </LoadingRegion>
         }
       >
-        {(prefs) => <Form key={api.fetchedAt} initial={prefs} reload={api.reload} />}
+        {(prefs) => <Form initial={prefs} reload={api.reload} />}
       </ApiView>
     </>
   );

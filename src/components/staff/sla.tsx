@@ -1,4 +1,4 @@
-import { Clock, TriangleAlert } from "lucide-react";
+import { Clock, Hourglass, TriangleAlert } from "lucide-react";
 import type { RequestStatus } from "@/contracts/api";
 import { Badge } from "@/components/ui/status-badge";
 import { formatDayMonth, plural } from "@/lib/format";
@@ -23,6 +23,14 @@ export function SlaBadge({
     return <span className="type-caption text-ink-2">{formatDayMonth(dueAt)}</span>;
   }
   const diff = new Date(dueAt).getTime() - now;
+  if (status === "needs_info") {
+    // Ход за студентом: срок не «горит» для сотрудника, показываем ожидание нейтрально.
+    return (
+      <Badge tone="neutral" icon={Hourglass}>
+        Ждём студента
+      </Badge>
+    );
+  }
   if (overdue) {
     const days = Math.max(1, Math.round(-diff / 86_400_000));
     return (

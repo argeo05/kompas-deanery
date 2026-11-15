@@ -72,6 +72,20 @@ test("настройки уведомлений сохраняются, «Тол
   // Выключаем их заранее: форма загрузится уже с ними, и параллельный PUT не перетрёт сохранённое.
   await disableQuietHours(context, baseURL!);
   await page.goto("/notifications/settings");
+  // Сохранение заметно: пока ничего не менялось, «Сохранить» неактивна; после правки видно предупреждение.
+  const status = page.getByRole("status").filter({ hasText: /сохранены|несохранённые/ });
+  const saveBtn = page.getByRole("button", { name: "Сохранить" });
+  await expect(status).toHaveText("Все изменения сохранены.");
+  await expect(saveBtn).toBeDisabled();
+  const deadlines = page.getByRole("group", { name: "Дедлайны" });
+  const off = deadlines.getByRole("button", { name: "Выключено" });
+  const alreadyOff = (await off.getAttribute("aria-pressed")) === "true";
+  await deadlines.getByRole("button", { name: alreadyOff ? "Сразу" : "Выключено" }).click();
+  await expect(status).toContainText("Есть несохранённые изменения");
+  await expect(saveBtn).toBeEnabled();
+  await expect(saveBtn).toBeInViewport(); // панель закреплена, нижняя навигация её не закрывает
+  await page.getByRole("button", { name: "Отменить" }).click();
+  await expect(status).toHaveText("Все изменения сохранены.");
   await page.getByRole("button", { name: "Вечерний: 12:00, 17:30, 21:30" }).click();
   await page.getByRole("group", { name: "Оценки" }).getByRole("button", { name: "Сразу" }).click();
   await page.getByRole("button", { name: "Сохранить" }).click();

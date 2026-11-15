@@ -214,7 +214,6 @@ test("AC-13.3: заявка без сети уходит ровно один р�
   await page.getByRole("link", { name: "Справка об обучении" }).first().click();
   await page.getByLabel("Куда предоставляется справка").fill(destination);
   await page.getByRole("radio", { name: /Электронно/ }).check();
-  await page.getByLabel("Данные верны").check();
   await page.getByRole("button", { name: "Отправить" }).click();
   await expect(page.getByTestId("request-queued")).toContainText("Ожидает отправки");
 

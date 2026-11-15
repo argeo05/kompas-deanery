@@ -96,7 +96,6 @@ for (const scheme of ["light", "dark"] as const) {
       await page.goto("/requests/new/study_cert");
       await page.getByLabel("Куда предоставляется справка").fill("Военкомат");
       await page.getByRole("radio", { name: /Электронно/ }).check();
-      await page.getByLabel("Данные верны").check();
       await page.getByRole("button", { name: "Отправить" }).click();
       await page.getByTestId("request-queued").waitFor();
       await shootOffline(page, "offline-request-queued", p, scheme);

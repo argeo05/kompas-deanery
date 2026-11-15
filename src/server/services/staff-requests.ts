@@ -45,13 +45,6 @@ type Row = Awaited<ReturnType<typeof listRequestsForStaff>>[number];
 type EventRow = Awaited<ReturnType<typeof listRequestEventsForStaff>>[number];
 type MessageRow = Awaited<ReturnType<typeof listRequestMessagesForStaff>>[number];
 
-/** Статусы, в которых срок ещё может «пройти» (SPEC §6.5). */
-const OPEN_STATUSES: ReadonlySet<RequestStatus> = new Set([
-  "submitted",
-  "in_progress",
-  "needs_info",
-]);
-
 /** В статусах выдана/отказ/отменена переписка закрыта: заявка завершена. */
 const MESSAGE_ALLOWED: ReadonlySet<RequestStatus> = new Set([
   "submitted",
@@ -72,8 +65,9 @@ function shortAssignee(assignee: { firstName: string | null; lastName: string | 
   return staffShortName(assignee ?? { firstName: null, lastName: null });
 }
 
+/** Просрочка сотрудника: ход за деканатом. «Нужно уточнение» ждёт студента — не просрочка. */
 function overdueAt(status: RequestStatus, dueAt: Date, atNow: Date): boolean {
-  return OPEN_STATUSES.has(status) && dueAt.getTime() < atNow.getTime();
+  return (status === "submitted" || status === "in_progress") && dueAt.getTime() < atNow.getTime();
 }
 
 function toStaffRowDTO(row: Row, atNow: Date): StaffRequestRowDTO {

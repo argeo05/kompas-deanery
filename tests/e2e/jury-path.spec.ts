@@ -54,7 +54,6 @@ test("маршрут проверки /jury: Аня → справка → Ел�
   await page.getByRole("link", { name: "Справка об обучении" }).first().click();
   await page.getByLabel("Куда предоставляется справка").fill("в банк (проверка жюри)");
   await page.getByRole("radio", { name: /Электронно/ }).check();
-  await page.getByLabel("Данные верны").check();
   await page.getByRole("button", { name: "Отправить" }).click();
   await expect(page.getByTestId("request-success")).toBeVisible();
   await page.getByRole("link", { name: "Перейти к заявке" }).click();

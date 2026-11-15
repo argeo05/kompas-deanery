@@ -64,3 +64,9 @@ export function eventTitle(from: RequestStatus | null, to: RequestStatus): strin
       return "Отменена вами";
   }
 }
+
+/** Быстрые варианты поля «Куда»: одно касание вместо набора текста (C11, R2-03). */
+export const DESTINATION_CHIPS: Record<string, string[]> = {
+  study_cert: ["В банк", "Работодателю", "В соцзащиту", "Для визы", "По месту требования"],
+  scholarship_cert: ["В соцзащиту", "В банк", "По месту требования"],
+};

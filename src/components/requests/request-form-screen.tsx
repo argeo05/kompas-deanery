@@ -20,11 +20,12 @@ import type {
   RequestCreateBody,
   RequestDetailDTO,
   RequestDTO,
+  Paged,
   RequestTypeDTO,
   RequestTypesDTO,
 } from "@/contracts/api";
 import { formatDateLong } from "@/lib/format";
-import { DELIVERY_TEXT, REJECT_REASON_TEXT } from "@/lib/request-copy";
+import { DELIVERY_TEXT, DESTINATION_CHIPS, REJECT_REASON_TEXT } from "@/lib/request-copy";
 import {
   clearDraft,
   fromFields,
@@ -40,7 +41,7 @@ import { cn } from "cn";
 import { Announce } from "@/components/ui/status-region";
 
 // Форма заявки (SPEC §6.5 п.2–3): поля по formSchema типа, блок «Данные из профиля», способ получения,
-// экземпляры, «Данные верны». Черновик живёт в localStorage; при отправке уходит Idempotency-Key,
+// экземпляры, примечание о верности данных. Черновик живёт в localStorage; при отправке уходит Idempotency-Key,
 // который сохраняется до успеха: повтор при плохой связи не создаст вторую заявку (AC-5.4).
 // Режим from=<id> — «Подать заново» после отказа: поля исходной заявки, способ и число экземпляров прежние.
 // Без сети (или запрос не дошёл) заявка встаёт в офлайн-очередь с тем же ключом и уйдёт сама, когда
@@ -81,11 +82,14 @@ function FieldInput({
   f,
   value,
   error,
+  chips,
   onChange,
 }: {
   f: FormFieldSchema;
   value: string;
   error?: string;
+  /** Быстрые варианты для текстового поля. */
+  chips?: string[];
   onChange: (v: string) => void;
 }) {
   const id = React.useId();
@@ -128,6 +132,22 @@ function FieldInput({
           maxLength={f.kind === "text" ? f.max : undefined}
           onChange={(e) => onChange(e.target.value)}
         />
+      )}
+      {chips && chips.length > 0 && (
+        <div role="group" aria-label="Быстрый выбор" className="flex flex-wrap gap-2">
+          {chips.map((c) => (
+            <Button
+              key={c}
+              type="button"
+              size="sm"
+              variant={value === c ? "primary" : "secondary"}
+              aria-pressed={value === c}
+              onClick={() => onChange(c)}
+            >
+              {c}
+            </Button>
+          ))}
+        </div>
       )}
       {error && (
         <p id={errId} className="type-caption text-coral-fg">
@@ -217,10 +237,14 @@ function Form({
     original ? fromFields(fields, original.fields) : {},
   );
   const [delivery, setDelivery] = React.useState<Delivery | null>(
-    original ? original.delivery : type.delivery.length === 1 ? type.delivery[0]! : null,
+    // Электронная справка — самый частый выбор: она уже выбрана, менять нужно редко.
+    original
+      ? original.delivery
+      : type.delivery.includes("electronic")
+        ? "electronic"
+        : (type.delivery[0] ?? null),
   );
   const [copies, setCopies] = React.useState(original ? original.copies : 1);
-  const [confirmed, setConfirmed] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [formError, setFormError] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
@@ -230,6 +254,14 @@ function Form({
   const idemKey = React.useRef<string | null>(null);
   const restored = React.useRef(false);
   const [draftRestored, setDraftRestored] = React.useState(false);
+  // Уже есть такая же заявка в работе: предупреждаем, но не запрещаем (разные цели бывают).
+  const active = useApi<Paged<RequestDTO>>(
+    original ? null : "/api/me/requests?tab=active&limit=50",
+    {
+      scope: userId,
+    },
+  );
+  const duplicate = active.data?.items.find((r) => r.type.code === type.code);
 
   // Черновик подставляем один раз после монтирования (localStorage есть только в браузере).
   React.useEffect(() => {
@@ -266,7 +298,6 @@ function Form({
     if (pending) return;
     const found = validateForm(fields, values);
     if (hasDelivery && delivery === null) found.delivery = "Выберите, как получить документ";
-    if (!confirmed) found.confirmed = "Подтвердите, что данные верны";
     setErrors(found);
     setFormError(null);
     if (Object.keys(found).length > 0) {
@@ -387,12 +418,23 @@ function Form({
           </button>
         </p>
       )}
+      {duplicate && (
+        <Card className="gap-1 border-l-4 border-l-warn" role="note">
+          <p className="font-medium">Такая заявка у вас уже в работе</p>
+          <p className="text-ink-2">
+            {duplicate.number}, ждём к {formatDateLong(duplicate.dueAt).toLowerCase()}. Если нужна
+            справка для другой цели, подавайте новую.{" "}
+            <Link href={`/requests/${duplicate.id}`}>Открыть заявку {duplicate.number}</Link>
+          </p>
+        </Card>
+      )}
       {me && <ProfileBlock me={me} />}
       {fields.map((f) => (
         <FieldInput
           key={f.name}
           f={f}
           value={values[f.name] ?? ""}
+          chips={f.name === "destination" ? DESTINATION_CHIPS[type.code] : undefined}
           error={
             errors[f.name] ??
             (original && f.required && !(values[f.name] ?? "").trim()
@@ -464,27 +506,9 @@ function Form({
           </select>
         </div>
       )}
-      <div className="flex flex-col gap-1">
-        <label className="flex min-h-11 items-center gap-3">
-          <input
-            type="checkbox"
-            checked={confirmed}
-            aria-invalid={errors.confirmed ? true : undefined}
-            aria-describedby={errors.confirmed ? "confirmed-err" : undefined}
-            onChange={(e) => {
-              setConfirmed(e.target.checked);
-              setErrors((s) => ({ ...s, confirmed: "" }));
-            }}
-            className="size-5 accent-(--accent)"
-          />
-          Данные верны
-        </label>
-        {errors.confirmed && (
-          <p id="confirmed-err" className="type-caption text-coral-fg">
-            {errors.confirmed}
-          </p>
-        )}
-      </div>
+      <p className="type-caption text-ink-2">
+        Отправляя заявку, вы подтверждаете, что данные из профиля верны.
+      </p>
       {formError && <InlineError>{formError}</InlineError>}
       <Button type="submit" size="lg" loading={pending}>
         {formError && !pending ? "Отправить ещё раз" : "Отправить"}
