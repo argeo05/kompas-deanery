@@ -19,6 +19,9 @@ export default defineConfig({
     locale: "ru-RU",
     timezoneId: "Europe/Moscow",
     trace: "retain-on-failure",
+    // Service worker включаем только там, где проверяем офлайн (tests/e2e/offline.spec.ts):
+    // иначе каждый тест ставит SW и фоново сохраняет офлайн-набор, а моки page.route видят не всё.
+    serviceWorkers: "block",
   },
   projects: [
     {
@@ -46,6 +49,9 @@ export default defineConfig({
       TRUSTED_PROXY: "true",
       // Витрина /dev/ui на production-сборке открыта только для e2e и скриншотов (src/lib/dev-ui.ts).
       KOMPAS_DEV_UI: "true",
+      // Помощник «Спросить Компас» включён только для e2e; в production флаг выключен (D-016). Ключа провайдера нет.
+      AI_ASSISTANT: "true",
+      AI_DAILY_LIMIT: "1000",
       // Секрет только для e2e; в production задаётся окружением хостинга.
       BETTER_AUTH_SECRET:
         process.env.BETTER_AUTH_SECRET ?? "e2e-only-insecure-secret-do-not-use-in-prod",

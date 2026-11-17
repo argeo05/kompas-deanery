@@ -30,6 +30,8 @@ export default defineConfig({
       BETTER_AUTH_SECRET:
         process.env.BETTER_AUTH_SECRET ?? "vitest-only-insecure-secret-do-not-use-in-prod",
       BETTER_AUTH_URL: "http://localhost:3000",
+      // Помощник в тестах включён в детерминированном режиме; ключа провайдера в тестах нет и сети тоже.
+      AI_ASSISTANT: "true",
     },
     projects: [
       {

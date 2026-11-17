@@ -23,7 +23,6 @@ async function submitStudyCert(page: Page, destination: string) {
   await page.getByRole("link", { name: "Справка об обучении" }).first().click();
   await page.getByLabel("Куда предоставляется справка").fill(destination);
   await page.getByRole("radio", { name: /Электронно/ }).check();
-  await page.getByLabel("Данные верны").check();
   await page.getByRole("button", { name: "Отправить" }).click();
   await expect(page.getByTestId("request-success")).toBeVisible();
   await page.getByRole("link", { name: "Перейти к заявке" }).click();
@@ -119,7 +118,6 @@ test("отказ не тупик: причина, «Подать заново» 
   await page.getByRole("link", { name: "Подать заново" }).click();
   await expect(page.getByLabel("Куда предоставляется справка")).toHaveValue("в визовый центр");
   await page.getByLabel("Куда предоставляется справка").fill("в визовый центр Польши");
-  await page.getByLabel("Данные верны").check();
   await page.getByRole("button", { name: "Отправить" }).click();
   await expect(page.getByTestId("request-success")).toBeVisible();
   await Promise.all([studentCtx.close(), staffCtx.close()]);
@@ -147,7 +145,6 @@ test("пустая обязательная форма не уходит и по
   await page.goto("/requests/new/study_cert");
   await page.getByRole("button", { name: "Отправить" }).click();
   await expect(page.getByText("Заполните это поле").first()).toBeVisible();
-  await expect(page.getByText("Подтвердите, что данные верны")).toBeVisible();
   await ctx.close();
 });
 
@@ -155,4 +152,49 @@ test("AC-5.5: /verify на несуществующий код — «не най
   await page.goto(`/verify/${"0".repeat(64)}`);
   await expect(page.getByRole("heading", { name: "Документ не найден" })).toBeVisible();
   await expect(page.getByText("Чего мы не показываем")).toBeVisible();
+});
+
+test("заказ справки об обучении за 4 касания: «Заявки» → частая справка → «В банк» → «Отправить»", async ({
+  browser,
+  baseURL,
+}) => {
+  const ctx = await browser.newContext({ baseURL });
+  await loginAs(ctx, "maxim", baseURL!);
+  const page = await ctx.newPage();
+  await page.goto("/today");
+  let taps = 0;
+  const tap = async (click: () => Promise<void>) => {
+    taps += 1;
+    await click();
+  };
+  await tap(() =>
+    page
+      .getByRole("link", { name: /^Заявки/ })
+      .first()
+      .click(),
+  );
+  await tap(() => page.getByRole("link", { name: "Заказать: справка об обучении" }).click());
+  // Способ получения и «1 экземпляр» уже выбраны, чекбокса «Данные верны» нет.
+  await expect(page.getByRole("radio", { name: /Электронно/ })).toBeChecked();
+  await expect(page.getByLabel("Данные верны")).toHaveCount(0);
+  await tap(() => page.getByRole("button", { name: "В банк" }).click());
+  await tap(() => page.getByRole("button", { name: "Отправить" }).click());
+  await expect(page.getByTestId("request-success")).toBeVisible();
+  expect(taps).toBe(4);
+  await ctx.close();
+});
+
+test("повторная справка того же типа: форма предупреждает о заявке в работе", async ({
+  browser,
+  baseURL,
+}) => {
+  const ctx = await browser.newContext({ baseURL });
+  await loginAs(ctx, "anna", baseURL!);
+  const page = await ctx.newPage();
+  await page.goto("/requests/new/study_cert");
+  await expect(page.getByText("Такая заявка у вас уже в работе")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Открыть заявку СП-/ })).toBeVisible();
+  // Предупреждение не запрещает подачу: поля и кнопка на месте.
+  await expect(page.getByRole("button", { name: "Отправить" })).toBeEnabled();
+  await ctx.close();
 });

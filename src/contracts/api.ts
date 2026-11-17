@@ -144,7 +144,10 @@ export interface GradesDTO {
     status: SemesterStatus;
     reasons: Array<{ courseId: UUID; reason: SemesterStatusReason }>;
   };
-  /** 1 знак после запятой. */
+  /**
+   * Предварительный средний балл по шкале итога 0–100: среднее по дисциплинам с оценками
+   * долей «набрано / возможно на сегодня». 1 знак после запятой.
+   */
   averagePreliminary: number | null;
   daysToSession: number | null;
   courses: Array<{
@@ -158,6 +161,11 @@ export interface GradesDTO {
     /** Только для зачёта. */
     credit: { passed: boolean | null; conditions: Array<{ label: string; met: boolean }> } | null;
     risk: boolean;
+    /**
+     * Доля оставшихся баллов (0,87 = 87%), нужная до «удовлетворительно» или «зачтено»;
+     * null — порог уже набран или несданных работ нет; больше 1 — не набрать.
+     */
+    passNeedShare: number | null;
   }>;
 }
 
@@ -573,6 +581,8 @@ export interface StaffRequestDTO {
   delivery: Delivery | null;
   copies: number;
   fields: Record<string, string | number>;
+  /** Подписи полей из formSchema типа: name → «Куда предоставляется справка». */
+  fieldLabels: Record<string, string>;
   createdAt: ISODateTime;
   dueAt: ISODateTime;
   overdue: boolean;
@@ -596,9 +606,26 @@ export interface StaffTransitionBody {
 
 export interface StaffClassDTO extends Omit<ClassDTO, "note"> {
   group: { id: UUID; title: string } | null;
+  /** Сколько студентов увидят изменение этой пары (группа или записанные на курс). */
+  audienceSize: number;
 }
 export interface StaffClassesDTO {
   items: StaffClassDTO[];
+}
+
+/** GET /api/staff/reference — справочники для форм кабинета сотрудника (в пределах его факультета). */
+export interface StaffReferenceDTO {
+  staff: { displayName: string; initials: string; unit: string; position: string };
+  faculties: { id: UUID; title: string }[];
+  groups: { id: UUID; title: string; course: number; facultyId: UUID; students: number }[];
+  rooms: { id: UUID; label: string }[];
+  teachers: { id: UUID; fullName: string }[];
+  requestTypes: { code: string; title: string }[];
+}
+
+/** GET /api/staff/audience?facultyIds=&groupIds=&courses= — сколько студентов увидят объявление. */
+export interface AudienceCountDTO {
+  students: number;
 }
 
 export interface ScheduleChangeCreateBody {
@@ -609,4 +636,99 @@ export interface ScheduleChangeCreateBody {
   newTeacherId?: UUID;
   /** ≤ 200 символов. */
   reason?: string;
+}
+
+// ── Поиск (C5, SPEC §6.10) ──────────────────────────────────────────────────
+
+export type SearchGroupKey =
+  "actions" | "requests" | "deadlines" | "schedule" | "teachers" | "rooms" | "kb" | "announcements";
+
+export interface SearchHitDTO {
+  id: string;
+  title: string;
+  /** Вторая строка: где и когда, чем отличается. */
+  hint: string | null;
+  /** Адрес внутри кабинета. */
+  href: string;
+}
+
+export interface SearchGroupDTO {
+  key: SearchGroupKey;
+  hits: SearchHitDTO[];
+}
+
+/** GET /api/me/search?q= */
+export interface SearchDTO {
+  q: string;
+  groups: SearchGroupDTO[];
+}
+
+// ── Справочник студента (C5, SPEC §11.4) ────────────────────────────────────
+
+export interface KbItemDTO {
+  slug: string;
+  title: string;
+  tags: string[];
+}
+export interface KbListDTO {
+  items: KbItemDTO[];
+}
+export interface KbArticleDTO extends KbItemDTO {
+  bodyMd: string;
+  updatedAt: ISODateTime;
+}
+
+// ── Помощник «Спросить Компас» (C9, SPEC §6.8.2) ────────────────────────────
+
+export type AssistantMode = "deterministic" | "ai";
+export type AssistantRefusal = "injection" | "foreign_data" | "promise";
+
+/** GET /api/me/assistant */
+export interface AssistantStatusDTO {
+  /** Флаг AI_ASSISTANT. Выключен — экран помощника и ссылка на него не показываются. */
+  enabled: boolean;
+  mode: AssistantMode;
+  dailyLimit: number;
+}
+
+export interface AssistantSourceDTO {
+  slug: string;
+  title: string;
+  /** Раздел статьи, откуда взят текст (у первой ссылки). */
+  section: string | null;
+  href: string;
+}
+
+/** POST /api/me/assistant { question } */
+export interface AssistantAnswerDTO {
+  kind: "answer" | "not_found" | "refused";
+  mode: AssistantMode;
+  /** ИИ не ответил (сеть, тайм-аут, ошибка): показан ответ из справочника без генерации (AC-8.3). */
+  fallback: boolean;
+  /** Текст ответа; пустой при отказе. Тексты отказов пишет интерфейс. */
+  text: string;
+  sources: AssistantSourceDTO[];
+  refusal?: AssistantRefusal;
+  /** Сколько вопросов осталось на сегодня. */
+  remaining: number;
+}
+
+// ── Сеансы и демо-сброс (C8) ────────────────────────────────────────────────
+
+export interface SessionItemDTO {
+  id: UUID;
+  /** «Chrome · Windows»; строка User-Agent целиком не отдаётся. */
+  device: string;
+  createdAt: string;
+  lastSeenAt: string;
+  /** Это устройство, с которого идёт запрос. */
+  current: boolean;
+}
+
+export interface SessionsDTO {
+  items: SessionItemDTO[];
+}
+
+export interface DemoResetDTO {
+  resetAt: string;
 }

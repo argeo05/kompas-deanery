@@ -3,12 +3,15 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { ErrorState, InlineError } from "@/components/ui/error-state";
+import { DataFreshness } from "@/components/ui/data-freshness";
+import { useReportDataAt } from "@/lib/offline/network";
 import { formatTimeMsk } from "@/lib/format";
 import type { ApiState } from "@/lib/use-api";
 
 // Единая обвязка состояний экрана (SPEC §6.2–6.4, «Состояния»): загрузка → скелетон, ошибка при
 // наличии кэша → данные + плашка с временем, ошибка без кэша → экран с действием, офлайн без кэша →
 // «Нет сети». Пустое состояние решает сам экран: оно зависит от формы данных.
+// Без сети над данными — «Нет сети · обновлено 12 мин назад» (SPEC §6.13), время уходит и в плашку офлайна.
 
 export function ApiView<T>({
   api,
@@ -22,6 +25,7 @@ export function ApiView<T>({
   /** Что показать, если API ответил 404 (чужой или несуществующий ресурс). */
   notFound?: React.ReactNode;
 }) {
+  useReportDataAt(api.data === undefined ? null : api.fetchedAt);
   const retry = (
     <Button variant="secondary" onClick={api.reload}>
       Повторить
@@ -33,15 +37,15 @@ export function ApiView<T>({
     if (api.error === "offline") {
       return (
         <ErrorState title="Нет сети" action={retry}>
-          Подключитесь к интернету и нажмите «Повторить». Экран загрузится, как только сеть
-          появится.
+          Этот экран ещё не сохранялся на устройстве. Подключитесь к интернету и нажмите «Повторить»
+          — откроем экран и сохраним его, чтобы открывать без интернета.
         </ErrorState>
       );
     }
     if (api.error) {
       return (
         <ErrorState title="Не получилось загрузить" action={retry}>
-          Сервер не ответил. Нажмите «Повторить» или зайдите через минуту.
+          Сервер не ответил. Нажмите «Повторить» или попробуйте через минуту.
         </ErrorState>
       );
     }
@@ -56,11 +60,7 @@ export function ApiView<T>({
           Не удалось обновить.{at ? ` Показаны данные от ${at}.` : ""}
         </InlineError>
       )}
-      {api.error === "offline" && at && (
-        <p role="status" className="type-caption text-ink-2">
-          Нет сети. Показаны данные от {at}.
-        </p>
-      )}
+      {api.error === "offline" && api.fetchedAt !== null && <DataFreshness at={api.fetchedAt} />}
       {children(api.data)}
     </>
   );

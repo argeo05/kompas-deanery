@@ -14,6 +14,7 @@ import { formatDayMonthFull, formatWeekdayLong } from "@/lib/format";
 import { startOfDayMsk } from "@/lib/time";
 import { useApi } from "@/lib/use-api";
 import { useNow, useTodayIso } from "@/lib/use-now";
+import { CalendarSubscribe } from "./calendar-subscribe";
 import { ClassSheet } from "./class-sheet";
 import { classDate } from "./class-meta";
 import { DateStrip } from "./date-strip";
@@ -109,6 +110,7 @@ export function ScheduleScreen() {
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h1 className="type-h1">Расписание</h1>
+          <CalendarSubscribe />
           <div role="group" aria-label="Вид расписания" className="flex gap-1">
             {(["day", "week"] as const).map((v) => (
               <Button

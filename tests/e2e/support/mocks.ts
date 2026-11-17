@@ -105,6 +105,7 @@ export function makeGrades(over: Partial<GradesDTO> = {}): GradesDTO {
         mark: { value: 5, word: "Отлично", letter: "A" },
         credit: null,
         risk: false,
+        passNeedShare: null,
       },
       {
         courseId: "22222222-2222-4222-8222-222222222222",
@@ -121,6 +122,7 @@ export function makeGrades(over: Partial<GradesDTO> = {}): GradesDTO {
           ],
         },
         risk: false,
+        passNeedShare: null,
       },
     ],
     ...over,

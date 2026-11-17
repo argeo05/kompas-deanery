@@ -1,4 +1,4 @@
-import type { ClassDTO, Hero, ISODateTime, ScheduleChangeDTO } from "@/contracts/api";
+import type { ClassDTO, Hero, ISODateTime, ScheduleChangeDTO, TodayDTO } from "@/contracts/api";
 
 // DS-07. Hero-карточка главной «Сегодня» (порядок приоритета SPEC §6.2, AC-2.2; решение D-003).
 // Тесты: tests/unit/today.test.ts.
@@ -59,4 +59,12 @@ export function pickHero(
   // 5–6. Пары сегодня закончились или их не было.
   if (active.length > 0) return { kind: "done_today", nextClassAt };
   return { kind: "day_off", nextClassAt };
+}
+
+/** Приветствие по московскому времени: 5–11 утро, 12–17 день, 18–22 вечер, остальное — ночь. */
+export function greetingOf(hour: number): TodayDTO["greeting"] {
+  if (hour < 5) return "night";
+  if (hour < 12) return "morning";
+  if (hour < 18) return "day";
+  return hour < 23 ? "evening" : "night";
 }

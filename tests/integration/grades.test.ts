@@ -13,8 +13,8 @@ import type { Fixtures } from "../helpers/fixtures";
 const NOW = "2026-11-12T12:00:00+03:00"; // четверг
 
 // Ожидания из сида (db/seed/demo-accounts.ts), отсчитанные от замороженного «сегодня»:
-// Аня: Микро сдано 11,5/50 → риск NEED_OVER_70; Макро 24/30; Англ 36/40. Среднее 23,8.
-// Максим: Медиа 51/60; Цифр. ком. 34/40. Среднее 42,5. Сессия: Аня +22 дня, Максим +25.
+// Аня: Микро сдано 11,5/50 → риск NEED_OVER_70; Макро 24/30; Англ 36/40. Среднее 64,3 (D-018).
+// Максим: Медиа 51/60; Цифр. ком. 34/40. Среднее 85. Сессия: Аня +22 дня, Максим +25.
 // Контрольная 1 Ани: первая оценка 1 исправлена на 2 (grade_history).
 
 interface GradesFx {
@@ -79,7 +79,9 @@ describe("GET /api/me/grades", () => {
         status: "risk",
         reasons: [{ courseId: fx.courses.micro, reason: "NEED_OVER_70" }],
       },
-      averagePreliminary: 23.8,
+      // Среднее долей «набрано / возможно на сегодня» по шкале 0–100 (D-018):
+      // (11,5/50 + 36/40 + 24/30) / 3 · 100 = (23 + 90 + 80) / 3 = 64,3.
+      averagePreliminary: 64.3,
       daysToSession: 22,
     });
     // Риски первыми (SPEC §6.4 п.2), дальше по названию.
@@ -97,6 +99,8 @@ describe("GET /api/me/grades", () => {
       mark: null, // экзамен не сдан — оценки ещё нет
       credit: null,
       risk: true,
+      // До «удовлетворительно» (55) нужно 43,5 из оставшихся 50 — та же цифра, что «Что поможет».
+      passNeedShare: 0.87,
     });
     const english = res.body.courses[1]!;
     expect(english).toMatchObject({
@@ -121,6 +125,7 @@ describe("GET /api/me/grades", () => {
       mark: null,
       credit: null,
       risk: false,
+      passNeedShare: 0.443, // 31 из 70
     });
   });
 
@@ -129,7 +134,7 @@ describe("GET /api/me/grades", () => {
     expect(res.status).toBe(200);
     expect(res.body.status).toEqual({ status: "ok", reasons: [] });
     expect(res.body.semesters).toEqual(["2026-1"]);
-    expect(res.body.averagePreliminary).toBe(42.5);
+    expect(res.body.averagePreliminary).toBe(85); // 51/60 и 34/40 — по 85% от возможного
     expect(res.body.daysToSession).toBe(25);
     expect(res.body.courses.map((c) => c.courseId)).toEqual([
       fx.courses.media,

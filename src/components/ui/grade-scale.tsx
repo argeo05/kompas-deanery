@@ -1,5 +1,6 @@
 import { cn } from "cn";
 import type { MarkDTO } from "@/contracts/api";
+import { formatScore } from "@/lib/format";
 
 // Оценка тройкой «98 / Отлично / A» (SPEC §7.2 «Оценка», §6.4 п.8, как в ЛК МГИМО).
 // Главное — баллы, слово и буква — расшифровка. Оценку по качеству не окрашиваем:
@@ -9,7 +10,7 @@ import type { MarkDTO } from "@/contracts/api";
 type Mark = Pick<MarkDTO, "word" | "letter">;
 
 function label(total: number, mark: Mark): string {
-  return `${total} баллов, ${mark.word.toLowerCase()}, ${mark.letter}`;
+  return `${formatScore(total)} баллов, ${mark.word.toLowerCase()}, ${mark.letter}`;
 }
 
 /**
@@ -37,7 +38,7 @@ export function GradeScale({
         className={cn("flex items-center justify-between gap-4", className)}
       >
         <div aria-hidden className="flex flex-col">
-          <span className="type-display">{total}</span>
+          <span className="type-display">{formatScore(total)}</span>
           <span className="type-caption text-ink-2">из 100</span>
         </div>
         <div aria-hidden className="flex flex-col items-end gap-1">
@@ -58,7 +59,7 @@ export function GradeScale({
       className={cn("flex flex-col items-end text-right", className)}
     >
       <span aria-hidden className="min-w-[4ch] text-lg leading-snug type-num">
-        {total}
+        {formatScore(total)}
       </span>
       <span aria-hidden className="type-caption whitespace-nowrap text-ink-2">
         {mark.word} · {mark.letter}

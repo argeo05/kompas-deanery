@@ -360,6 +360,13 @@ export const apiRoutes: ApiRouteSpec[] = [
     case: () => ({ params: { token: `${"0".repeat(64)}.ics` } }),
   },
 
+  // ── C8. Сеансы, экспорт данных, демо-сброс ──────────────────────────────
+  { method: "GET", path: "/api/me/sessions", access: "student", ticket: "C8" },
+  { method: "GET", path: "/api/me/export", access: "student", ticket: "C8" },
+
+  // ── C7. «Пульс» индикатора сети (SPEC §6.13 п.3): без сессии и без данных ─────
+  { method: "GET", path: "/api/health", access: "public", ticket: "C7" },
+
   // ── DS-23. Проверка подлинности справки ──────────────────────────────────
   {
     method: "GET",
@@ -450,6 +457,34 @@ export const apiRoutes: ApiRouteSpec[] = [
     case: async (fx) => ({ ownerIds: [await f.annaGroupAnnouncement(fx)] }),
   },
 
+  // ── C5. Поиск ────────────────────────────────────────────────────────────
+  {
+    method: "GET",
+    path: "/api/me/search",
+    access: "student",
+    ticket: "C5",
+    case: () => ({ query: { q: "справка" } }),
+  },
+
+  { method: "GET", path: "/api/me/kb", access: "student", ticket: "C5" },
+  {
+    method: "GET",
+    path: "/api/me/kb/:slug",
+    access: "student",
+    ticket: "C5",
+    case: () => ({ params: { slug: "resit-exam" } }),
+  },
+
+  // ── C9. Помощник «Спросить Компас» (в тестах AI_ASSISTANT включён, см. vitest.config.ts) ──
+  { method: "GET", path: "/api/me/assistant", access: "student", ticket: "C9" },
+  {
+    method: "POST",
+    path: "/api/me/assistant",
+    access: "student",
+    ticket: "C9",
+    case: () => ({ body: { question: "Как пересдать экзамен?" } }),
+  },
+
   // ── DS-32. Изменения расписания ──────────────────────────────────────────
   {
     method: "GET",
@@ -509,19 +544,34 @@ export const apiRoutes: ApiRouteSpec[] = [
     owned: true,
     case: async (fx) => ({ params: { id: await f.annaTicket(fx) } }),
   },
+
+  // ── C6. Справочники и аудитория для форм сотрудника ──────────────────────
+  { method: "GET", path: "/api/staff/reference", access: "staff", ticket: "C6" },
+  { method: "GET", path: "/api/staff/audience", access: "staff", ticket: "C6" },
 ];
 
-/** Маршруты Better Auth обслуживает сама библиотека; матрица их не проверяет. */
-export const ignoredRouteFiles = ["src/app/api/auth/[...all]/route.ts"];
+/**
+ * Маршруты Better Auth обслуживает сама библиотека; матрица их не проверяет.
+ * Остальные меняют общее состояние (закрывают сеанс Ани, стирают БД) и проверяются отдельно:
+ * tests/integration/profile.test.ts (сеансы: свой/чужой/гость; демо-сброс: лимит и результат).
+ */
+export const ignoredRouteFiles = [
+  "src/app/api/auth/[...all]/route.ts",
+  "src/app/api/me/sessions/[id]/route.ts",
+  "src/app/api/me/sessions/revoke-all/route.ts",
+  "src/app/api/demo/reset/route.ts",
+];
 
 /** Страницы кабинета сотрудника (SPEC §5.4). Студент получает 403, гость — редирект на вход. */
 export const staffPages = [
   "/staff/queue",
   "/staff/requests/00000000-0000-4000-8000-000000000000",
   "/staff/tickets",
+  "/staff/tickets/00000000-0000-4000-8000-000000000000",
   "/staff/announcements",
   "/staff/announcements/new",
   "/staff/schedule",
+  "/staff/profile",
   // Варианты записи пути не должны обходить проверку (аудит C1).
   "/staff/",
   "/STAFF/queue",

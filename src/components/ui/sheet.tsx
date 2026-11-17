@@ -42,6 +42,8 @@ export function Sheet({
   // Свайп вниз за «ручку» и заголовок. Альтернатива свайпу — кнопка «Закрыть» и Esc (WCAG 2.5.7).
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.pointerType === "mouse") return;
+    // Кнопка «Закрыть» внутри шапки: захват указателя отнял бы у неё клик.
+    if ((e.target as HTMLElement).closest("button")) return;
     drag.current = { startY: e.clientY, dy: 0 };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };

@@ -11,3 +11,5 @@ tests
 test-results
 playwright-report
 *.md
+
+!content/**/*.md

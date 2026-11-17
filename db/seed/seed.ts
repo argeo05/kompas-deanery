@@ -1,4 +1,5 @@
 import * as schema from "../schema";
+import { seedKb } from "./kb";
 import { seedDates } from "./dates";
 import { seedDemoAccounts, type SeedDb } from "./demo-accounts";
 import { seedPopulation } from "./population";
@@ -12,6 +13,7 @@ export async function seed(db: SeedDb, base?: Date) {
   await db
     .insert(schema.requestTypes)
     .values(REQUEST_TYPES.map((t, i) => ({ ...t, sortOrder: i })));
+  await seedKb(db);
   await seedDemoAccounts(db, dates);
   await seedPopulation(db, dates);
 }

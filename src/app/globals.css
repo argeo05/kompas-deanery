@@ -178,6 +178,30 @@
   }
 }
 
+/* Размер текста «Крупный» (SPEC §6.11 п.2): база 1,125, все размеры в rem растут вместе с ней. */
+html[data-text="large"] {
+  font-size: 112.5%;
+}
+
+/* «Уменьшить анимацию» в профиле: то же, что системная настройка prefers-reduced-motion. */
+:root[data-motion="reduce"] {
+  --motion-shift: 0;
+}
+:root[data-motion="reduce"] *,
+:root[data-motion="reduce"] ::before,
+:root[data-motion="reduce"] ::after {
+  scroll-behavior: auto !important;
+  --tw-enter-translate-x: 0 !important;
+  --tw-enter-translate-y: 0 !important;
+  --tw-exit-translate-x: 0 !important;
+  --tw-exit-translate-y: 0 !important;
+  --tw-enter-scale: 1 !important;
+  --tw-exit-scale: 1 !important;
+}
+:root[data-motion="reduce"] .animate-shimmer {
+  animation: none;
+}
+
 @layer base {
   * {
     @apply border-line;
@@ -195,7 +219,9 @@
   }
   /* Плашка «Нет сети» прилипает под шапкой — фокус не должен уходить и под неё. */
   html:has([data-slot="offline-bar"][data-sticky]) {
-    scroll-padding-top: calc(var(--header-h) + var(--offline-bar-h) + 0.5rem);
+    scroll-padding-top: calc(
+      var(--header-h) + var(--offline-bar-actual, var(--offline-bar-h)) + 0.5rem
+    );
   }
   @media (min-width: 64rem) {
     html {
@@ -241,6 +267,16 @@
 
   a {
     text-underline-offset: 0.2em;
+  }
+  /* Ссылка в тексте отличается не только цветом (WCAG 1.4.1): акцент и подчёркивание.
+     Только для <a> без классов внутри текста; у кнопок-ссылок и карточек свои стили. */
+  :where(p, li, dd, td, figcaption, blockquote) a:where(:not([class])) {
+    color: var(--accent);
+    text-decoration-line: underline;
+    text-decoration-thickness: from-font;
+  }
+  :where(p, li, dd, td, figcaption, blockquote) a:where(:not([class])):hover {
+    color: var(--accent-hover);
   }
 
   /* Кольцо фокуса 2 px + отступ 2 px (§7.2), только при клавиатурной навигации. */

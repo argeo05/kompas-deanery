@@ -4,10 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "cn";
 
-// Вкладки раздела «Учёба» (SPEC §6.4): «Успеваемость» и «Сессия» — отдельные адреса, чтобы на сессию можно было дать ссылку.
+// Вкладки раздела «Учёба» (SPEC §6.4): «Успеваемость», «Сессия» и «Дедлайны» — отдельные адреса, чтобы на сессию можно было дать ссылку.
 const TABS = [
   { href: "/study", label: "Успеваемость" },
   { href: "/study/session", label: "Сессия" },
+  { href: "/study/deadlines", label: "Дедлайны" },
 ] as const;
 
 export function StudyTabs() {

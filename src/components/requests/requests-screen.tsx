@@ -3,14 +3,15 @@
 import * as React from "react";
 import Link from "next/link";
 import { FileText, Plus } from "lucide-react";
+import { QueuedRequests } from "@/components/offline/queued-requests";
 import { ApiView } from "@/components/screens/api-view";
 import { useStudent } from "@/components/shell/student-context";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardLink } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingRegion, SkeletonCard } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
-import type { Paged, RequestDTO, RequestsTab } from "@/contracts/api";
+import type { Paged, RequestDTO, RequestsTab, RequestTypesDTO } from "@/contracts/api";
 import { formatDayMonthFull, plural } from "@/lib/format";
 import { badgeLabel } from "@/lib/request-copy";
 import { useApi } from "@/lib/use-api";
@@ -41,10 +42,10 @@ function RequestRow({ r }: { r: RequestDTO }) {
     <Card variant="interactive" className="gap-2" data-testid="request-row">
       <div className="flex items-start justify-between gap-2">
         <h2 className="min-w-0 type-h3">
-          <Link href={`/requests/${r.id}`} className="card-link">
+          <CardLink href={`/requests/${r.id}`}>
             {r.type.title}
             {r.unseen && <span className="sr-only">, есть новое</span>}
-          </Link>
+          </CardLink>
         </h2>
         {r.unseen && (
           <span className="mt-0.5 flex shrink-0 items-center gap-1.5 type-caption text-accent">
@@ -59,6 +60,33 @@ function RequestRow({ r }: { r: RequestDTO }) {
         <p className={cn("type-caption", r.overdue ? "text-warn-fg" : "text-ink-2")}>{due}</p>
       )}
     </Card>
+  );
+}
+
+/** Частые справки в один шаг: сразу форма, без каталога (C11, R2-03). */
+function QuickOrder() {
+  const { userId } = useStudent();
+  const types = useApi<RequestTypesDTO>("/api/request-types", { scope: userId });
+  const popular = (types.data?.items ?? []).filter((t) => t.popular && t.delivery.length > 0);
+  if (popular.length === 0) return null;
+  return (
+    <section aria-labelledby="quick-title" className="flex flex-col gap-2">
+      <h2 id="quick-title" className="type-h3">
+        Частые справки
+      </h2>
+      <div className="flex flex-wrap gap-2">
+        {popular.slice(0, 3).map((t) => (
+          <Button
+            key={t.code}
+            asChild
+            variant="secondary"
+            className="h-auto max-w-full py-2 whitespace-normal"
+          >
+            <Link href={`/requests/new/${t.code}`}>Заказать: {t.title.toLowerCase()}</Link>
+          </Button>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -81,6 +109,7 @@ export function RequestsScreen() {
           </Link>
         </Button>
       </header>
+      <QuickOrder />
       <div role="group" aria-label="Какие заявки показать" className="flex gap-2">
         {TABS.map((t) => (
           <Button
@@ -94,6 +123,7 @@ export function RequestsScreen() {
           </Button>
         ))}
       </div>
+      <QueuedRequests userId={userId} onSent={api.reload} />
       <ApiView
         api={api}
         skeleton={

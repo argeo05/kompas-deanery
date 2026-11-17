@@ -4,6 +4,7 @@ import { GradeScale } from "@/components/ui/grade-scale";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { Badge } from "@/components/ui/status-badge";
 import type { GradesDTO } from "@/contracts/api";
+import { formatScore } from "@/lib/format";
 import { CONTROL_LABEL } from "./labels";
 
 // Дисциплина в списке «Успеваемость» (SPEC §6.4 п.2). Экзамен — кольцо и оценка тройкой;
@@ -20,7 +21,7 @@ export function CourseRow({ course }: { course: Course }) {
           <ProgressRing
             value={course.total}
             max={Math.max(course.maxSoFar, course.total, 1)}
-            label={`Набрано ${course.total} из ${course.maxSoFar} баллов, доступных на сегодня`}
+            label={`Набрано ${formatScore(course.total)} из ${formatScore(course.maxSoFar)} баллов, доступных на сегодня`}
           />
         )}
         <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -39,7 +40,8 @@ export function CourseRow({ course }: { course: Course }) {
           )}
           {!isCredit && course.maxSoFar > 0 && (
             <p className="type-caption text-ink-2">
-              Набрано {course.total} из {course.maxSoFar} баллов на сегодня
+              Набрано {formatScore(course.total)} из {formatScore(course.maxSoFar)} баллов на
+              сегодня
             </p>
           )}
         </div>

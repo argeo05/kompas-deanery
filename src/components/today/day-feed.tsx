@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { MoreLink } from "@/components/ui/more-link";
 import { ClassCard } from "@/components/schedule/class-card";
 import { classDate, overlaps } from "@/components/schedule/class-meta";
 import type { ClassDTO } from "@/contracts/api";
@@ -55,13 +56,14 @@ export function DayFeed({ classes, now }: { classes: ClassDTO[]; now: Date }) {
 
   return (
     <section aria-labelledby="day-feed-title" className="flex flex-col gap-2">
-      <div className="flex items-baseline justify-between gap-2">
+      <div className="flex items-center justify-between gap-2">
         <h2 id="day-feed-title" className="type-h2">
           Сегодня
         </h2>
-        <Link href="/schedule" className="type-caption">
+        {/* -my-2.5: цель 44 px, строка заголовка почти не растёт (AC-2.1: две пары над сгибом). */}
+        <MoreLink href="/schedule" className="-my-2.5">
           Все пары
-        </Link>
+        </MoreLink>
       </div>
       {passed.length > 0 && (
         <p className="type-caption text-ink-2">

@@ -6,7 +6,7 @@ import { ChevronRight, Search } from "lucide-react";
 import { ApiView } from "@/components/screens/api-view";
 import { useStudent } from "@/components/shell/student-context";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardLink } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingRegion, SkeletonCard } from "@/components/ui/skeleton";
 import type { RequestTypeDTO, RequestTypesDTO } from "@/contracts/api";
@@ -28,9 +28,7 @@ function TypeCard({ t }: { t: RequestTypeDTO }) {
     <Card variant="interactive" className="gap-1">
       <div className="flex items-center justify-between gap-2">
         <h3 className="min-w-0 type-h3">
-          <Link href={`/requests/new/${t.code}`} className="card-link">
-            {t.title}
-          </Link>
+          <CardLink href={`/requests/new/${t.code}`}>{t.title}</CardLink>
         </h3>
         <ChevronRight aria-hidden className="size-5 shrink-0 text-ink-2" />
       </div>

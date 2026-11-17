@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Mail } from "lucide-react";
+import { MoreLink } from "@/components/ui/more-link";
+import { Mail, MessageSquare } from "lucide-react";
 import { ApiView } from "@/components/screens/api-view";
 import { useStudent } from "@/components/shell/student-context";
 import { buttonVariants } from "@/components/ui/button";
@@ -11,44 +12,60 @@ import { GradeScale } from "@/components/ui/grade-scale";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { LoadingRegion, Skeleton, SkeletonCard } from "@/components/ui/skeleton";
 import type { CourseGradesDTO } from "@/contracts/api";
-import { formatDayMonth } from "@/lib/format";
-import { markFor } from "@/lib/grading";
+import { formatDayMonth, formatNeedShare, formatScore } from "@/lib/format";
+import { markFor, needShare, totalScore } from "@/lib/grading";
 import { useApi } from "@/lib/use-api";
-import { MARK_THRESHOLDS } from "@config/grading";
+import { MARK_THRESHOLDS, RISK_NEEDED_SHARE } from "@config/grading";
 import { CONTROL_LABEL } from "./labels";
 import { WhatIf } from "./what-if";
 
 // Дисциплина (SPEC §6.4 п.3): итог, элементы контроля, история изменений, «что поможет», «что если».
 
-const round1 = (v: number) => Math.round(v * 10) / 10;
 const TARGETS = [5, 4, 3] as const;
 
+type CourseItem = CourseGradesDTO["items"][number];
+
+const gradingOf = (items: CourseItem[]) =>
+  items.map((i) => ({ score: i.score, max: i.max, weight: i.weight }));
+
+/** «на экзамене — не меньше 87 из 100» или «в среднем 87% по каждой работе». */
+function needLine(share: number, open: CourseItem[]): string {
+  const pct = formatNeedShare(share);
+  if (open.length === 1) {
+    const only = open[0]!;
+    const raw = Math.min(only.max, Math.ceil(share * only.max - 1e-9));
+    return `${pct} оставшихся баллов — за «${only.title}» не меньше ${formatScore(raw)} из ${formatScore(only.max)}`;
+  }
+  return `${pct} оставшихся баллов — в среднем по ${pct} от максимума за каждую несданную работу`;
+}
+
 function Help({ course }: { course: CourseGradesDTO }) {
-  const left = round1(
-    course.items.reduce((s, i) => (i.score === null ? s + i.weight * 100 : s), 0),
-  );
-  const lines = course.needed.map((n) => {
-    const band = markFor(MARK_THRESHOLDS[n.target]);
-    const name = `«${band.word}» (${n.target})`;
-    if (n.needed === 0) return { target: n.target, text: `${name}: уже достаточно.` };
-    if (!n.achievable) {
-      return { target: n.target, text: `${name}: эту оценку уже не получить.` };
+  const grading = gradingOf(course.items);
+  const open = course.items.filter((i) => i.score === null);
+  const lines = TARGETS.map((target) => {
+    const band = markFor(MARK_THRESHOLDS[target]);
+    const name = `«${band.word}» (${target})`;
+    const share = needShare(grading, MARK_THRESHOLDS[target]);
+    if (share === null) {
+      return totalScore(grading) >= MARK_THRESHOLDS[target]
+        ? { target, text: `${name}: уже достаточно.` }
+        : { target, text: `${name}: эту оценку уже не получить.` };
     }
-    return {
-      target: n.target,
-      text: `${name}: нужно ещё ${n.needed} из ${left} возможных баллов.`,
-    };
+    if (share > 1) return { target, text: `${name}: эту оценку уже не получить.` };
+    return { target, text: `${name}: нужно набрать ${needLine(share, open)}.` };
   });
-  const sorted = TARGETS.flatMap((t) => lines.filter((l) => l.target === t));
-  const behind = course.needed.find((n) => n.target === 3);
-  const needsHelp = !!behind && behind.needed > 0 && (left === 0 || behind.needed > left * 0.7);
+  const passShare = needShare(grading, MARK_THRESHOLDS[3]);
+  const needsHelp =
+    passShare !== null
+      ? passShare > RISK_NEEDED_SHARE
+      : totalScore(grading) < MARK_THRESHOLDS[3] && open.length === 0;
   return (
     <section aria-labelledby="help-title" className="flex flex-col gap-3">
       <h2 id="help-title" className="type-h2">
         Что поможет
       </h2>
       <ul className="flex flex-col gap-1.5 type-body">
-        {sorted.map((l) => (
+        {lines.map((l) => (
           <li key={l.target}>{l.text}</li>
         ))}
       </ul>
@@ -74,6 +91,10 @@ function Help({ course }: { course: CourseGradesDTO }) {
 
 function Content({ course }: { course: CourseGradesDTO }) {
   const maxById = new Map(course.items.map((i) => [i.id, i]));
+  // Знаменатель «на сегодня» — как в списке дисциплин (maxSoFar): вес сданных работ × 100.
+  const soFar =
+    Math.round(course.items.reduce((s, i) => (i.score !== null ? s + i.weight * 100 : s), 0) * 10) /
+    10;
   return (
     <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_22.5rem] lg:items-start lg:gap-8">
       <div className="flex min-w-0 flex-col gap-6">
@@ -84,18 +105,32 @@ function Content({ course }: { course: CourseGradesDTO }) {
             <div className="flex items-center gap-3">
               <ProgressRing
                 value={course.total}
-                max={100}
-                label={`Набрано ${course.total} баллов из 100`}
+                max={Math.max(soFar, course.total, 1)}
+                label={`Набрано ${formatScore(course.total)} из ${formatScore(soFar)} баллов, доступных на сегодня`}
               />
               <div className="flex flex-col">
                 <p className="type-body-strong">Итоговой оценки пока нет</p>
-                <p className="type-caption text-ink-2">предварительно</p>
+                <p className="type-caption text-ink-2">
+                  Набрано {formatScore(course.total)} из {formatScore(soFar)} баллов на сегодня.
+                  Итог считается из 100: ещё {formatScore(100 - soFar)} баллов будут за несданные
+                  работы.
+                </p>
               </div>
             </div>
           )}
           <p className="type-caption text-ink-2">
             {CONTROL_LABEL[course.control]} · {course.teacher.fullName}
           </p>
+          {course.teacher.officeHours && (
+            <p className="type-caption text-ink-2">Консультации: {course.teacher.officeHours}</p>
+          )}
+          <Link
+            href={`/support/new?topic=grades&kind=course&id=${course.courseId}`}
+            className={buttonVariants({ variant: "secondary", size: "sm" }) + " self-start"}
+          >
+            <MessageSquare aria-hidden />
+            Написать через Компас
+          </Link>
         </Card>
 
         <section aria-labelledby="items-title" className="flex flex-col gap-3">
@@ -112,7 +147,7 @@ function Content({ course }: { course: CourseGradesDTO }) {
                       {i.score === null ? (
                         <span className="font-normal text-ink-2">не сдано</span>
                       ) : (
-                        `${i.score} / ${i.max}`
+                        `${formatScore(i.score)} / ${formatScore(i.max)}`
                       )}
                     </p>
                   </div>
@@ -126,7 +161,7 @@ function Content({ course }: { course: CourseGradesDTO }) {
           </ul>
         </section>
 
-        <WhatIf items={course.items} />
+        <WhatIf items={course.items} passTotal={MARK_THRESHOLDS[3]} />
       </div>
 
       <div className="flex min-w-0 flex-col gap-6">
@@ -174,9 +209,9 @@ export function SubjectScreen({ courseId }: { courseId: string }) {
   return (
     <>
       <header className="flex flex-col gap-2">
-        <Link href="/study" className="w-fit type-caption">
-          ← Учёба
-        </Link>
+        <MoreLink href="/study" back className="-my-2">
+          Учёба
+        </MoreLink>
         <h1 className="type-h2 break-words hyphens-auto lg:text-3xl">
           {api.data?.title ?? "Дисциплина"}
         </h1>

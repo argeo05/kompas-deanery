@@ -2,7 +2,16 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
 // WCAG 2.2 AA (SPEC §7.7) в светлой и тёмной теме. Каждый новый экран добавляется сюда списком маршрутов.
-const routes = ["/", "/security", "/dev/ui", "/dev/ui/staff", `/verify/${"0".repeat(64)}`];
+const routes = [
+  "/",
+  "/about",
+  "/security",
+  "/jury",
+  "/offline",
+  "/dev/ui",
+  "/dev/ui/staff",
+  `/verify/${"0".repeat(64)}`,
+];
 
 for (const scheme of ["light", "dark"] as const) {
   test.describe(`${scheme}`, () => {

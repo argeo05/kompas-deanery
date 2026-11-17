@@ -6,6 +6,8 @@ import { loginAs } from "../e2e/support/auth";
 const routes = [
   "/login",
   "/today",
+  "/profile",
+  "/profile/privacy",
   "/schedule",
   "/schedule?view=week",
   "/study",
@@ -15,6 +17,16 @@ const routes = [
   "/requests/new/study_cert",
   "/documents",
   "REQUEST_CARD",
+  "/notifications",
+  "/notifications?tab=announcements",
+  "/notifications/settings",
+  "/study/deadlines",
+  "/support",
+  "/support/new",
+  "/search?q=%D0%B2%D0%BE%D0%B5%D0%BD%D0%BA%D0%BE%D0%BC%D0%B0%D1%82",
+  "/help",
+  "/help/ask",
+  "/help/resit-exam",
   `/verify/${"0".repeat(64)}`,
 ];
 

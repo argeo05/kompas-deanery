@@ -1,5 +1,6 @@
 "use client";
 
+import { MoreLink } from "@/components/ui/more-link";
 import { CalendarClock, TriangleAlert } from "lucide-react";
 import { ApiView } from "@/components/screens/api-view";
 import { useStudent } from "@/components/shell/student-context";
@@ -12,7 +13,7 @@ import { useApi } from "@/lib/use-api";
 import { useNow } from "@/lib/use-now";
 
 // Ближайшие дедлайны (SPEC §6.7, только чтение): то, что стоит за числом на значке «Учёба».
-// Планирование и «отметить сделанным» — этап C5.
+// Планирование и «отметить сделанным» — на /study/deadlines.
 
 function Item({ d, now }: { d: DeadlineDTO; now: Date }) {
   return (
@@ -64,6 +65,7 @@ export function DeadlinesBlock() {
                   <Item key={d.id} d={d} now={now} />
                 ))}
               </ul>
+              <MoreLink href="/study/deadlines">Все дедлайны и планы</MoreLink>
               {rest > 0 && (
                 <p className="type-caption text-ink-2">
                   И ещё {rest} {plural(rest, ["дедлайн", "дедлайна", "дедлайнов"])} на этой неделе.

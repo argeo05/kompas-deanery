@@ -28,22 +28,26 @@
 | Onest (статические TTF)    | 5.3.1  | OFL-1.1    | Шрифт PDF справок: latin + cyrillic в одном файле, `src/server/pdf/fonts`, лицензия OFL.txt  |
 | @react-pdf/renderer        | 4.9.0  | MIT        | PDF справок на сервере (SPEC §6.5 п.8)                                                       |
 | qrcode                     | 1.5.4  | MIT        | QR-код проверки подлинности в PDF (SPEC §6.5 п.9)                                            |
+| serwist                    | 9.5.13 | MIT        | Service worker: precache оболочки, стратегии кэша, запасная /offline (SPEC §6.13, D-014)     |
 
 ## Инструменты разработки
 
-| Пакет                                              | Лицензия     | Зачем                                                         |
-| -------------------------------------------------- | ------------ | ------------------------------------------------------------- |
-| typescript                                         | Apache-2.0   | Типы                                                          |
-| drizzle-kit                                        | MIT          | Миграции                                                      |
-| vitest, @vitejs/plugin-react                       | MIT          | Unit / integration / security                                 |
-| @playwright/test                                   | Apache-2.0   | E2E                                                           |
-| @axe-core/playwright                               | MPL-2.0      | Проверка доступности. Исключение: только в тестах, SPEC §10.9 |
-| eslint, eslint-config-next, eslint-config-prettier | MIT          | Линтер                                                        |
-| prettier, prettier-plugin-tailwindcss              | MIT          | Форматирование                                                |
-| tailwindcss, @tailwindcss/turbopack                | MIT          | Стили                                                         |
-| shadcn                                             | MIT          | Генератор компонентов                                         |
-| tsx                                                | MIT          | Скрипты db/\*                                                 |
-| dotenv                                             | BSD-2-Clause | .env для скриптов и тестов                                    |
-| ical.js                                            | MPL-2.0      | Разбор ICS в тестах DS-22. Исключение: только в тестах        |
-| @types/node, @types/react, @types/react-dom        | MIT          | Типы                                                          |
-| @types/qrcode                                      | MIT          | Типы для qrcode                                               |
+| Пакет                                                       | Лицензия                        | Зачем                                                              |
+| ----------------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------ |
+| typescript                                                  | Apache-2.0                      | Типы                                                               |
+| drizzle-kit                                                 | MIT                             | Миграции                                                           |
+| vitest, @vitejs/plugin-react                                | MIT                             | Unit / integration / security                                      |
+| @playwright/test                                            | Apache-2.0                      | E2E                                                                |
+| @axe-core/playwright                                        | MPL-2.0                         | Проверка доступности. Исключение: только в тестах, SPEC §10.9      |
+| eslint, eslint-config-next, eslint-config-prettier          | MIT                             | Линтер                                                             |
+| prettier, prettier-plugin-tailwindcss                       | MIT                             | Форматирование                                                     |
+| tailwindcss, @tailwindcss/turbopack                         | MIT                             | Стили                                                              |
+| shadcn                                                      | MIT                             | Генератор компонентов                                              |
+| tsx                                                         | MIT                             | Скрипты db/\*                                                      |
+| dotenv                                                      | BSD-2-Clause                    | .env для скриптов и тестов                                         |
+| ical.js                                                     | MPL-2.0                         | Разбор ICS в тестах DS-22. Исключение: только в тестах             |
+| @types/node, @types/react, @types/react-dom                 | MIT                             | Типы                                                               |
+| @types/qrcode                                               | MIT                             | Типы для qrcode                                                    |
+| esbuild                                                     | MIT                             | Сборка service worker в public/sw.js (scripts/build-sw.mjs, D-014) |
+| lighthouse, @lhci/cli (только через npx, не в зависимостях) | Apache-2.0                      | Замеры качества (C10, lighthouserc.json)                           |
+| Caddy 2, PostgreSQL 16 (образы Docker, не в зависимостях)   | Apache-2.0 / PostgreSQL License | Прод-контур deploy/docker-compose.prod.yml                         |

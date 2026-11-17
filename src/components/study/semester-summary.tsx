@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { GradesDTO } from "@/contracts/api";
-import { plural } from "@/lib/format";
-import { REASON_LABEL } from "./labels";
+import { formatScore, plural } from "@/lib/format";
+import { reasonText } from "./labels";
 
 // Сводка семестра (SPEC §6.4, AC-4.1): один из трёх статусов, фраза и причины списком дисциплин.
 // Без красного и без слов «двойка», «завал», «отчисление»: принцип «Не стыдим».
@@ -24,7 +24,7 @@ function headline(g: GradesDTO): string {
 }
 
 export function SemesterSummary({ grades }: { grades: GradesDTO }) {
-  const titles = new Map(grades.courses.map((c) => [c.courseId, c.title]));
+  const byId = new Map(grades.courses.map((c) => [c.courseId, c]));
   const debts = new Set(
     grades.status.reasons.filter((r) => r.reason === "DEBT").map((r) => r.courseId),
   ).size;
@@ -42,10 +42,13 @@ export function SemesterSummary({ grades }: { grades: GradesDTO }) {
           <ul className="flex flex-col gap-1.5">
             {grades.status.reasons.map((r) => (
               <li key={`${r.courseId}-${r.reason}`} className="type-body">
-                <Link href={`/study/subjects/${r.courseId}`} className="type-body-strong">
-                  {titles.get(r.courseId) ?? "Дисциплина"}
+                <Link
+                  href={`/study/subjects/${r.courseId}`}
+                  className="type-body-strong text-accent underline hover:text-accent-hover"
+                >
+                  {byId.get(r.courseId)?.title ?? "Дисциплина"}
                 </Link>
-                : {REASON_LABEL[r.reason]}
+                : {reasonText(r.reason, byId.get(r.courseId))}
               </li>
             ))}
           </ul>
@@ -59,8 +62,8 @@ export function SemesterSummary({ grades }: { grades: GradesDTO }) {
       <dl className="grid grid-cols-2 gap-3 border-t border-line pt-3 sm:grid-cols-3">
         <Stat
           label="Средний балл"
-          value={grades.averagePreliminary === null ? "—" : grades.averagePreliminary.toFixed(1)}
-          hint="предварительно"
+          value={grades.averagePreliminary === null ? "—" : formatScore(grades.averagePreliminary)}
+          hint="из 100, предварительно: по сданным работам"
         />
         <Stat
           label="До сессии"

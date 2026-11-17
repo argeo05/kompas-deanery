@@ -133,14 +133,22 @@ describe("Better Auth", () => {
   });
 
   it("лимит по логину: 21-я неудача с разных IP → 429, верный пароль тоже блокируется", async () => {
-    const login = "oleg.staff";
+    const login = "bg.st.001";
     const statuses: number[] = [];
     for (let i = 0; i < 21; i++) statuses.push((await signIn(login, "wrong-password-123")).status);
     expect(statuses.slice(0, 20).every((s) => s === 401)).toBe(true);
     expect(statuses[20]).toBe(429);
-    expect((await signIn(login, DEMO_ACCOUNTS.oleg.password)).status).toBe(429);
+    expect((await signIn(login, "kompas-background-demo")).status).toBe(429);
     // Другой логин с нового IP не затронут.
     expect((await signIn("anna.demo", DEMO_ACCOUNTS.anna.password)).status).toBe(200);
+  });
+
+  it("демо-аккаунт не попадает в лимит по логину: после 25 неудач вход жюри работает (D-017)", async () => {
+    const login = "oleg.staff";
+    const statuses: number[] = [];
+    for (let i = 0; i < 25; i++) statuses.push((await signIn(login, "wrong-password-123")).status);
+    expect(statuses.every((s) => s === 401)).toBe(true);
+    expect((await signIn(login, DEMO_ACCOUNTS.oleg.password)).status).toBe(200);
   });
 
   it("подмена X-Forwarded-For не обходит лимит по IP: ключ берётся из доверенного заголовка", async () => {

@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import { MoreLink } from "@/components/ui/more-link";
 import { CalendarClock, Megaphone, TriangleAlert } from "lucide-react";
 import { Badge, StatusBadge } from "@/components/ui/status-badge";
-import { Card } from "@/components/ui/card";
+import { Card, CardLink } from "@/components/ui/card";
 import type { HotItem, TodayDTO } from "@/contracts/api";
 import { formatDayMonth, formatWhen } from "@/lib/format";
 
@@ -13,13 +13,13 @@ export function HotList({ items, now }: { items: HotItem[]; now: Date }) {
   if (items.length === 0) return null;
   return (
     <section aria-labelledby="hot-title" className="flex flex-col gap-3">
-      <div className="flex items-baseline justify-between gap-2">
+      <div className="flex items-center justify-between gap-2">
         <h2 id="hot-title" className="type-h2">
           Горит
         </h2>
-        <Link href="/study#deadlines" className="type-caption">
+        <MoreLink href="/study/deadlines" className="-my-3">
           Все дедлайны
-        </Link>
+        </MoreLink>
       </div>
       <ul className="flex flex-col gap-2">
         {items.map((item) =>
@@ -42,12 +42,9 @@ export function HotList({ items, now }: { items: HotItem[]; now: Date }) {
           ) : (
             <li key={item.request.id}>
               <Card variant="interactive" className="gap-1 p-3">
-                <Link
-                  href={`/requests/${item.request.id}`}
-                  className="card-link type-body-strong text-ink no-underline outline-none after:absolute after:inset-0 after:rounded-card"
-                >
+                <CardLink href={`/requests/${item.request.id}`} className="type-body-strong">
                   {item.request.type.title}
-                </Link>
+                </CardLink>
                 <StatusBadge
                   kind="request"
                   status={item.request.status}

@@ -20,6 +20,8 @@ export const staffRequestsListQuery = z.object({
   status: z.enum(REQUEST_STATUSES).optional(),
   type: z.string().trim().max(50).optional(),
   overdue: z.enum(["true"]).optional(),
+  /** Только открытые заявки (очередь по умолчанию): без готовых, выданных и отклонённых. */
+  open: z.enum(["true"]).optional(),
   mine: z.enum(["true"]).optional(),
   cursor: z.string().max(200).optional(),
   sort: z.enum(["dueAt", "createdAt"]).default("createdAt"),

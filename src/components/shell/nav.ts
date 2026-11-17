@@ -73,7 +73,7 @@ export const STAFF_NAV: NavItem[] = [
     short: "Пары",
     icon: CalendarClock,
   },
-  { href: "/profile", label: "Профиль", short: "Профиль", icon: UserRound },
+  { href: "/staff/profile", label: "Профиль", short: "Профиль", icon: UserRound },
 ];
 
 export function isActive(pathname: string, item: Pick<NavItem, "href" | "match">): boolean {

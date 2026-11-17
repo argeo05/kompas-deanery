@@ -7,6 +7,7 @@ import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/a
 import { admin, username } from "better-auth/plugins";
 import { accounts, rateLimits, sessions, users, verifications } from "../../../db/schema";
 import { getDb } from "../db";
+import { isDemoLogin } from "../repositories/auth-lookup";
 import { assertTrustedProxy, ipHeaderName } from "./client-ip";
 import { hashPassword, verifyPassword } from "./password";
 import { withHashedSessionTokens } from "./session-token-hash";
@@ -78,6 +79,8 @@ const lockDemoPassword = async (ctx: HookCtx) => {
  * Лимит входа по логину (SPEC §9.7), отдельно от лимита по IP (customRules ниже, 5 за 30 с):
  * 20 НЕУДАЧНЫХ попыток в час на логин. Считаем только неудачи, иначе эксперты жюри, входящие
  * под одним демо-аккаунтом, блокировали бы друг друга. Счётчик в памяти процесса (контейнер один).
+ * Демо-аккаунты (isDemo) в лимит по логину не входят (D-017): пароли публичны на /jury, и иначе
+ * чужой за 20 попыток закрыл бы вход жюри. Их защищает лимит по IP (5 за 30 с).
  */
 const usernameFailures = new RateLimiterMemory({ points: 20, duration: 3600 });
 const loginKey = (ctx: { body?: unknown }) => {
@@ -89,6 +92,7 @@ const limitLoginByUsername = async (ctx: HookCtx) => {
   if (ctx.path !== "/sign-in/username") return;
   const key = loginKey(ctx);
   if (!key) return;
+  if (await isDemoLogin(getDb(), key)) return;
   // Попытка резервируется ДО проверки пароля: параллельный пакет не проскочит мимо лимита.
   try {
     await usernameFailures.consume(key);
@@ -101,7 +105,10 @@ const limitLoginByUsername = async (ctx: HookCtx) => {
 const refundLoginSuccess = async (ctx: HookCtx) => {
   if (ctx.path !== "/sign-in/username") return;
   const key = loginKey(ctx);
-  if (key && !(ctx.context.returned instanceof APIError)) await usernameFailures.reward(key);
+  if (!key || ctx.context.returned instanceof APIError) return;
+  // Демо-логин попытку не резервировал — возвращать нечего.
+  if (await isDemoLogin(getDb(), key)) return;
+  await usernameFailures.reward(key);
 };
 
 /** IP в sessions храним как HMAC — для отладки сессий хватает, а утечка БД не раскрывает адреса. */

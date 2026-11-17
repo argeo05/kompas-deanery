@@ -8,3 +8,4 @@ playwright-report/
 test-results/
 AGENTS.md
 opencode.json
+public/sw.js

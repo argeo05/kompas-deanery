@@ -171,6 +171,8 @@ describe("GET /api/staff/classes", () => {
       weekParity: null,
       change: null,
       group: { id: annaGroup, title: "Б-ЭК-101" },
+      // Число студентов, которым уйдёт уведомление: предупреждение в кабинете сотрудника (C6).
+      audienceSize: expect.any(Number),
     });
   });
 
@@ -398,5 +400,48 @@ describe("POST /api/staff/classes/:id/changes", () => {
       .orderBy(asc(auditLog.at))
       .limit(1);
     expect(row?.actorId).toBe(fx.users.elena);
+  });
+});
+
+describe("C6: размер аудитории и справочники сотрудника", () => {
+  it("audienceSize пары группы равен числу студентов группы, потоковой — записанным на курс", async () => {
+    const res = await apiAs("elena").get<StaffClassesDTO>(
+      `/api/staff/classes?date=${DAY}&groupId=${annaGroup}`,
+    );
+    const inGroup = await db()
+      .select({ id: studentProfiles.userId })
+      .from(studentProfiles)
+      .where(eq(studentProfiles.groupId, annaGroup));
+    expect(inGroup.length).toBeGreaterThan(0);
+    for (const c of res.body.items) expect(c.audienceSize).toBe(inGroup.length);
+  });
+
+  it("GET /api/staff/audience совпадает с числом получателей: группа Ани", async () => {
+    const inGroup = await db()
+      .select({ id: studentProfiles.userId })
+      .from(studentProfiles)
+      .where(eq(studentProfiles.groupId, annaGroup));
+    const res = await apiAs("elena").get<{ students: number }>(
+      `/api/staff/audience?groupIds=${annaGroup}`,
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.students).toBe(inGroup.length);
+    const bad = await apiAs("elena").get(`/api/staff/audience?courses=9`);
+    expect(bad.status).toBe(422);
+  });
+
+  it("GET /api/staff/reference: деканат видит только свой факультет, студенческий офис — все", async () => {
+    type Ref = {
+      faculties: { id: string }[];
+      groups: { facultyId: string }[];
+      staff: { initials: string };
+    };
+    const office = await apiAs("elena").get<Ref>("/api/staff/reference");
+    const dean = await apiAs("oleg").get<Ref>("/api/staff/reference");
+    expect(office.status).toBe(200);
+    expect(office.body.faculties.length).toBeGreaterThan(1);
+    expect(dean.body.faculties).toHaveLength(1);
+    expect(dean.body.groups.every((g) => g.facultyId === dean.body.faculties[0]!.id)).toBe(true);
+    expect(office.body.staff.initials).not.toBe("");
   });
 });

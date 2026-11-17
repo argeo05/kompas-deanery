@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Download, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
+import { DocumentDownload, SavedOfflineBadge } from "@/components/offline/document-download";
 import { ApiView } from "@/components/screens/api-view";
 import { useStudent } from "@/components/shell/student-context";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { formatDayMonthFull } from "@/lib/format";
 import { useApi } from "@/lib/use-api";
 
 // «Документы» (SPEC §6.5 п.7): выданные электронные справки, скачивание и ссылка проверки.
+// Каждая справка сохраняется на телефоне (§6.13): метка «Есть на телефоне», скачивание без сети.
 
 export function DocumentsScreen() {
   const { userId } = useStudent();
@@ -50,13 +52,9 @@ export function DocumentsScreen() {
                     <p className="type-caption text-ink-2">
                       Выдан {formatDayMonthFull(d.issuedAt)}
                     </p>
+                    <SavedOfflineBadge url={d.fileUrl} />
                     <div className="flex flex-wrap gap-2">
-                      <Button asChild>
-                        <a href={d.fileUrl} download>
-                          <Download aria-hidden />
-                          Скачать PDF
-                        </a>
-                      </Button>
+                      <DocumentDownload url={d.fileUrl} fileName={`${d.typeTitle}.pdf`} />
                       <Button asChild variant="secondary">
                         <Link href={d.verifyUrl}>
                           <ShieldCheck aria-hidden />

@@ -10,17 +10,29 @@ export const DEMO = {
   elena: { login: "elena.staff", password: "kompas-demo-elena" },
 } as const;
 
-let counter = 0;
-const nextIp = () => `192.0.2.${((Date.now() + counter++ * 7 + process.pid) % 250) + 1}`;
+// Случайный адрес из 10.0.0.0/8: при 250 адресах параллельные воркеры попадали на один IP
+// и упирались в лимит 5 входов за 30 с (C11: jury-path получал 429).
+const octet = () => Math.floor(Math.random() * 254) + 1;
+const nextIp = () => `10.${octet()}.${octet()}.${octet()}`;
 
 export async function loginAs(
   target: Page | BrowserContext,
   who: keyof typeof DEMO,
   baseURL: string,
+  options: { onboarding?: "keep" } = {},
 ): Promise<void> {
   const res = await target.request.post("/api/auth/sign-in/username", {
     data: { username: DEMO[who].login, password: DEMO[who].password },
     headers: { origin: baseURL, "x-real-ip": nextIp() },
   });
   expect(res.status(), "вход демо-аккаунта").toBe(200);
+  // Тур первого входа (C8) открывается поверх экрана и закрыл бы его от теста: помечаем пройденным,
+  // как это сделал бы студент кнопкой «Пропустить». Сам тур проверяет tests/e2e/profile.spec.ts.
+  if (who !== "elena" && options.onboarding !== "keep") {
+    const done = await target.request.patch("/api/me", {
+      data: { onboardingDone: true },
+      headers: { origin: baseURL },
+    });
+    expect(done.status(), "тур отмечен пройденным").toBe(200);
+  }
 }

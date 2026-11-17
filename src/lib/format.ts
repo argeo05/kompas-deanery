@@ -89,3 +89,27 @@ export function formatWhen(value: Date | string, nowValue: Date): string {
   if (diffDays === -1) return `вчера в ${time}`;
   return `${formatWeekdayShort(target)}, ${formatDayMonth(target)} в ${time}`;
 }
+
+/**
+ * «обновлено только что», «обновлено 12 мин назад», «обновлено вчера в 08:14» — свежесть данных
+ * (SPEC §6.13: время последнего успешного обновления, а не последней попытки).
+ */
+export function formatUpdatedAgo(at: number | Date, nowValue: Date): string {
+  const target = typeof at === "number" ? new Date(at) : at;
+  const minutes = Math.floor((nowValue.getTime() - target.getTime()) / 60_000);
+  if (minutes < 1) return "обновлено только что";
+  if (minutes < 60) return `обновлено ${minutes} мин назад`;
+  return `обновлено ${formatWhen(target, nowValue)}`;
+}
+
+const scoreFormat = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 });
+
+/** Баллы с десятичной запятой: «11,5», «24». */
+export function formatScore(value: number): string {
+  return scoreFormat.format(value);
+}
+
+/** Доля 0,87 → «87%» (вверх: «нужно 86,2%» честнее показать как 87%). */
+export function formatNeedShare(share: number): string {
+  return `${Math.ceil(share * 100 - 1e-9)}%`;
+}

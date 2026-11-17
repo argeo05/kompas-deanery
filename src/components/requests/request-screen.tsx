@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowLeft, Download, MapPin } from "lucide-react";
+import { ArrowLeft, MapPin } from "lucide-react";
+import { DocumentDownload } from "@/components/offline/document-download";
 import { ApiView } from "@/components/screens/api-view";
 import { useStudent } from "@/components/shell/student-context";
 import { Button } from "@/components/ui/button";
@@ -11,11 +12,13 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { InlineError } from "@/components/ui/error-state";
 import { Sheet } from "@/components/ui/sheet";
 import { LoadingRegion, SkeletonCard } from "@/components/ui/skeleton";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { OutboxBadge, StatusBadge } from "@/components/ui/status-badge";
 import { useToast } from "@/components/ui/toast";
 import type { MessageDTO, RequestDetailDTO } from "@/contracts/api";
 import { formatDateLong, formatDayMonth, formatTimeMsk, plural } from "@/lib/format";
 import { DELIVERY_TEXT, REJECT_REASON_TEXT, statusLine } from "@/lib/request-copy";
+import type { OutboxItem } from "@/lib/offline/outbox";
+import { queueAction, removeQueued, useOutbox } from "@/lib/offline/use-outbox";
 import { useApi } from "@/lib/use-api";
 import { Tracker } from "./tracker";
 
@@ -24,6 +27,18 @@ import { Tracker } from "./tracker";
 const MESSAGES_OPEN = new Set(["submitted", "in_progress", "needs_info", "ready"]);
 
 function Messages({ request, onSent }: { request: RequestDetailDTO; onSent: () => void }) {
+  const { userId } = useStudent();
+  const isMine = React.useCallback(
+    (i: OutboxItem) => i.kind === "request.message" && i.target === request.id,
+    [request.id],
+  );
+  const queued = useOutbox(userId, isMine);
+  const queuedCount = React.useRef(queued.length);
+  // Ответ из очереди ушёл на сервер — перечитываем заявку (статус и переписку).
+  React.useEffect(() => {
+    if (queued.length < queuedCount.current) onSent();
+    queuedCount.current = queued.length;
+  }, [queued.length, onSent]);
   const [text, setText] = React.useState("");
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -38,21 +53,46 @@ function Messages({ request, onSent }: { request: RequestDetailDTO; onSent: () =
     if (!body || pending) return;
     setPending(true);
     setError(null);
-    try {
-      const res = await fetch(`/api/me/requests/${request.id}/messages`, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ body }),
+    const key = crypto.randomUUID();
+    const url = `/api/me/requests/${request.id}/messages`;
+    // Без сети ответ встаёт в очередь с тем же ключом и уйдёт сам (SPEC §6.13 п.4).
+    const queue = async () => {
+      await queueAction({
+        id: key,
+        userId,
+        kind: "request.message",
+        url,
+        body: { body },
+        label: needsReply ? "Ответ на уточнение" : "Сообщение по заявке",
+        target: request.id,
       });
+      setText("");
+      toast({
+        tone: "info",
+        title: "Отправим, когда появится сеть",
+        description: "Текст сохранён на телефоне.",
+      });
+    };
+    try {
+      if (!navigator.onLine) return await queue();
+      let res: Response;
+      try {
+        res = await fetch(url, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "content-type": "application/json", "idempotency-key": key },
+          body: JSON.stringify({ body }),
+          signal: AbortSignal.timeout(15_000),
+        });
+      } catch {
+        return await queue();
+      }
       if (res.status !== 201) throw new Error(String(res.status));
       setText("");
       toast({ tone: "success", title: needsReply ? "Ответ отправлен" : "Сообщение отправлено" });
       onSent();
     } catch {
-      setError(
-        "Не получилось отправить. Текст остался в поле: проверьте интернет и нажмите «Отправить» ещё раз.",
-      );
+      setError("Не получилось отправить. Текст остался в поле — отправьте его ещё раз.");
     } finally {
       setPending(false);
     }
@@ -60,11 +100,11 @@ function Messages({ request, onSent }: { request: RequestDetailDTO; onSent: () =
 
   return (
     <section aria-labelledby="messages-title" className="flex flex-col gap-3">
-      <h2 id="messages-title" className="type-h2">
+      <h2 id="messages-title" tabIndex={-1} className="type-h2 outline-none">
         Переписка
       </h2>
       {request.messages.length === 0 ? (
-        <p className="text-ink-2">Сообщений пока нет.</p>
+        queued.length === 0 && <p className="text-ink-2">Сообщений пока нет.</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {request.messages.map((m: MessageDTO) => (
@@ -82,6 +122,38 @@ function Messages({ request, onSent }: { request: RequestDetailDTO; onSent: () =
                 {formatTimeMsk(m.createdAt)}
               </p>
               <p className="whitespace-pre-wrap">{m.body}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+      {queued.length > 0 && (
+        <ul className="flex flex-col gap-2">
+          {queued.map((m) => (
+            <li
+              key={m.id}
+              data-testid="queued-message"
+              className="flex flex-col gap-2 self-end rounded-card bg-surface-2 p-3"
+            >
+              <p className="type-caption text-ink-2">Вы</p>
+              <p className="whitespace-pre-wrap">{(m.body as { body: string }).body}</p>
+              <OutboxBadge state={m.state} />
+              {m.state === "failed" && (
+                <>
+                  <p className="type-caption">{m.error}</p>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="self-start"
+                    aria-label="Удалить неотправленное сообщение"
+                    onClick={() => {
+                      void removeQueued(m.id);
+                      document.getElementById("messages-title")?.focus();
+                    }}
+                  >
+                    Удалить
+                  </Button>
+                </>
+              )}
             </li>
           ))}
         </ul>
@@ -170,12 +242,13 @@ function Actions({ request, reload }: { request: RequestDetailDTO; reload: () =>
   return (
     <div className="flex flex-col gap-3">
       {(status === "ready" || status === "issued") && document && (
-        <Button asChild size="lg" className="self-start">
-          <a href={document.fileUrl} download data-testid="download-pdf">
-            <Download aria-hidden />
-            Скачать PDF
-          </a>
-        </Button>
+        <DocumentDownload
+          url={document.fileUrl}
+          fileName={`${request.type.title}.pdf`}
+          size="lg"
+          className="self-start"
+          testId="download-pdf"
+        />
       )}
       {status === "issued" && document && (
         <Button asChild variant="secondary" className="self-start">

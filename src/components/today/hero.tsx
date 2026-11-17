@@ -16,7 +16,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Illustration } from "@/components/ui/illustrations";
 import type { ClassDTO, Hero, TodayDTO } from "@/contracts/api";
-import { formatDuration, formatTimeMsk, formatWeekdayLong } from "@/lib/format";
+import { formatDuration, formatTimeMsk, formatWeekdayLong, plural } from "@/lib/format";
 import { downloadClassIcs } from "@/lib/ics-client";
 
 // «Главное сейчас» (SPEC §6.2 п.2): одна карточка, содержимое выбирает сервер (pickHero),
@@ -46,20 +46,32 @@ function nextClassPhrase(nextClassAt: string | null, now: Date): { short: string
 }
 
 function HeroActions({ cls }: { cls: ClassDTO }) {
+  // Кнопки переносятся на вторую строку, а не вылезают за карточку: 320 px, крупный текст (1.4.10).
+  // Узкие отступы держат обе кнопки в одной строке на 360 px (AC-2.1: две пары над сгибом).
   return (
-    <CardFooter className="flex-nowrap *:flex-1">
+    <CardFooter className="*:flex-auto *:gap-1.5 *:px-2.5">
       <Link href={openHref(cls)} className={buttonVariants({ size: "md" })}>
         Открыть
+        <span className="sr-only">: {cls.course.title}</span>
         <ChevronRight aria-hidden />
       </Link>
       <Button
         variant="secondary"
-        aria-label="Добавить в календарь"
+        aria-label={`В календарь: ${cls.course.title}`}
         onClick={() => downloadClassIcs(cls)}
       >
         <CalendarPlus aria-hidden />В календарь
       </Button>
     </CardFooter>
+  );
+}
+
+/** Ближайшая пара сегодня: идёт сейчас или начнётся первой; отменённые не считаются. */
+function nearestClass(classes: ClassDTO[], now: Date): ClassDTO | null {
+  return (
+    classes
+      .filter((c) => c.change?.type !== "cancelled" && Date.parse(c.endsAt) > now.getTime())
+      .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt))[0] ?? null
   );
 }
 
@@ -119,6 +131,13 @@ function HeroContent({ today, now }: { today: TodayDTO; now: Date }) {
             : meta === "teacher_changed"
               ? "Другой преподаватель"
               : "Новая пара";
+    // Крупное время — только у ближайшей пары (C11, CW-01). Если изменилась не она,
+    // изменение показываем компактно, а ниже — ближайшую пару с крупным временем.
+    const nearest = nearestClass(today.classes, now);
+    const other = nearest && nearest.id !== cls.id ? nearest : null;
+    const moreChanges = today.classes.filter(
+      (c) => c.id !== cls.id && c.change && !c.change.seen,
+    ).length;
     return (
       <Card
         variant="highlight"
@@ -134,13 +153,38 @@ function HeroContent({ today, now }: { today: TodayDTO; now: Date }) {
           </h2>
         </CardHeader>
         <CardContent>
-          {cls.change?.type !== "cancelled" && <HeroTime cls={cls} />}
+          {!other && cls.change?.type !== "cancelled" && <HeroTime cls={cls} />}
           <p className="type-body-strong tabular">
             {timeRange(cls)} · {roomText(cls.room)}
           </p>
-          <ClassFacts cls={cls} withRoom={false} />
+          {!other && <ClassFacts cls={cls} withRoom={false} />}
+          {moreChanges > 0 && (
+            <p className="type-caption text-ink-2" data-testid="hero-more-changes">
+              {moreChanges === 1
+                ? "Сегодня изменилась ещё одна пара — она отмечена в списке ниже."
+                : `Сегодня изменились ещё ${moreChanges} ${plural(moreChanges, ["пара", "пары", "пар"])} — они отмечены в списке ниже.`}
+            </p>
+          )}
         </CardContent>
-        <HeroActions cls={cls} />
+        {other && (
+          <CardContent className="border-t border-line pt-3" data-testid="hero-nearest">
+            <p className="type-label text-accent">
+              {Date.parse(other.startsAt) <= now.getTime()
+                ? "Сейчас идёт"
+                : `Ближайшая пара · через ${formatDuration(minutesBetween(now, other.startsAt))}`}
+            </p>
+            <h3 className="type-h3 break-words hyphens-auto">
+              <span className="sr-only">Ближайшая пара: </span>
+              {other.course.title}
+            </h3>
+            <HeroTime
+              cls={other}
+              detail={`${timeRange(other)} · ${CLASS_TYPE_LABEL[other.type]}`}
+            />
+            <ClassFacts cls={other} />
+          </CardContent>
+        )}
+        <HeroActions cls={other ?? cls} />
       </Card>
     );
   }

@@ -16,3 +16,22 @@ export function parseTheme(value: string | undefined): ThemePref {
 export function preferenceCookie(name: string, value: string): string {
   return `${name}=${value}; Path=/; Max-Age=31536000; SameSite=Lax`;
 }
+
+// Размер текста и анимации (SPEC §6.11 п.2): тоже cookie, чтобы сервер сразу поставил атрибуты на <html>.
+export const TEXT_SIZES = ["standard", "large"] as const;
+export type TextSizePref = (typeof TEXT_SIZES)[number];
+export const TEXT_COOKIE = "kompas-text";
+
+export const MOTIONS = ["system", "reduce"] as const;
+export type MotionPref = (typeof MOTIONS)[number];
+export const MOTION_COOKIE = "kompas-motion";
+
+export function parseTextSize(value: string | undefined): TextSizePref {
+  return (TEXT_SIZES as readonly string[]).includes(value ?? "")
+    ? (value as TextSizePref)
+    : "standard";
+}
+
+export function parseMotion(value: string | undefined): MotionPref {
+  return (MOTIONS as readonly string[]).includes(value ?? "") ? (value as MotionPref) : "system";
+}

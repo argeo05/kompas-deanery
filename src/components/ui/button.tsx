@@ -5,7 +5,7 @@ import { Slot } from "radix-ui";
 import { LoaderCircle } from "lucide-react";
 
 // Кнопка (SPEC §7.4): primary / secondary / ghost / danger (--coral, не --alert: D-009); sm / md / lg.
-// Цель касания ≥ 44 px на мобильной; sm становится компактнее только на десктопе.
+// Цель касания ≥ 44 px на любой ширине (SPEC §7.7, C11): sm отличается шрифтом и отступами, не высотой.
 const buttonVariants = cva(
   [
     "relative inline-flex shrink-0 items-center justify-center gap-2 rounded-control text-center whitespace-nowrap select-none",
@@ -26,14 +26,13 @@ const buttonVariants = cva(
         link: "px-0 text-accent underline hover:not-aria-disabled:text-accent-hover",
       },
       size: {
-        sm: "type-button-sm min-h-11 px-3 lg:min-h-9",
+        sm: "type-button-sm min-h-11 px-3",
         md: "type-button min-h-11 px-4",
         lg: "type-button min-h-12 px-6",
         icon: "type-button size-11",
       },
     },
-    // Отдельная ссылка-кнопка держит 44 px на мобильной; внутри текста используйте обычный <a>.
-    compoundVariants: [{ variant: "link", className: "lg:min-h-0" }],
+    // Отдельная ссылка-кнопка держит 44 px; внутри абзаца используйте обычный <a>.
     defaultVariants: { variant: "primary", size: "md" },
   },
 );
