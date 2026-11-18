@@ -6,6 +6,7 @@ import { formatRequestNumber } from "../../src/lib/request-number";
 import { hashPassword } from "../../src/server/auth/password";
 import { docPublicCode, docTokenHash } from "../../src/server/services/verify-code";
 import { addWorkdays } from "../../src/lib/workdays";
+import { formatDayMonthFull } from "../../src/lib/format";
 import { mskParts, toMsk } from "../../src/lib/time";
 import type { SeedDates } from "./dates";
 import type { SeedDb } from "./demo-accounts";
@@ -105,17 +106,79 @@ const REQUEST_STATUS_PLAN: Array<"needs_info" | "ready" | "issued" | "rejected" 
 const REJECT_REASONS = ["INCOMPLETE", "NOT_ELIGIBLE", "DUPLICATE", "OTHER"] as const;
 const DAY_TIMES = ["10:15", "12:40", "09:45", "16:20", "14:05"] as const;
 
-const ANNOUNCEMENT_TITLES = [
-  "Перенос пары первой подгруппы",
-  "Дедлайн выбора курсов по выбору",
-  "Сроки выплат стипендии",
-  "Собрание академической группы",
-  "Перерыв в работе Wi-Fi в корпусе",
-  "Новое время консультаций",
-  "Запись на элективы открыта",
-  "Технический перерыв в библиотеке",
-  "Расписание коллоквиумов",
-  "Продление часов деканата",
+// Примеры заполнения тех же полей, которые студент видит в форме соответствующего типа.
+const REQUEST_EXAMPLES: Record<string, Record<string, string>> = {
+  study_cert: { destination: "В банк", need_grades: "нет" },
+  military_cert: { military_office: "Районный военкомат по месту регистрации" },
+  scholarship_cert: { period: "За предыдущий семестр", destination: "В отдел социальной защиты" },
+  pension_cert: { period: "За текущий учебный год" },
+  transcript: { semester: "текущий семестр", destination: "Для заявки на программу обмена" },
+  dorm_cert: { destination: "продление" },
+  app_academic_leave: {
+    reason: "Прошу согласовать отпуск на один семестр по семейным обстоятельствам.",
+  },
+  app_individual_plan: {
+    reason: "Во время стажировки прошу согласовать индивидуальные даты сдачи работ.",
+  },
+  app_free: { body: "Прошу назначить встречу в студенческом офисе после последней пары." },
+  data_fix: {
+    field: "group",
+    comment:
+      "После перевода в другую группу в профиле осталась прежняя. Прошу сверить запись с приказом о переводе.",
+  },
+};
+
+const ANNOUNCEMENTS = [
+  {
+    title: "Как вернуть или продлить учебник",
+    body: (date: string) =>
+      `До ${date}, 18:00, верните учебники за прошлый модуль на стойку выдачи. Чтобы продлить книгу, возьмите с собой студенческий билет.`,
+  },
+  {
+    title: "Встреча с кураторами элективов",
+    body: (date: string) =>
+      `${date} в 16:00 в читальном зале кураторы разберут нагрузку и расписание элективов. Возьмите список курсов, между которыми выбираете. Запись на встречу свободная.`,
+  },
+  {
+    title: "Когда проверить поступление стипендии",
+    body: (date: string) =>
+      `Стипендию зачислят до 18:00 ${date}. Если к этому времени выплаты нет, откройте «Связь с деканатом» и укажите месяц выплаты. Номер банковской карты указывать не нужно.`,
+  },
+  {
+    title: "Собрание группы перед сессией",
+    body: (date: string) =>
+      `${date} в 15:00 староста встретит группу у читального зала. Перед встречей откройте «Учёба» → «Сессия» и запишите вопросы о консультациях и экзаменах.`,
+  },
+  {
+    title: "В корпусе А будет перерыв в работе Wi-Fi",
+    body: (date: string) =>
+      `${date} с 09:00 до 10:00 в корпусе А обновят сеть. Откройте «Сегодня» и «Пары» до начала работ, чтобы сохранить расписание на телефоне.`,
+  },
+  {
+    title: "Консультация по оформлению справок",
+    body: (date: string) =>
+      `${date} с 14:00 до 16:00 сотрудник студенческого офиса поможет выбрать тип справки. Если вы уже подали заявку, найдите её номер в разделе «Заявки» и возьмите его на консультацию.`,
+  },
+  {
+    title: "Студенческий офис поможет выбрать электив",
+    body: (date: string) =>
+      `До ${date}, 17:00, можно обсудить выбор электива в студенческом офисе. Возьмите расписание недели и названия двух интересующих курсов, чтобы проверить пересечения по времени.`,
+  },
+  {
+    title: "Выдача книг откроется после полудня",
+    body: (date: string) =>
+      `${date} с 09:00 до 12:00 стойка выдачи закрыта на инвентаризацию. Для возврата приходите после 12:00 со студенческим билетом. Читальный зал открыт с утра.`,
+  },
+  {
+    title: "Разбор задач перед коллоквиумом",
+    body: (date: string) =>
+      `${date} в 16:30 в читальном зале пройдёт разбор задач. Выберите одну задачу из семинара, с которой возникло затруднение, и принесите черновик решения.`,
+  },
+  {
+    title: "Студенческий офис выдаёт справки вечером",
+    body: (date: string) =>
+      `${date} окно выдачи будет открыто до 19:00. Если выбрали бумажный экземпляр, дождитесь статуса «Готова» и возьмите студенческий билет. Электронную справку можно скачать в «Документах».`,
+  },
 ] as const;
 
 const pick = <T>(arr: readonly T[], i: number): T => arr[i % arr.length]!;
@@ -441,25 +504,79 @@ export async function seedPopulation(db: SeedDb, d: SeedDates) {
   const seqOf = (i: number) => Number(seqRows[i]?.seq ?? i + 1);
 
   const requestInserts: Array<typeof schema.requests.$inferInsert> = [];
+  const eventValues: Array<typeof schema.requestEvents.$inferInsert> = [];
+  const documentValues: Array<typeof schema.documents.$inferInsert> = [];
+  const documentTypes = REQUEST_TYPES.filter((type) => type.deliveryOptions.length > 0);
   for (let i = 0; i < REQUESTS_COUNT; i++) {
     const status = REQUEST_STATUS_PLAN[i]!;
-    const type = REQUEST_TYPES[i % REQUEST_TYPES.length]!;
-    const createdOffset = -(i % 24) - 1;
+    const type = pick(status === "issued" ? documentTypes : REQUEST_TYPES, i);
+    // Последняя выдача приходится самое позднее на вчера, в том числе при ночном пересеве.
+    const createdOffset = -(i % 24) - 3;
     const createdAt = d.at(createdOffset, pick(DAY_TIMES, i));
+    const takenAt = d.at(createdOffset + 1, "09:00");
+    const decidedAt = d.at(createdOffset + 1, "11:30");
     const dueAt = new Date(addWorkdays(toMsk(createdAt), type.slaDays));
-    const field = type.formSchema.find((f) => f.required) ?? type.formSchema[0];
-    const payload: Record<string, string | number> = {};
-    if (field) {
-      payload[field.name] =
-        field.kind === "select" ? (field.options?.[0] ?? "") : "Пример заполнения (демо-данные)";
+    const student = bgRows[i % bgRows.length]!;
+    const studentId = student.id;
+    const requestId = randomUUID();
+    const firstCourseId = courseIdsOfGroup.get(student.groupId)![0];
+    const payload =
+      type.code === "app_retake"
+        ? {
+            course: courses.find((course) => course.id === firstCourseId)!.title,
+            attempt: "первая",
+          }
+        : REQUEST_EXAMPLES[type.code];
+    if (!payload) throw new Error(`Нет примера заявки для ${type.code}`);
+
+    const history: Array<typeof schema.requestEvents.$inferInsert> = [];
+    function addEvent(
+      toStatus: typeof schema.requestEvents.$inferInsert.toStatus,
+      at: Date,
+      actorId: string,
+      comment?: string,
+    ) {
+      history.push({
+        requestId,
+        fromStatus: history.at(-1)?.toStatus ?? null,
+        toStatus,
+        actorId,
+        createdAt: at,
+        comment,
+      });
+    }
+
+    addEvent("submitted", createdAt, studentId);
+    if (status === "cancelled") {
+      addEvent("cancelled", takenAt, studentId);
+    } else {
+      addEvent("in_progress", takenAt, staffUser!.id);
+      const comment = {
+        needs_info: "К какой дате нужен результат? Укажите число и месяц в ответе.",
+        rejected: "Нужно исправить и подать заново",
+        ready: undefined,
+        issued: undefined,
+      }[status];
+      addEvent(status === "issued" ? "ready" : status, decidedAt, staffUser!.id, comment);
+    }
+    if (status === "issued") {
+      const issuedAt = d.at(createdOffset + 2, "15:00");
+      addEvent("issued", issuedAt, staffUser!.id);
+      const documentId = randomUUID();
+      documentValues.push({
+        id: documentId,
+        requestId,
+        studentId,
+        fileKey: `documents/${requestId}/document.pdf`,
+        verifyTokenHash: docTokenHash(docPublicCode(documentId)),
+        issuedAt,
+      });
     }
     const delivery = type.deliveryOptions[0] ?? null;
-    let updatedAt = createdAt;
-    if (status === "issued") updatedAt = d.at(createdOffset + 2, "15:00");
-    else if (status !== "cancelled") updatedAt = d.at(createdOffset + 1, "11:30");
     requestInserts.push({
+      id: requestId,
       number: formatRequestNumber(createdAt, seqOf(i)),
-      studentId: bgRows[i % bgRows.length]!.id,
+      studentId,
       typeCode: type.code,
       status,
       payload,
@@ -467,89 +584,14 @@ export async function seedPopulation(db: SeedDb, d: SeedDates) {
       copies: delivery ? (i % 3) + 1 : 1,
       createdAt,
       dueAt,
-      updatedAt,
+      updatedAt: history[history.length - 1]!.createdAt,
       studentSeenAt: createdAt,
-      assigneeId: status === "cancelled" ? null : (staffUser?.id ?? null),
+      assigneeId: status === "cancelled" ? null : staffUser!.id,
       rejectReason: status === "rejected" ? REJECT_REASONS[i % REJECT_REASONS.length] : null,
     });
+    eventValues.push(...history);
   }
-  const requestRows = await db.insert(schema.requests).values(requestInserts).returning();
-
-  // События заявок по цепочке (DS-06): submitted → in_progress → финал; cancel — только из submitted.
-  const eventValues: Array<typeof schema.requestEvents.$inferInsert> = [];
-  const documentValues: Array<typeof schema.documents.$inferInsert> = [];
-  requestRows.forEach((r, i) => {
-    const source = requestInserts[i]!;
-    const created_at = source.createdAt!;
-    eventValues.push({
-      requestId: r.id,
-      fromStatus: null,
-      toStatus: "submitted",
-      actorId: r.studentId,
-      createdAt: created_at,
-    });
-    if (r.status === "cancelled") return;
-    const createdOffset = (i % 24) + 1;
-    eventValues.push({
-      requestId: r.id,
-      fromStatus: "submitted",
-      toStatus: "in_progress",
-      actorId: staffUser?.id ?? null,
-      createdAt: d.at(createdOffset, "09:00"),
-    });
-    const progressedAt = d.at(createdOffset, "11:30");
-    if (r.status === "needs_info") {
-      eventValues.push({
-        requestId: r.id,
-        fromStatus: "in_progress",
-        toStatus: "needs_info",
-        actorId: staffUser?.id ?? null,
-        comment: "Нужно уточнить данные для оформления",
-        createdAt: progressedAt,
-      });
-      return;
-    }
-    eventValues.push({
-      requestId: r.id,
-      fromStatus: "in_progress",
-      toStatus: "ready",
-      actorId: staffUser?.id ?? null,
-      createdAt: progressedAt,
-    });
-    if (r.status === "rejected") {
-      eventValues.push({
-        requestId: r.id,
-        fromStatus: "in_progress",
-        toStatus: "rejected",
-        actorId: staffUser?.id ?? null,
-        comment: "Нужно исправить и подать заново",
-        createdAt: progressedAt,
-      });
-      return;
-    }
-    if (r.status === "issued") {
-      const issuedAt = d.at(createdOffset + 2, "15:00");
-      eventValues.push({
-        requestId: r.id,
-        fromStatus: "ready",
-        toStatus: "issued",
-        actorId: staffUser?.id ?? null,
-        createdAt: issuedAt,
-      });
-      // DS-23: в БД — SHA-256 публичного кода, а код восстанавливается из id документа
-      // и VERIFY_SECRET (src/server/services/verify-code.ts) — иначе ссылки /verify/<code>
-      // из списка DS-19 не будут находить засеянные документы.
-      const documentId = randomUUID();
-      documentValues.push({
-        id: documentId,
-        requestId: r.id,
-        studentId: r.studentId,
-        fileKey: `documents/${r.id}/document.pdf`,
-        verifyTokenHash: docTokenHash(docPublicCode(documentId)),
-        issuedAt,
-      });
-    }
-  });
+  await db.insert(schema.requests).values(requestInserts);
   await db.insert(schema.requestEvents).values(eventValues);
   await db.insert(schema.documents).values(documentValues);
 
@@ -557,18 +599,20 @@ export async function seedPopulation(db: SeedDb, d: SeedDates) {
   // (критерии аудитории пересекаются, DS-31: «факультет + чужая группа» не видел бы никто).
   const announcementValues = Array.from({ length: ANNOUNCEMENTS_COUNT }, (_, i) => {
     const publishAt = d.at(-(i % 20) - 1, "09:00");
+    const notice = pick(ANNOUNCEMENTS, i);
+    const eventDay = (i % 7) + 1;
     return {
       authorUnitId: officeUnit!.id,
       createdBy: staffUser!.id,
-      title: `${pick(ANNOUNCEMENT_TITLES, i)} (${i + 1})`,
-      bodyMd: `**${pick(ANNOUNCEMENT_TITLES, i)} (демо).**\n\nУсловный текст для демонстрации концепта. Детали уточняются в студенческом офисе.`,
+      title: notice.title,
+      bodyMd: notice.body(formatDayMonthFull(d.at(eventDay, "12:00"))),
       audience:
         i % 2 === 0
           ? { facultyIds: [faculties[i % 3]!.id] }
           : { groupIds: [groups[i % groups.length]!.id] },
       important: i % 4 === 0,
       publishAt,
-      expiresAt: d.at(30, "18:00"),
+      expiresAt: d.at(eventDay, "23:59"),
       createdAt: publishAt,
     };
   });
