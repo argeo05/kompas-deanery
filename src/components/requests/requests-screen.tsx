@@ -12,7 +12,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingRegion, SkeletonCard } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { Paged, RequestDTO, RequestsTab, RequestTypesDTO } from "@/contracts/api";
-import { formatDayMonthFull, plural } from "@/lib/format";
+import { formatDayMonthFull, formatTimeMsk, plural } from "@/lib/format";
 import { badgeLabel } from "@/lib/request-copy";
 import { useApi } from "@/lib/use-api";
 import { cn } from "cn";
@@ -44,6 +44,7 @@ function RequestRow({ r }: { r: RequestDTO }) {
         <h2 className="min-w-0 type-h3">
           <CardLink href={`/requests/${r.id}`}>
             {r.type.title}
+            <span className="sr-only">, {r.number}</span>
             {r.unseen && <span className="sr-only">, есть новое</span>}
           </CardLink>
         </h2>
@@ -54,7 +55,12 @@ function RequestRow({ r }: { r: RequestDTO }) {
           </span>
         )}
       </div>
-      <p className="type-caption text-ink-2">{r.number}</p>
+      <p className="type-caption text-ink-2">
+        <span>{r.number}</span> · Подана{" "}
+        <time dateTime={r.createdAt}>
+          {formatDayMonthFull(r.createdAt)} в {formatTimeMsk(r.createdAt)}
+        </time>
+      </p>
       <StatusBadge kind="request" status={r.status} label={badgeLabel(r)} />
       {due && (
         <p className={cn("type-caption", r.overdue ? "text-warn-fg" : "text-ink-2")}>{due}</p>

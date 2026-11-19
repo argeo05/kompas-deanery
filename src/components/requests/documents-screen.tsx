@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
+import { Plus, ShieldCheck } from "lucide-react";
 import { DocumentDownload, SavedOfflineBadge } from "@/components/offline/document-download";
 import { ApiView } from "@/components/screens/api-view";
 import { useStudent } from "@/components/shell/student-context";
@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingRegion, SkeletonCard } from "@/components/ui/skeleton";
 import type { DocumentsDTO } from "@/contracts/api";
-import { formatDayMonthFull } from "@/lib/format";
+import { formatDayMonthFull, formatTimeMsk } from "@/lib/format";
 import { useApi } from "@/lib/use-api";
 
 // «Документы» (SPEC §6.5 п.7): выданные электронные справки, скачивание и ссылка проверки.
@@ -21,7 +21,15 @@ export function DocumentsScreen() {
   const api = useApi<DocumentsDTO>("/api/me/documents", { scope: userId, refreshMs: 60_000 });
   return (
     <>
-      <h1 className="type-h1">Документы</h1>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="type-h1">Документы</h1>
+        <Button asChild>
+          <Link href="/requests/new">
+            <Plus aria-hidden />
+            Заказать справку
+          </Link>
+        </Button>
+      </header>
       <ApiView
         api={api}
         skeleton={
@@ -32,15 +40,7 @@ export function DocumentsScreen() {
       >
         {({ items }) =>
           items.length === 0 ? (
-            <EmptyState
-              illustration="no-requests"
-              title="Документов пока нет"
-              action={
-                <Button asChild>
-                  <Link href="/requests/new">Заказать справку</Link>
-                </Button>
-              }
-            >
+            <EmptyState illustration="no-requests" title="Документов пока нет">
               Готовые документы появятся здесь, их можно будет скачать.
             </EmptyState>
           ) : (
@@ -50,7 +50,10 @@ export function DocumentsScreen() {
                   <Card data-testid="document-row">
                     <h2 className="type-h3">{d.typeTitle}</h2>
                     <p className="type-caption text-ink-2">
-                      Выдан {formatDayMonthFull(d.issuedAt)}
+                      Выдан{" "}
+                      <time dateTime={d.issuedAt}>
+                        {formatDayMonthFull(d.issuedAt)} в {formatTimeMsk(d.issuedAt)}
+                      </time>
                     </p>
                     <SavedOfflineBadge url={d.fileUrl} />
                     <div className="flex flex-wrap gap-2">
@@ -62,6 +65,18 @@ export function DocumentsScreen() {
                         </Link>
                       </Button>
                     </div>
+                    <Link
+                      href={`/requests/${d.requestId}`}
+                      prefetch={false}
+                      className="inline-flex min-h-11 items-center self-start text-accent underline"
+                    >
+                      Открыть заявку
+                      <span className="sr-only">
+                        {" "}
+                        на документ «{d.typeTitle}» от {formatDayMonthFull(d.issuedAt)},{" "}
+                        {formatTimeMsk(d.issuedAt)}
+                      </span>
+                    </Link>
                   </Card>
                 </li>
               ))}

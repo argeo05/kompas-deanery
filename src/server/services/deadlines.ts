@@ -17,15 +17,15 @@ import type { MyScheduleKeys } from "../repositories/schedule";
 import { listMyClasses, listMyCourseIds } from "../repositories/schedule";
 import type { Tx } from "../db";
 import { HttpError, notFound } from "../http";
-import { renderNotification } from "../notify-templates";
 import {
   findDeadlineForStudent,
   findPlanForStudent,
+  findLatestPlanForDeadline,
   listDeadlinesForStudent,
   listPlansForStudent,
 } from "../repositories/deadlines";
 import type { DeadlinesListQuery } from "../schemas/deadlines";
-import { notify } from "./notify";
+import { syncDeadlineReminders } from "./deadline-reminders";
 
 // Сервис дедлайнов и планов студента (DS-15, SPEC §6.7):
 //   - список собирается из таблицы deadlines; для source = assessment/admin строки
@@ -34,7 +34,7 @@ import { notify } from "./notify";
 //     остальное — «Позже» (later), отмеченные «Сделал» — «Сделано» (done);
 //   - риск = не сделан и осталось ≤ 48 ч (та же граница, что у «горит»);
 //   - план «если–то» — только для дедлайна со звёздочкой или с риском, напоминание —
-//     через notify (DS-18) по ключу plan_reminder.
+//     на начало выбранного окна с учётом тихих часов.
 
 const HOUR = 3_600_000;
 /** Граница «горит» и «риск»: 48 часов от текущего момента. */
@@ -152,6 +152,7 @@ export async function createMyDeadline(
       createdAt: at,
     })
     .returning();
+  await syncDeadlineReminders(tx, studentId, at);
   return toDeadlineDTO({ deadline: row, courseTitle: null }, new Map(), at);
 }
 
@@ -162,7 +163,7 @@ export async function changeMyDeadline(
   deadlineId: string,
   action: DeadlineAction,
 ): Promise<DeadlineDTO | null> {
-  const row = await findDeadlineForStudent(tx, studentId, deadlineId);
+  const row = await findDeadlineForStudent(tx, studentId, deadlineId, true);
   if (!row) return null;
   const at = now();
   const values = {
@@ -174,6 +175,7 @@ export async function changeMyDeadline(
     .set(values)
     .where(and(eq(deadlines.id, deadlineId), eq(deadlines.studentId, studentId)));
 
+  if (action === "done" || action === "undone") await syncDeadlineReminders(tx, studentId, at);
   const planById = latestPlans(await listPlansForStudent(tx, studentId));
   return toDeadlineDTO({ ...row, deadline: { ...row.deadline, ...values } }, planById, at);
 }
@@ -208,14 +210,14 @@ export async function findMyDeadlineWindows(
 /**
  * POST /api/me/plans — план «если–то» к своему дедлайну. Правило SPEC §6.7 п.8:
  * дедлайн должен быть со звёздочкой или в риске — иначе 422 VALIDATION { reason: "NOT_STARRED" }.
- * Создаёт личное напоминание по плану (ключ plan_reminder; deliverAt считает notify по DS-02).
+ * Замена плана и перенос его напоминания проходят в одной транзакции.
  */
 export async function createMyPlan(
   tx: Tx,
   keys: MyScheduleKeys,
   body: PlanCreateBody,
 ): Promise<PlanDTO> {
-  const row = await findDeadlineForStudent(tx, keys.studentId, body.deadlineId);
+  const row = await findDeadlineForStudent(tx, keys.studentId, body.deadlineId, true);
   // В теле чужой или несуществующий deadlineId — тот же 404, что и в пути.
   if (!row) notFound();
   const at = now();
@@ -223,33 +225,36 @@ export async function createMyPlan(
     throw new HttpError(422, "VALIDATION", { reason: "NOT_STARRED" });
   }
 
+  const previous = await findLatestPlanForDeadline(tx, keys.studentId, body.deadlineId);
+  const startsAt = new Date(body.startsAt);
+  const endsAt = new Date(body.endsAt);
+  if (
+    previous &&
+    previous.startsAt.getTime() === startsAt.getTime() &&
+    previous.endsAt.getTime() === endsAt.getTime() &&
+    previous.place === body.place &&
+    previous.firstAction === body.firstAction
+  )
+    return toPlanDTO(previous);
+
+  // Даже при одинаковом показании часов последний сохранённый план должен попасть в карточку.
+  const createdAt = previous
+    ? new Date(Math.max(at.getTime(), previous.createdAt.getTime() + 1))
+    : at;
   const [plan] = await tx
     .insert(plans)
     .values({
       studentId: keys.studentId,
       deadlineId: body.deadlineId,
-      startsAt: new Date(body.startsAt),
-      endsAt: new Date(body.endsAt),
+      startsAt,
+      endsAt,
       place: body.place,
       firstAction: body.firstAction,
-      createdAt: at,
+      createdAt,
     })
     .returning();
 
-  const rendered = renderNotification("plan_reminder", {
-    title: row.deadline.title,
-    place: plan.place,
-    firstAction: plan.firstAction,
-  });
-  await notify(tx, {
-    studentIds: [keys.studentId],
-    class: rendered.class,
-    category: rendered.category,
-    title: rendered.title,
-    body: rendered.body,
-    link: { kind: rendered.linkKind, id: body.deadlineId },
-  });
-
+  await syncDeadlineReminders(tx, keys.studentId, at);
   return toPlanDTO(plan);
 }
 
@@ -257,6 +262,17 @@ export async function createMyPlan(
 export async function deleteMyPlan(tx: Tx, studentId: string, planId: string): Promise<boolean> {
   const plan = await findPlanForStudent(tx, studentId, planId);
   if (!plan) return false;
-  await tx.delete(plans).where(and(eq(plans.id, planId), eq(plans.studentId, studentId)));
+  await findDeadlineForStudent(tx, studentId, plan.deadlineId, true);
+  const current = await findLatestPlanForDeadline(tx, studentId, plan.deadlineId);
+  // В карточке один план. Отмена текущей версии не должна вернуть прежнее время после переноса.
+  // Запрос со старого устройства по прежнему id не затрагивает выбранную позднее версию.
+  const target =
+    current?.id === planId ? eq(plans.deadlineId, plan.deadlineId) : eq(plans.id, planId);
+  const removed = await tx
+    .delete(plans)
+    .where(and(eq(plans.studentId, studentId), target))
+    .returning({ id: plans.id });
+  if (!removed.length) return false;
+  await syncDeadlineReminders(tx, studentId, now());
   return true;
 }

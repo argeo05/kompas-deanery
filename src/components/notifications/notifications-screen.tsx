@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Bell, Megaphone, Settings } from "lucide-react";
 import { ApiView } from "@/components/screens/api-view";
 import { useStudent } from "@/components/shell/student-context";
@@ -85,9 +86,20 @@ function AnnouncementCard({ a }: { a: AnnouncementDTO }) {
   const [open, setOpen] = React.useState(false);
   const long = a.bodyMd.length > 220;
   return (
-    <Card id={`a-${a.id}`} className="scroll-mt-24 gap-2 p-4">
+    <Card
+      id={`a-${a.id}`}
+      role="article"
+      aria-labelledby={`headline-${a.id}`}
+      tabIndex={-1}
+      onFocus={(event) => {
+        if (event.target === event.currentTarget) setOpen(true);
+      }}
+      className="scroll-mt-24 gap-2 p-4 focus-visible:outline-2 focus-visible:outline-focus"
+    >
       <div className="flex flex-wrap items-center gap-2">
-        <h3 className="type-h3">{a.title}</h3>
+        <h3 id={`headline-${a.id}`} className="type-h3">
+          {a.title}
+        </h3>
         {a.important && (
           <Badge tone="warn" icon={Megaphone}>
             Важно
@@ -119,15 +131,45 @@ function AnnouncementCard({ a }: { a: AnnouncementDTO }) {
 
 function Announcements() {
   const { userId } = useStudent();
+  const list = React.useRef<HTMLUListElement>(null);
+  const followed = React.useRef<HTMLElement | null>(null);
   const api = useApi<Paged<AnnouncementDTO>>("/api/me/announcements?limit=50", {
     scope: userId,
     refreshMs: 60_000,
   });
-  // Переход по якорю #a-… после того, как карточки появились.
+  // Карточки приходят после навигации. Повторный опрос ленты не отбирает фокус у читателя.
   React.useEffect(() => {
     if (!api.data) return;
-    const id = window.location.hash.slice(1);
-    if (id) document.getElementById(id)?.scrollIntoView({ block: "start" });
+    const follow = () => {
+      const card = document.getElementById(window.location.hash.slice(1));
+      if (!card || !list.current?.contains(card) || card.getAttribute("role") !== "article") {
+        followed.current = null;
+        return;
+      }
+      if (card === followed.current) return;
+      followed.current = card;
+      card.focus({ preventScroll: true });
+      card.scrollIntoView({ block: "start" });
+    };
+    let frame: number | undefined;
+    const afterNavigation = () => {
+      // Назад может вернуть ту же DOM-карточку. Дожидаемся восстановления браузером
+      // состояния страницы и переводим фокус один раз именно для этого перехода.
+      followed.current = null;
+      if (frame !== undefined) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        frame = undefined;
+        follow();
+      });
+    };
+    follow();
+    window.addEventListener("hashchange", afterNavigation);
+    window.addEventListener("popstate", afterNavigation);
+    return () => {
+      if (frame !== undefined) cancelAnimationFrame(frame);
+      window.removeEventListener("hashchange", afterNavigation);
+      window.removeEventListener("popstate", afterNavigation);
+    };
   }, [api.data]);
   return (
     <ApiView
@@ -145,7 +187,7 @@ function Announcements() {
             Когда деканат что-то опубликует для вашей группы, это появится здесь.
           </EmptyState>
         ) : (
-          <ul className="flex flex-col gap-3">
+          <ul ref={list} className="flex flex-col gap-3">
             {page.items.map((a) => (
               <li key={a.id}>
                 <AnnouncementCard a={a} />
@@ -173,6 +215,14 @@ function Feed({ tab }: { tab: Exclude<NotificationsTab, "announcements"> }) {
   const [cursor, setCursor] = React.useState<string | null | undefined>(undefined);
   const [readIds, setReadIds] = React.useState<Set<string>>(new Set());
   const [loadingMore, setLoadingMore] = React.useState(false);
+  const [marking, setMarking] = React.useState(false);
+  const active = React.useRef(false);
+  React.useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
   const api = useApi<NotificationsDTO>(`/api/me/notifications?tab=${tab}&limit=20`, {
     scope: userId,
     refreshMs: 30_000,
@@ -180,11 +230,16 @@ function Feed({ tab }: { tab: Exclude<NotificationsTab, "announcements"> }) {
   const prefs = useApi<NotificationPrefsDTO>("/api/me/notification-prefs", { scope: userId });
   const [today] = React.useState(() => toMsk(new Date()).slice(0, 10));
 
-  const markAllRead = async () => {
-    const res = await sendJson("POST", "/api/me/notifications/read", { all: true });
-    if (res.ok) {
-      setReadIds(new Set(["*"]));
-      api.reload();
+  const markAllRead = async (shownIds: string[]) => {
+    setMarking(true);
+    try {
+      const res = await sendJson("POST", "/api/me/notifications/read", { all: true });
+      if (res.ok && active.current) {
+        setReadIds((previous) => new Set([...previous, ...shownIds]));
+        api.reload();
+      }
+    } finally {
+      if (active.current) setMarking(false);
     }
   };
   const open = (n: NotificationDTO) => {
@@ -223,10 +278,11 @@ function Feed({ tab }: { tab: Exclude<NotificationsTab, "announcements"> }) {
     >
       {(page) => {
         const all = [...page.items, ...extra].map((n) =>
-          readIds.has("*") && n.readAt === null ? { ...n, readAt: "read" } : n,
+          readIds.has(n.id) && n.readAt === null ? { ...n, readAt: "read" } : n,
         );
         const next = cursor === undefined ? page.nextCursor : cursor;
-        const unread = all.filter((n) => n.readAt === null).length;
+        const unread =
+          page.unread.urgent + page.unread.personal + (tab === "all" ? page.unread.info : 0);
         if (all.length === 0) {
           return (
             <EmptyState illustration="all-done" title="Новых уведомлений нет">
@@ -243,7 +299,13 @@ function Feed({ tab }: { tab: Exclude<NotificationsTab, "announcements"> }) {
               <p className="type-caption text-ink-2" role="status">
                 {unread > 0 ? `Непрочитанных: ${unread}` : "Всё прочитано"}
               </p>
-              <Button variant="secondary" size="sm" disabled={unread === 0} onClick={markAllRead}>
+              <Button
+                variant="secondary"
+                size="sm"
+                loading={marking}
+                disabled={unread === 0 || loadingMore}
+                onClick={() => markAllRead(all.map((n) => n.id))}
+              >
                 Отметить всё прочитанным
               </Button>
             </div>
@@ -266,6 +328,7 @@ function Feed({ tab }: { tab: Exclude<NotificationsTab, "announcements"> }) {
                 variant="secondary"
                 className="self-center"
                 loading={loadingMore}
+                disabled={marking}
                 onClick={() => loadMore(next)}
               >
                 Показать ещё
@@ -279,7 +342,18 @@ function Feed({ tab }: { tab: Exclude<NotificationsTab, "announcements"> }) {
 }
 
 export function NotificationsScreen({ initialTab }: { initialTab: NotificationsTab }) {
-  const [tab, setTab] = React.useState<NotificationsTab>(initialTab);
+  const params = useSearchParams();
+  const requested = params ? params.get("tab") : initialTab;
+  const tab = requested === "important" || requested === "announcements" ? requested : "all";
+  const { userId } = useStudent();
+  function selectTab(next: NotificationsTab) {
+    if (next === tab) return;
+    const address = new URL(window.location.href);
+    if (next === "all") address.searchParams.delete("tab");
+    else address.searchParams.set("tab", next);
+    address.hash = "";
+    window.history.pushState(null, "", address);
+  }
   return (
     <>
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -298,14 +372,18 @@ export function NotificationsScreen({ initialTab }: { initialTab: NotificationsT
             variant={tab === t.id ? "primary" : "secondary"}
             size="sm"
             aria-pressed={tab === t.id}
-            onClick={() => setTab(t.id)}
+            onClick={() => selectTab(t.id)}
           >
             {t.id === "all" && <Bell aria-hidden className="size-4" />}
             {t.label}
           </Button>
         ))}
       </div>
-      {tab === "announcements" ? <Announcements /> : <Feed key={tab} tab={tab} />}
+      {tab === "announcements" ? (
+        <Announcements key={userId} />
+      ) : (
+        <Feed key={`${userId}:${tab}`} tab={tab} />
+      )}
     </>
   );
 }

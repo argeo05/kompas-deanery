@@ -5,6 +5,7 @@ import { addDaysMsk, mskParts, toMskDate } from "@/lib/time";
 import type { Tx } from "../db";
 import type { StudentCtx } from "../auth/guards";
 import { unreadCounts } from "../repositories/notifications";
+import { syncDeadlineReminders } from "./deadline-reminders";
 import { listMyDeadlines } from "./deadlines";
 import { getMyProfile } from "./me";
 import { listMyRequests } from "./requests";
@@ -27,6 +28,7 @@ export async function getStudentShell(tx: Tx, ctx: StudentCtx): Promise<StudentS
   const monday = addDaysMsk(at, -(weekday - 1));
   const range = { from: toMskDate(monday), to: toMskDate(addDaysMsk(monday, 6)) };
 
+  await syncDeadlineReminders(tx, ctx.userId, at);
   const [profile, unread, deadlines, requests, week] = await Promise.all([
     getMyProfile(tx, ctx.studentId),
     unreadCounts(tx, ctx.userId, at),

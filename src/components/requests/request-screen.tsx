@@ -22,6 +22,7 @@ import { queueAction, removeQueued, useOutbox } from "@/lib/offline/use-outbox";
 import { useApi } from "@/lib/use-api";
 import { Tracker } from "./tracker";
 import { Clarification, requestConversation } from "./request-conversation";
+import { RequestDestination } from "./request-destination";
 
 // Карточка заявки (SPEC §6.5 п.5–7, п.10): статус и срок, действия по статусу, трекер, переписка.
 
@@ -308,6 +309,7 @@ function Details({ request, reload }: { request: RequestDetailDTO; reload: () =>
           </Link>
         </Button>
         <h1 className="type-h1">{request.type.title}</h1>
+        <RequestDestination value={request.fields.destination} />
         <p className="type-caption text-ink-2">
           {request.number}
           {request.delivery ? ` · ${DELIVERY_TEXT[request.delivery]}` : ""}

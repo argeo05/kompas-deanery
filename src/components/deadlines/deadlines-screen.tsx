@@ -57,34 +57,74 @@ function PlanSheet({
   const url = deadline ? `/api/me/deadlines/${deadline.id}/windows` : null;
   const api = useApi<DeadlineWindowsDTO>(url, { scope: userId });
   const [choice, setChoice] = React.useState(0);
-  const [place, setPlace] = React.useState<string>(PLACES[0]);
-  const [own, setOwn] = React.useState("");
-  const [action, setAction] = React.useState("");
-  const [pending, setPending] = React.useState(false);
+  const current = deadline?.plan;
+  const presetPlace = PLACES.find((item) => item === current?.place);
+  const [place, setPlace] = React.useState<string>(current ? (presetPlace ?? OWN) : PLACES[0]);
+  const [own, setOwn] = React.useState(current && !presetPlace ? current.place : "");
+  const [action, setAction] = React.useState(current?.firstAction ?? "");
+  const [pending, setPending] = React.useState<"save" | "remove" | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const attempt = React.useRef<{ key: string; payload: string } | null>(null);
   const ids = { place: React.useId(), own: React.useId(), action: React.useId() };
   // Длинное окно без пар используем только на первые 90 минут, как и при сохранении.
-  const windows = api.data?.windows.map(({ startsAt, endsAt }) => ({
+  const suggested = api.data?.windows.map(({ startsAt, endsAt }) => ({
     startsAt,
     endsAt: new Date(
       Math.min(Date.parse(endsAt), Date.parse(startsAt) + 90 * 60_000),
     ).toISOString(),
   }));
 
+  const windows = current
+    ? [
+        current,
+        ...(suggested ?? []).filter(
+          (w) =>
+            Date.parse(w.startsAt) !== Date.parse(current.startsAt) ||
+            Date.parse(w.endsAt) !== Date.parse(current.endsAt),
+        ),
+      ]
+    : suggested;
+  const canSave = deadline && (deadline.starred || deadline.risk);
+
+  async function remove() {
+    if (!current || pending) return;
+    setPending("remove");
+    setError(null);
+    try {
+      const res = await sendJson("DELETE", `/api/me/plans/${current.id}`);
+      if (!res.ok && res.status !== 404) throw new Error(String(res.status));
+      toast({
+        tone: "success",
+        title: res.status === 404 ? "Список планов обновлён" : "План убран",
+      });
+      onSaved();
+      onClose();
+    } catch {
+      setError("Не получилось убрать план. Проверьте интернет и попробуйте ещё раз.");
+    } finally {
+      setPending(null);
+    }
+  }
+
   async function save(e: React.FormEvent) {
     e.preventDefault();
     const w = windows?.[choice];
     const finalPlace = place === OWN ? own.trim() : place;
-    if (!deadline || !w || !action.trim() || !finalPlace) return;
-    setPending(true);
+    if (!canSave || !w || !action.trim() || !finalPlace || pending) return;
+    setPending("save");
     setError(null);
     try {
-      const res = await sendJson("POST", "/api/me/plans", {
+      const body = {
         deadlineId: deadline.id,
-        ...w,
+        startsAt: w.startsAt,
+        endsAt: w.endsAt,
         place: finalPlace,
         firstAction: action.trim(),
-      });
+      };
+      const payload = JSON.stringify(body);
+      if (attempt.current?.payload !== payload)
+        attempt.current = { key: crypto.randomUUID(), payload };
+      const res = await sendJson("POST", "/api/me/plans", body, attempt.current.key);
       if (res.status !== 201 && res.status !== 200) throw new Error(String(res.status));
       const plan: PlanDTO = await res.json();
       toast({
@@ -100,15 +140,15 @@ function PlanSheet({
         "Не получилось сохранить план. Проверьте интернет и нажмите «Сохранить план» ещё раз.",
       );
     } finally {
-      setPending(false);
+      setPending(null);
     }
   }
 
   return (
     <Sheet
       open={deadline !== null}
-      onOpenChange={(o) => !o && onClose()}
-      title="Когда займусь?"
+      onOpenChange={(o) => !o && !pending && onClose()}
+      title={current ? "Изменить план" : "Когда займусь?"}
       description={deadline?.title}
     >
       <form onSubmit={save} className="flex flex-col gap-4 px-4 pb-4">
@@ -125,7 +165,7 @@ function PlanSheet({
           )}
           {windows?.map((w, i) => (
             <label
-              key={w.startsAt}
+              key={`${w.startsAt}/${w.endsAt}`}
               className="flex min-h-11 items-center gap-3 rounded-control border border-line-strong bg-surface px-3"
             >
               <input
@@ -135,7 +175,10 @@ function PlanSheet({
                 onChange={() => setChoice(i)}
                 className="size-5 accent-[var(--accent)]"
               />
-              <span>{planTime(w)}</span>
+              <span>
+                {current && i === 0 && "Текущий план · "}
+                {planTime(w)}
+              </span>
             </label>
           ))}
         </fieldset>
@@ -184,11 +227,29 @@ function PlanSheet({
         {error && <InlineError>{error}</InlineError>}
         <Button
           type="submit"
-          loading={pending}
-          disabled={!windows?.[choice] || !action.trim() || (place === OWN && !own.trim())}
+          loading={pending === "save"}
+          disabled={
+            pending === "remove" ||
+            !canSave ||
+            !windows?.[choice] ||
+            !action.trim() ||
+            (place === OWN && !own.trim())
+          }
         >
           Сохранить план
         </Button>
+        {current && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            loading={pending === "remove"}
+            disabled={pending === "save"}
+            onClick={remove}
+          >
+            Убрать план
+          </Button>
+        )}
       </form>
     </Sheet>
   );
@@ -211,7 +272,7 @@ function DeadlineCard({
   onPlan: (d: DeadlineDTO) => void;
 }) {
   const d = queued ? { ...server, done: queued.kind === "deadline.done" } : server;
-  const canPlan = !d.done && (d.starred || d.risk);
+  const canPlan = !d.done && (d.plan || d.starred || d.risk);
   return (
     <Card id={`d-${d.id}`} className="scroll-mt-24 gap-2 p-3">
       <p className="type-body-strong break-words hyphens-auto">{d.title}</p>
@@ -462,7 +523,12 @@ export function DeadlinesScreen() {
           );
         }}
       </ApiView>
-      <PlanSheet deadline={planFor} onClose={() => setPlanFor(null)} onSaved={api.reload} />
+      <PlanSheet
+        key={planFor?.id ?? "closed"}
+        deadline={planFor}
+        onClose={() => setPlanFor(null)}
+        onSaved={api.reload}
+      />
     </>
   );
 }

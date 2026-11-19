@@ -55,13 +55,15 @@ export function DayFeed({ classes, now }: { classes: ClassDTO[]; now: Date }) {
   if (lineIndex === -1 && rest.length > 0) items.push(<NowLine key="now" now={now} />);
 
   return (
-    <section aria-labelledby="day-feed-title" className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
+    <section
+      aria-labelledby="day-feed-title"
+      className="@container flex flex-col gap-2 [overflow-wrap:anywhere]"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-x-2">
         <h2 id="day-feed-title" className="type-h2">
           Сегодня
         </h2>
-        {/* -my-2.5: цель 44 px, строка заголовка почти не растёт (AC-2.1: две пары над сгибом). */}
-        <MoreLink href="/schedule" className="-my-2.5">
+        <MoreLink href="/schedule" className="max-w-full @min-[16rem]:-my-2.5">
           Все пары
         </MoreLink>
       </div>

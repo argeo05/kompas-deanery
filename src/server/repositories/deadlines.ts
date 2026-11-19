@@ -31,13 +31,15 @@ export async function findDeadlineForStudent(
   tx: Tx,
   studentId: string,
   deadlineId: string,
+  lock = false,
 ): Promise<{ deadline: typeof deadlines.$inferSelect; courseTitle: string | null } | null> {
-  const [row] = await tx
+  const query = tx
     .select({ deadline: deadlines, courseTitle: courses.title })
     .from(deadlines)
     .leftJoin(courses, eq(courses.id, deadlines.courseId))
     .where(and(eq(deadlines.id, deadlineId), eq(deadlines.studentId, studentId)))
     .limit(1);
+  const [row] = await (lock ? query.for("update", { of: deadlines }) : query);
   return row ?? null;
 }
 
@@ -53,4 +55,14 @@ export async function findPlanForStudent(
     .where(and(eq(plans.id, planId), eq(plans.studentId, studentId)))
     .limit(1);
   return row ?? null;
+}
+
+export async function findLatestPlanForDeadline(tx: Tx, studentId: string, deadlineId: string) {
+  const [plan] = await tx
+    .select()
+    .from(plans)
+    .where(and(eq(plans.studentId, studentId), eq(plans.deadlineId, deadlineId)))
+    .orderBy(desc(plans.createdAt), desc(plans.id))
+    .limit(1);
+  return plan;
 }

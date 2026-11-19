@@ -119,7 +119,13 @@ export async function markNotificationsRead(
     await tx
       .update(notifications)
       .set({ readAt: at })
-      .where(and(eq(notifications.userId, userId), isNull(notifications.readAt)));
+      .where(
+        and(
+          eq(notifications.userId, userId),
+          isNull(notifications.readAt),
+          lte(notifications.deliverAt, at),
+        ),
+      );
     return;
   }
   const ids = read.ids ?? [];
@@ -131,6 +137,7 @@ export async function markNotificationsRead(
       and(
         eq(notifications.userId, userId),
         inArray(notifications.id, ids),
+        lte(notifications.deliverAt, at),
         isNull(notifications.readAt),
       ),
     );

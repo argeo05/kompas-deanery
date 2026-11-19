@@ -27,7 +27,7 @@ function plusDays(date: string, n: number): string {
 }
 
 /** Тихие ли минуты (от полуночи; [from, to), при from > to — через полночь). */
-function isQuiet(minutes: number, quiet: { from: number; to: number }): boolean {
+export function isQuiet(minutes: number, quiet: { from: number; to: number }): boolean {
   return quiet.from <= quiet.to
     ? minutes >= quiet.from && minutes < quiet.to
     : minutes >= quiet.from || minutes < quiet.to;

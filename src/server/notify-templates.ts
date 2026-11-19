@@ -3,7 +3,7 @@ import type {
   NotificationClass,
   NotificationLinkKind,
 } from "@/contracts/api";
-import { mskParts } from "@/lib/time";
+import { mskParts, toMskDate } from "@/lib/time";
 
 // Шаблоны уведомлений (SPEC §6.6). Файл ведёт Claude: это тексты для людей, а DeepSeek их
 // не пишет (DEEPSEEK-TASKS §3 п.11). Сервисы DS-17, DS-18, DS-30, DS-32 и сид только вызывают
@@ -35,8 +35,8 @@ export interface NotifyParams {
     newScore: number;
     max: number;
   };
-  deadline_24h: { title: string; dueAt: Date | string };
-  plan_reminder: { title: string; place: string; firstAction: string };
+  deadline_24h: { title: string; dueAt: Date | string; deliverAt: Date | string };
+  plan_reminder: { title: string; place: string; firstAction: string; startsAt: Date | string };
   announcement: { title: string };
   announcement_important: { title: string };
   ticket_answered: { topic: string };
@@ -188,7 +188,7 @@ const TEMPLATES: { [K in NotifyKey]: Template<K> } = {
     category: "deadline",
     linkKind: "deadline",
     render: (p) => ({
-      title: "Дедлайн завтра",
+      title: toMskDate(p.dueAt) === toMskDate(p.deliverAt) ? "Дедлайн сегодня" : "Дедлайн завтра",
       body: `${p.title}: до ${dayMonth(p.dueAt)}, ${hm(p.dueAt)}`,
     }),
   },
@@ -198,7 +198,7 @@ const TEMPLATES: { [K in NotifyKey]: Template<K> } = {
     linkKind: "deadline",
     render: (p) => ({
       title: "Время для плана",
-      body: `${p.title}. Вы запланировали: ${p.place}, ${p.firstAction}`,
+      body: `${p.title}. ${dayMonth(p.startsAt)} в ${hm(p.startsAt)}, ${p.place}: ${p.firstAction}`,
     }),
   },
   announcement: {

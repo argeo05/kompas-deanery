@@ -45,13 +45,16 @@ function nextClassPhrase(nextClassAt: string | null, now: Date): { short: string
   };
 }
 
-function HeroActions({ cls }: { cls: ClassDTO }) {
+function HeroActions({ cls, openLabel = "Открыть" }: { cls: ClassDTO; openLabel?: string }) {
   // Кнопки переносятся на вторую строку, а не вылезают за карточку: 320 px, крупный текст (1.4.10).
   // Узкие отступы держат обе кнопки в одной строке на 360 px (AC-2.1: две пары над сгибом).
   return (
-    <CardFooter className="*:flex-auto *:gap-1.5 *:px-2.5">
-      <Link href={openHref(cls)} className={buttonVariants({ size: "md" })}>
-        Открыть
+    <CardFooter className="*:max-w-full *:min-w-0 *:flex-auto *:gap-1.5 *:px-2.5 *:whitespace-normal @max-[14rem]:*:w-full @max-[14rem]:*:gap-0 @max-[14rem]:*:px-[8px] @max-[14rem]:[&_svg]:hidden">
+      <Link
+        href={openHref(cls)}
+        className={cn(buttonVariants({ size: "md" }), "whitespace-normal")}
+      >
+        {openLabel}
         <span className="sr-only">: {cls.course.title}</span>
         <ChevronRight aria-hidden />
       </Link>
@@ -76,7 +79,12 @@ function nearestClass(classes: ClassDTO[], now: Date): ClassDTO | null {
 }
 
 /** Тетрадная линовка (§7.2a п.4); текст отступает от «поля» в 24 px. */
-const HERO_PAPER = "paper-ruled pl-9";
+const HERO_PAPER =
+  "paper-ruled min-w-0 pl-9 [overflow-wrap:anywhere] @max-[14rem]:bg-none @max-[14rem]:p-[12px]";
+const WEEK_LINK = cn(
+  buttonVariants({ variant: "secondary" }),
+  "min-w-0 max-w-full whitespace-normal",
+);
 
 /** Крупное время Unbounded (§7.2a п.3). У переноса старое время зачёркнуто caption-ом, стрелка и новое время крупно. */
 function HeroTime({ cls, detail }: { cls: ClassDTO; detail?: string }) {
@@ -148,8 +156,17 @@ function HeroContent({ today, now }: { today: TodayDTO; now: Date }) {
       >
         <CardHeader>
           <ChangeNote cls={cls} />
-          <h2 className="type-h2 break-words hyphens-auto">
-            {lead}: {cls.course.title}
+          <h2 className={cn(other ? "type-h3" : "type-h2", "break-words hyphens-auto")}>
+            {other ? (
+              <Link
+                href={openHref(cls)}
+                className="inline-flex min-h-11 items-center text-accent underline decoration-1 underline-offset-4"
+              >
+                {lead}: {cls.course.title}
+              </Link>
+            ) : (
+              `${lead}: ${cls.course.title}`
+            )}
           </h2>
         </CardHeader>
         <CardContent>
@@ -166,7 +183,7 @@ function HeroContent({ today, now }: { today: TodayDTO; now: Date }) {
             </p>
           )}
         </CardContent>
-        {other && (
+        {other ? (
           <CardContent className="border-t border-line pt-3" data-testid="hero-nearest">
             <p className="type-label text-accent">
               {Date.parse(other.startsAt) <= now.getTime()
@@ -182,9 +199,11 @@ function HeroContent({ today, now }: { today: TodayDTO; now: Date }) {
               detail={`${timeRange(other)} · ${CLASS_TYPE_LABEL[other.type]}`}
             />
             <ClassFacts cls={other} />
+            <HeroActions cls={other} openLabel="К ближайшей паре" />
           </CardContent>
+        ) : (
+          <HeroActions cls={cls} />
         )}
-        <HeroActions cls={other ?? cls} />
       </Card>
     );
   }
@@ -242,7 +261,7 @@ function HeroContent({ today, now }: { today: TodayDTO; now: Date }) {
           <p className="type-body text-ink-2">{next.short}</p>
         </CardHeader>
         <CardFooter>
-          <Link href="/schedule?view=week" className={buttonVariants({ variant: "secondary" })}>
+          <Link href="/schedule?view=week" className={WEEK_LINK}>
             Расписание на неделю
           </Link>
         </CardFooter>
@@ -260,7 +279,7 @@ function HeroContent({ today, now }: { today: TodayDTO; now: Date }) {
       <Illustration name="free-day" />
       <h2 className="type-h2">Сегодня пар нет</h2>
       <p className="type-body text-ink-2">{next.long}</p>
-      <Link href="/schedule?view=week" className={buttonVariants({ variant: "secondary" })}>
+      <Link href="/schedule?view=week" className={WEEK_LINK}>
         Расписание на неделю
       </Link>
     </Card>
@@ -270,7 +289,7 @@ function HeroContent({ today, now }: { today: TodayDTO; now: Date }) {
 /** Hero всегда первая карточка экрана; aria-live="off", чтобы минутный отсчёт не озвучивался сам (SPEC §6.2 п.1). */
 export function Hero({ today, now }: { today: TodayDTO; now: Date }) {
   return (
-    <div aria-live="off" data-slot="hero">
+    <div aria-live="off" data-slot="hero" className="@container">
       <HeroContent today={today} now={now} />
     </div>
   );

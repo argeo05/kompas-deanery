@@ -39,6 +39,7 @@ import { queueAction } from "@/lib/offline/use-outbox";
 import { useApi } from "@/lib/use-api";
 import { cn } from "cn";
 import { Announce } from "@/components/ui/status-region";
+import { RequestDestination } from "./request-destination";
 
 // Форма заявки (SPEC §6.5 п.2–3): поля по formSchema типа, блок «Данные из профиля», способ получения,
 // экземпляры, примечание о верности данных. Черновик живёт в localStorage; при отправке уходит Idempotency-Key,
@@ -164,7 +165,10 @@ const NEXT_STEPS = [
   "Когда всё будет готово, электронный документ можно скачать, а за оригиналом прийти в студенческий офис.",
 ];
 
-function Success({ created, type }: { created: RequestDTO; type: RequestTypeDTO }) {
+type Receipt = { request: RequestDTO; destination?: string | number };
+
+function Success({ receipt }: { receipt: Receipt }) {
+  const { request, destination } = receipt;
   const headingRef = React.useRef<HTMLHeadingElement>(null);
   React.useEffect(() => headingRef.current?.focus(), []);
   return (
@@ -174,11 +178,12 @@ function Success({ created, type }: { created: RequestDTO; type: RequestTypeDTO 
         <span className="type-caption font-medium">Заявка отправлена</span>
       </p>
       <h1 ref={headingRef} tabIndex={-1} className="type-h1 outline-none">
-        Номер заявки {created.number}
+        Номер заявки {request.number}
       </h1>
+      <RequestDestination value={destination} />
       <p>
-        {type.title}. Ожидаемая готовность:{" "}
-        <strong>{formatDateLong(created.dueAt).toLowerCase()}</strong> с учётом рабочих дней.
+        {request.type.title}. Ожидаемая готовность:{" "}
+        <strong>{formatDateLong(request.dueAt).toLowerCase()}</strong> с учётом рабочих дней.
       </p>
       <section aria-labelledby="next-title" className="flex flex-col gap-2">
         <h2 id="next-title" className="type-h3">
@@ -191,7 +196,7 @@ function Success({ created, type }: { created: RequestDTO; type: RequestTypeDTO 
         </ol>
       </section>
       <Button asChild size="lg">
-        <Link href={`/requests/${created.id}`}>Перейти к заявке</Link>
+        <Link href={`/requests/${request.id}`}>Перейти к заявке</Link>
       </Button>
     </Card>
   );
@@ -248,7 +253,7 @@ function Form({
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [formError, setFormError] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
-  const [created, setCreated] = React.useState<RequestDTO | null>(null);
+  const [created, setCreated] = React.useState<Receipt | null>(null);
   const [queued, setQueued] = React.useState(false);
   const [focusErrors, setFocusErrors] = React.useState(0);
   const idemKey = React.useRef<string | null>(null);
@@ -290,7 +295,7 @@ function Form({
     saveDraft(userId, type.code, { values, delivery, copies });
   }, [values, delivery, copies, original, created, queued, userId, type.code]);
 
-  if (created) return <Success created={created} type={type} />;
+  if (created) return <Success receipt={created} />;
   if (queued) return <Queued type={type} />;
 
   async function submit(e: React.FormEvent) {
@@ -349,7 +354,10 @@ function Form({
         return;
       }
       if (res.status === 201) {
-        setCreated((await res.json()) as RequestDTO);
+        setCreated({
+          request: (await res.json()) as RequestDTO,
+          destination: body.fields.destination,
+        });
         clearDraft(userId, type.code);
         return;
       }

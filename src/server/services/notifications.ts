@@ -16,6 +16,7 @@ import type {
   NotificationsReadBody,
 } from "../schemas/notifications";
 import { HttpError } from "../http";
+import { syncDeadlineReminders } from "./deadline-reminders";
 
 // Сервис уведомлений студента (DS-18): список с курсорной пагинацией, чтение, настройки.
 
@@ -41,9 +42,11 @@ export async function listMyNotifications(
   q: NotificationsListQuery,
 ): Promise<NotificationsDTO> {
   const at = now();
+  const cursor = q.cursor ? decodeCursor(q.cursor) : null;
+  await syncDeadlineReminders(tx, userId, at);
   const rows = await listNotifications(tx, userId, {
     tab: q.tab,
-    cursor: q.cursor ? decodeCursor(q.cursor) : null,
+    cursor,
     limit: q.limit,
     now: at,
   });
@@ -67,6 +70,7 @@ export async function readMyNotifications(
 ): Promise<void> {
   const at = now();
   const read = "all" in body ? { all: true } : { all: false, ids: body.ids };
+  await syncDeadlineReminders(tx, userId, at);
   await markNotificationsRead(tx, userId, read, at);
 }
 
@@ -90,6 +94,7 @@ export async function saveMyPrefsDTO(
   body: NotificationPrefsBody,
 ): Promise<NotificationPrefsDTO> {
   await saveMyPrefs(tx, userId, body);
+  await syncDeadlineReminders(tx, userId, now());
   return {
     slots: body.slots,
     preset: body.preset,

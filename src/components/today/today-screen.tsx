@@ -103,8 +103,8 @@ export function TodayScreen({ serverNow }: { serverNow?: string }) {
 
   return (
     <>
-      <header className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 flex-col gap-1">
+      <header className="flex flex-wrap items-start justify-between gap-2">
+        <div className="flex min-w-0 flex-[1_1_10rem] flex-col gap-1 [overflow-wrap:anywhere]">
           <h1 className="type-h1 lg:type-display">
             {greeting ? GREETING[greeting] : "Здравствуйте"}, {displayName}
           </h1>
