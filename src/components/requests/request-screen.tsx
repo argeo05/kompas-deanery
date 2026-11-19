@@ -21,6 +21,7 @@ import type { OutboxItem } from "@/lib/offline/outbox";
 import { queueAction, removeQueued, useOutbox } from "@/lib/offline/use-outbox";
 import { useApi } from "@/lib/use-api";
 import { Tracker } from "./tracker";
+import { Clarification, requestConversation } from "./request-conversation";
 
 // Карточка заявки (SPEC §6.5 п.5–7, п.10): статус и срок, действия по статусу, трекер, переписка.
 
@@ -46,6 +47,8 @@ function Messages({ request, onSent }: { request: RequestDetailDTO; onSent: () =
   const toast = useToast();
   const needsReply = request.status === "needs_info";
   const open = MESSAGES_OPEN.has(request.status);
+  const { messages, current } = requestConversation(request);
+  const questionId = `${id}-question`;
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -103,11 +106,11 @@ function Messages({ request, onSent }: { request: RequestDetailDTO; onSent: () =
       <h2 id="messages-title" tabIndex={-1} className="type-h2 outline-none">
         Переписка
       </h2>
-      {request.messages.length === 0 ? (
-        queued.length === 0 && <p className="text-ink-2">Сообщений пока нет.</p>
+      {messages.length === 0 ? (
+        !current && queued.length === 0 && <p className="text-ink-2">Сообщений пока нет.</p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {request.messages.map((m: MessageDTO) => (
+          {messages.map((m: MessageDTO) => (
             <li
               key={m.id}
               data-testid="message"
@@ -160,11 +163,13 @@ function Messages({ request, onSent }: { request: RequestDetailDTO; onSent: () =
       )}
       {open && (
         <form onSubmit={send} className="flex flex-col gap-2">
+          {current && <Clarification question={current} id={questionId} />}
           <label htmlFor={id} className="font-medium">
             {needsReply ? "Ваш ответ сотруднику" : "Написать сотруднику"}
           </label>
           <textarea
             id={id}
+            aria-describedby={current ? questionId : undefined}
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={3}
@@ -329,13 +334,9 @@ function Details({ request, reload }: { request: RequestDetailDTO; reload: () =>
         )}
       </header>
       {request.status === "needs_info" && (
-        <Card className="gap-1 border-l-4 border-l-warn" data-testid="needs-info">
-          <h2 className="type-h3">Сотруднику нужно уточнение</h2>
-          <p className="whitespace-pre-wrap">
-            {request.events.findLast((e) => e.toStatus === "needs_info")?.comment}
-          </p>
-          <p className="text-ink-2">Ответьте в поле «Переписка» ниже: заявка вернётся в работу.</p>
-        </Card>
+        <a href="#messages-title" className="self-start">
+          Перейти к уточнению и ответить
+        </a>
       )}
       <Rejection request={request} />
       <Actions request={request} reload={reload} />

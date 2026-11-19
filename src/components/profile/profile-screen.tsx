@@ -39,7 +39,7 @@ function Section({
 }) {
   const hid = React.useId();
   return (
-    <Card className="gap-3 p-4">
+    <Card className="min-w-0 gap-3 p-4 wrap-anywhere">
       <section aria-labelledby={hid} id={id} className="flex flex-col gap-3">
         <h2 id={hid} className="type-h3">
           {title}
@@ -54,7 +54,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   return (
     <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
       <dt className="type-caption text-ink-2 sm:w-40 sm:shrink-0">{label}</dt>
-      <dd className="min-w-0 break-words">{children}</dd>
+      <dd className="min-w-0">{children}</dd>
     </div>
   );
 }
@@ -97,15 +97,16 @@ function NameForm({ me, onSaved }: { me: MeDTO; onSaved: () => void }) {
 
   if (!editing) {
     return (
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="type-caption text-ink-2">Как к вам обращаться</p>
-          <p className="type-body-strong break-words">{me.displayName}</p>
+          <p className="type-body-strong">{me.displayName}</p>
         </div>
         <Button
           ref={editRef}
           variant="secondary"
           size="sm"
+          className="max-w-full whitespace-normal"
           onClick={() => {
             setValue(me.displayName);
             setEditing(true);
@@ -242,7 +243,12 @@ function PasswordNote() {
   const [shown, setShown] = React.useState(false);
   return (
     <div className="flex flex-col gap-2">
-      <Button variant="secondary" size="sm" className="self-start" onClick={() => setShown(true)}>
+      <Button
+        variant="secondary"
+        size="sm"
+        className="max-w-full self-start whitespace-normal"
+        onClick={() => setShown(true)}
+      >
         Сменить пароль
       </Button>
       {shown && (
@@ -272,15 +278,15 @@ function ProfileBody({
   return (
     <>
       <Section title="Вы">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <span
             aria-hidden
             className="grid size-14 shrink-0 place-items-center rounded-full bg-info-bg type-h3 text-info-fg"
           >
             {initials}
           </span>
-          <div className="min-w-0">
-            <p className="type-h3 break-words">{fullName}</p>
+          <div className="min-w-0 flex-[1_1_9rem]">
+            <p className="type-h3">{fullName}</p>
             <p className="type-caption text-ink-2">Логин: {me.login}</p>
           </div>
         </div>
@@ -301,7 +307,7 @@ function ProfileBody({
         <Button
           variant="secondary"
           size="sm"
-          className="self-start"
+          className="max-w-full self-start whitespace-normal"
           onClick={() => setFixOpen(true)}
         >
           Нашли ошибку в данных?
@@ -328,7 +334,7 @@ function ProfileBody({
           href="/notifications/settings"
           className="flex min-h-11 items-center justify-between gap-2 rounded-control text-ink no-underline"
         >
-          <span>Настройки уведомлений: дайджест, тихие часы</span>
+          <span className="min-w-0">Настройки уведомлений: дайджест, тихие часы</span>
           <ChevronRight aria-hidden className="size-5 shrink-0 text-ink-2" />
         </Link>
       </Section>
@@ -339,10 +345,15 @@ function ProfileBody({
           href="/profile/privacy"
           className="flex min-h-11 items-center justify-between gap-2 rounded-control text-ink no-underline"
         >
-          <span>Приватность: что хранится, сеансы, скачать данные</span>
+          <span className="min-w-0">Приватность: что хранится, сеансы, скачать данные</span>
           <ChevronRight aria-hidden className="size-5 shrink-0 text-ink-2" />
         </Link>
-        <Button variant="secondary" size="sm" className="self-start" onClick={openTour}>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="max-w-full self-start whitespace-normal"
+          onClick={openTour}
+        >
           Показать тур по Компасу
         </Button>
         <SignOutButton className="border-t border-line pt-2" />

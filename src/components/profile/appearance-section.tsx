@@ -32,10 +32,12 @@ export function AppearanceSection({
 }) {
   const [text, setText] = React.useState(textSize);
   const [mo, setMo] = React.useState(motion);
+  const choiceLayout = "min-w-0 @max-[14rem]:[&>div]:flex @max-[14rem]:[&>div]:flex-col";
   return (
-    <div className="flex flex-col gap-4">
-      <ThemeToggle initial={theme} />
+    <div className="@container flex flex-col gap-4">
+      <ThemeToggle initial={theme} className={choiceLayout} />
       <ChoiceGroup
+        className={choiceLayout}
         legend="Размер текста"
         value={text}
         options={[
@@ -48,6 +50,7 @@ export function AppearanceSection({
         }}
       />
       <ChoiceGroup
+        className={choiceLayout}
         legend="Анимации"
         value={mo}
         options={[

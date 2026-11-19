@@ -30,6 +30,7 @@ import { sendJson } from "@/lib/send-json";
 import { NEED_INFO_TEMPLATES, REJECT_REASONS, REPLY_TEMPLATES } from "@/lib/staff-templates";
 import { useApi } from "@/lib/use-api";
 import { SlaBadge } from "./sla";
+import { Clarification, requestConversation } from "@/components/requests/request-conversation";
 import { TemplatePicker } from "./template-picker";
 
 // Карточка заявки сотрудника (SPEC §6.9 п.2): данные студента (только нужные для справки),
@@ -189,6 +190,7 @@ function Screen({ r, reload }: { r: StaffRequestDTO; reload: () => void }) {
   const [reply, setReply] = React.useState("");
   const [replyError, setReplyError] = React.useState<string | null>(null);
   const [sending, setSending] = React.useState(false);
+  const { messages, current } = requestConversation(r);
 
   const transition = async (body: StaffTransitionBody, done: string): Promise<string | null> => {
     const res = await sendJson("POST", `/api/staff/requests/${r.id}/transition`, body);
@@ -325,11 +327,11 @@ function Screen({ r, reload }: { r: StaffRequestDTO; reload: () => void }) {
             <h2 id="chat-title" className="type-h2">
               Переписка
             </h2>
-            {r.messages.length === 0 ? (
-              <p className="text-ink-2">Сообщений пока нет.</p>
+            {messages.length === 0 ? (
+              !current && <p className="text-ink-2">Сообщений пока нет.</p>
             ) : (
               <ul className="flex flex-col gap-2">
-                {r.messages.map((m) => (
+                {messages.map((m) => (
                   <li
                     key={m.id}
                     data-testid="message"
@@ -344,6 +346,7 @@ function Screen({ r, reload }: { r: StaffRequestDTO; reload: () => void }) {
                 ))}
               </ul>
             )}
+            {current && <Clarification question={current} />}
             {MESSAGE_OPEN.has(r.status) ? (
               <form onSubmit={send} noValidate className="flex flex-col gap-3">
                 <TemplatePicker templates={REPLY_TEMPLATES} onPick={setReply} />

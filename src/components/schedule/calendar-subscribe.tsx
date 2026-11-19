@@ -68,7 +68,13 @@ export function CalendarSubscribe() {
 
   return (
     <>
-      <Button variant="secondary" size="sm" id="calendar" onClick={() => setOpen(true)}>
+      <Button
+        variant="secondary"
+        size="sm"
+        id="calendar"
+        className="max-w-full whitespace-normal"
+        onClick={() => setOpen(true)}
+      >
         <CalendarPlus aria-hidden className="size-4" />
         Подписаться на календарь
       </Button>
@@ -106,11 +112,11 @@ export function CalendarSubscribe() {
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button onClick={() => copy(full)}>
+                <Button className="max-w-full whitespace-normal" onClick={() => copy(full)}>
                   <Copy aria-hidden />
                   Скопировать ссылку
                 </Button>
-                <Button asChild variant="secondary">
+                <Button asChild variant="secondary" className="max-w-full whitespace-normal">
                   <a href={webcal}>Открыть в календаре на iPhone или Mac</a>
                 </Button>
               </div>
@@ -152,7 +158,7 @@ export function CalendarSubscribe() {
                 {!confirming ? (
                   <Button
                     variant="danger"
-                    className="self-start"
+                    className="max-w-full self-start whitespace-normal"
                     onClick={() => setConfirming(true)}
                   >
                     Сбросить ссылку

@@ -64,7 +64,7 @@ export function OfflineSection() {
       <Button
         variant="secondary"
         size="sm"
-        className="self-start"
+        className="max-w-full self-start whitespace-normal"
         loading={busy}
         onClick={() => void clear("Сохранённые данные стёрты")}
       >

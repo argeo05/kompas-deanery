@@ -11,7 +11,7 @@ import { SignOutButton } from "./sign-out-button";
 import { ThemeToggle } from "./theme-toggle";
 import type { ThemePref } from "@/lib/theme";
 
-// Лист «Ещё» (SPEC §5.2): Уведомления, Связь с деканатом, Поиск, Профиль и настройки, О проекте.
+// Лист «Ещё» (SPEC §5.2) использует тот же список разделов, что боковая панель.
 export function MoreSheet({
   open,
   onOpenChange,

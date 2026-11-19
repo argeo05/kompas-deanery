@@ -1,5 +1,6 @@
 import {
   Bell,
+  BookOpen,
   CalendarClock,
   CalendarDays,
   FileText,
@@ -48,6 +49,7 @@ export const STUDENT_TABS: NavItem[] = [
 /** Лист «Ещё» на мобильной; на десктопе — нижняя часть боковой панели. */
 export const STUDENT_MORE: NavItem[] = [
   { href: "/notifications", label: "Уведомления", icon: Bell, badge: "notifications" },
+  { href: "/help", label: "Справочник", icon: BookOpen },
   { href: "/support", label: "Связь с деканатом", icon: MessageSquare },
   { href: "/search", label: "Поиск", icon: Search },
   { href: "/profile", label: "Профиль и настройки", icon: UserRound },

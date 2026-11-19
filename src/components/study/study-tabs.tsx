@@ -15,16 +15,16 @@ export function StudyTabs() {
   const pathname = usePathname();
   return (
     <nav aria-label="Разделы учёбы">
-      <ul className="flex gap-1 border-b border-line">
+      <ul className="flex flex-wrap gap-1 border-b border-line">
         {TABS.map((t) => {
           const active = t.href === "/study" ? pathname === "/study" : pathname.startsWith(t.href);
           return (
-            <li key={t.href}>
+            <li key={t.href} className="max-w-full min-w-0">
               <Link
                 href={t.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "-mb-px inline-flex min-h-11 items-center border-b-2 px-3 type-body-strong no-underline",
+                  "-mb-px inline-flex min-h-11 max-w-full items-center border-b-2 px-3 type-body-strong wrap-anywhere no-underline",
                   active
                     ? "border-accent font-semibold text-ink"
                     : "border-transparent text-ink-2 hover:text-ink",

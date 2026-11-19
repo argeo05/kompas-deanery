@@ -64,7 +64,9 @@ function NotificationRow({
         <h3 className="min-w-0 type-body-strong">
           <CardLink href={linkHref(n.link.kind, n.link.id)} onClick={() => onOpen(n)}>
             {unread && <span className="sr-only">Новое. </span>}
-            {n.title}
+            {n.category === "plan" && n.title === "Время для плана"
+              ? "Ваш план по дедлайну"
+              : n.title}
           </CardLink>
         </h3>
         {unread && <span aria-hidden className="mt-1.5 size-2.5 shrink-0 rounded-full bg-accent" />}

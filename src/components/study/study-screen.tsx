@@ -27,16 +27,34 @@ function StudySkeleton() {
   );
 }
 
-export function StudyScreen() {
+interface InitialGrades {
+  userId: string;
+  semester: string | null;
+  grades: GradesDTO;
+  fetchedAt: number;
+}
+
+export function StudyScreen({ initial }: { initial?: InitialGrades }) {
   const { userId } = useStudent();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const semester = params.get("semester");
+  const semester = params.get("semester") || null;
   const api = useApi<GradesDTO>(
     semester ? `/api/me/grades?semester=${encodeURIComponent(semester)}` : "/api/me/grades",
     { scope: userId },
   );
+
+  // Сохранённая копия может быть старее данных из HTML. Новый ответ API имеет приоритет.
+  const showInitial =
+    initial?.userId === userId &&
+    initial.semester === semester &&
+    api.error !== "unauthorized" &&
+    api.error !== "not_found" &&
+    (!api.data || (api.stale && (api.fetchedAt ?? 0) < initial.fetchedAt));
+  const gradesState = showInitial
+    ? { ...api, data: initial.grades, fetchedAt: initial.fetchedAt }
+    : api;
 
   return (
     <>
@@ -44,7 +62,7 @@ export function StudyScreen() {
         <h1 className="type-h1">Учёба</h1>
         <StudyTabs />
       </header>
-      <ApiView api={api} skeleton={<StudySkeleton />}>
+      <ApiView api={gradesState} skeleton={<StudySkeleton />}>
         {(grades) => (
           <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_22.5rem] lg:items-start lg:gap-8">
             <div className="flex min-w-0 flex-col gap-4">

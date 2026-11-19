@@ -16,12 +16,12 @@ export function DemoReset() {
   const [done, setDone] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
-  const confirmRef = React.useRef<HTMLButtonElement>(null);
+  const cancelRef = React.useRef<HTMLButtonElement>(null);
   const doneRef = React.useRef<HTMLParagraphElement>(null);
 
   // Нажатая кнопка исчезает вместе с подтверждением: фокус переводим явно.
   React.useEffect(() => {
-    if (confirming) confirmRef.current?.focus();
+    if (confirming) cancelRef.current?.focus();
   }, [confirming]);
   React.useEffect(() => {
     if (done) doneRef.current?.focus();
@@ -67,13 +67,19 @@ export function DemoReset() {
       {confirming ? (
         <>
           <p role="alert" className="type-caption text-coral-fg">
-            Все изменения в демо-аккаунтах пропадут, и вы выйдете из Компаса.
+            Все изменения в демо-аккаунтах пропадут. Компас завершит сеансы всех участников показа.
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button ref={confirmRef} variant="danger" loading={busy} onClick={() => void reset()}>
+            <Button
+              className="max-w-full whitespace-normal"
+              variant="danger"
+              loading={busy}
+              onClick={() => void reset()}
+            >
               Сбросить демо-данные
             </Button>
             <Button
+              ref={cancelRef}
               variant="ghost"
               disabled={busy}
               onClick={() => {
@@ -89,7 +95,7 @@ export function DemoReset() {
         <Button
           ref={triggerRef}
           variant="secondary"
-          className="self-start"
+          className="max-w-full self-start whitespace-normal"
           onClick={() => setConfirming(true)}
         >
           Сбросить демо-данные

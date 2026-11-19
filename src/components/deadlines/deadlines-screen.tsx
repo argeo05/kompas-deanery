@@ -20,7 +20,7 @@ import type {
   PlanDTO,
   TimeWindow,
 } from "@/contracts/api";
-import { formatTimeMsk, formatWeekdayLong, formatWhen } from "@/lib/format";
+import { formatDateLong, formatTimeMsk, formatWeekdayLong, formatWhen } from "@/lib/format";
 import type { OutboxItem } from "@/lib/offline/outbox";
 import { queueAction, useOutbox } from "@/lib/offline/use-outbox";
 import { sendJson } from "@/lib/send-json";
@@ -34,9 +34,13 @@ import { useNow } from "@/lib/use-now";
 const PLACES = ["В библиотеке", "Дома", "Между парами"] as const;
 const OWN = "Своё место";
 
-/** Формулировка «если–то» из SPEC §6.7 п.6, дословно в карточке и в напоминании. */
+/** Формулировка «если–то» в карточке дедлайна (SPEC §6.7). */
 export function planSentence(p: PlanDTO): string {
   return `Если ${formatWeekdayLong(p.startsAt)}, ${formatTimeMsk(p.startsAt)}, ${p.place.toLowerCase()} — ${p.firstAction}`;
+}
+
+function planTime(window: TimeWindow): string {
+  return `${formatDateLong(window.startsAt)}, ${formatTimeMsk(window.startsAt)}–${formatTimeMsk(window.endsAt)}`;
 }
 
 function PlanSheet({
@@ -59,28 +63,35 @@ function PlanSheet({
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const ids = { place: React.useId(), own: React.useId(), action: React.useId() };
+  // Длинное окно без пар используем только на первые 90 минут, как и при сохранении.
+  const windows = api.data?.windows.map(({ startsAt, endsAt }) => ({
+    startsAt,
+    endsAt: new Date(
+      Math.min(Date.parse(endsAt), Date.parse(startsAt) + 90 * 60_000),
+    ).toISOString(),
+  }));
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    const w: TimeWindow | undefined = api.data?.windows[choice];
+    const w = windows?.[choice];
     const finalPlace = place === OWN ? own.trim() : place;
     if (!deadline || !w || !action.trim() || !finalPlace) return;
     setPending(true);
     setError(null);
     try {
-      const end = Math.min(
-        new Date(w.endsAt).getTime(),
-        new Date(w.startsAt).getTime() + 90 * 60_000,
-      );
       const res = await sendJson("POST", "/api/me/plans", {
         deadlineId: deadline.id,
-        startsAt: w.startsAt,
-        endsAt: new Date(end).toISOString(),
+        ...w,
         place: finalPlace,
         firstAction: action.trim(),
       });
       if (res.status !== 201 && res.status !== 200) throw new Error(String(res.status));
-      toast({ tone: "success", title: "План сохранён", description: "Напомним в начале окна." });
+      const plan: PlanDTO = await res.json();
+      toast({
+        tone: "success",
+        title: "План сохранён",
+        description: `${planTime(plan)} · ${plan.firstAction}`,
+      });
       setAction("");
       onSaved();
       onClose();
@@ -107,12 +118,12 @@ function PlanSheet({
           {api.error && !api.data && (
             <InlineError>Не удалось найти окна. Закройте окно и откройте снова.</InlineError>
           )}
-          {api.data?.windows.length === 0 && (
+          {windows?.length === 0 && (
             <p className="text-ink-2">
               В ближайшие 7 дней свободных окон нет. Загляните позже или сдвиньте срок.
             </p>
           )}
-          {api.data?.windows.map((w, i) => (
+          {windows?.map((w, i) => (
             <label
               key={w.startsAt}
               className="flex min-h-11 items-center gap-3 rounded-control border border-line-strong bg-surface px-3"
@@ -124,10 +135,7 @@ function PlanSheet({
                 onChange={() => setChoice(i)}
                 className="size-5 accent-[var(--accent)]"
               />
-              <span>
-                {formatWeekdayLong(w.startsAt)}, {formatTimeMsk(w.startsAt)}–
-                {formatTimeMsk(w.endsAt)}
-              </span>
+              <span>{planTime(w)}</span>
             </label>
           ))}
         </fieldset>
@@ -177,7 +185,7 @@ function PlanSheet({
         <Button
           type="submit"
           loading={pending}
-          disabled={!api.data?.windows.length || !action.trim() || (place === OWN && !own.trim())}
+          disabled={!windows?.[choice] || !action.trim() || (place === OWN && !own.trim())}
         >
           Сохранить план
         </Button>
