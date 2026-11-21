@@ -20,13 +20,20 @@
 		}
 	}
 
-	reverse_proxy app:3000 {
-		# Единственный источник IP для лимитов (client-ip.ts): перезаписываем то, что прислал клиент.
-		header_up X-Real-IP {remote_host}
-		# Подделку цепочки не пропускаем: приложение X-Forwarded-For не читает, но и дальше не передаём.
-		header_up -X-Forwarded-For
-		health_uri /api/health
-		health_interval 15s
+	handle_path /submission/* {
+		root * /srv/submission
+		file_server
+	}
+
+	handle {
+		reverse_proxy app:3000 {
+			# Единственный источник IP для лимитов (client-ip.ts): перезаписываем то, что прислал клиент.
+			header_up X-Real-IP {remote_host}
+			# Подделку цепочки не пропускаем: приложение X-Forwarded-For не читает, но и дальше не передаём.
+			header_up -X-Forwarded-For
+			health_uri /api/health
+			health_interval 15s
+		}
 	}
 	# CSP с nonce и HSTS выставляет само приложение (proxy.ts, security-headers.ts): здесь не дублируем.
 }
