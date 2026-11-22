@@ -57,9 +57,9 @@ describe("помощник", () => {
     expect((await ask("?")).status).toBe(422);
   });
 
-  it("лимит 20 вопросов в сутки → 429", async () => {
+  it("лимит 50 вопросов за 24 часа → 429", async () => {
     let last = 200;
-    for (let i = 0; i < 25 && last === 200; i++)
+    for (let i = 0; i < 55 && last === 200; i++)
       last = (await ask("Как пересдать экзамен?", "maxim")).status;
     expect(last).toBe(429);
   });
