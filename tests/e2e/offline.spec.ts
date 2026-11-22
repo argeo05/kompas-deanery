@@ -77,16 +77,44 @@ test("AC-13.1: без сети открываются «Сегодня», рас
   baseURL,
 }) => {
   test.setTimeout(120_000);
-  const { ctx, page } = await onlineStudent(browser, baseURL!);
+  const ctx = await browser.newContext({ baseURL, serviceWorkers: "allow" });
+  const staff = await browser.newContext({ baseURL });
+  await loginAs(ctx, "anna", baseURL!);
+  await loginAs(staff, "elena", baseURL!);
+  const request = await ctx.request.post("/api/me/requests", {
+    data: {
+      typeCode: "study_cert",
+      delivery: "electronic",
+      copies: 1,
+      fields: { destination: "В банк" },
+    },
+    headers: { origin: baseURL!, "idempotency-key": crypto.randomUUID() },
+  });
+  expect(request.status(), await request.text()).toBe(201);
+  const { id } = (await request.json()) as RequestDTO;
+  for (const action of ["take", "ready", "issue"]) {
+    const response = await staff.request.post(`/api/staff/requests/${id}/transition`, {
+      data: { action },
+      headers: { origin: baseURL! },
+    });
+    expect(response.status(), await response.text()).toBe(200);
+  }
+  await staff.close();
+
+  const page = await ctx.newPage();
+  await page.goto("/today");
+  await waitOfflineReady(page);
   const docs = (await (await ctx.request.get("/api/me/documents")).json()) as DocumentsDTO;
-  expect(docs.items.length, "у Ани в сиде есть выданная справка").toBeGreaterThan(0);
+  const document = docs.items.find((item) => item.requestId === id);
+  expect(document, "у Ани есть выданная справка по тестовой заявке").toBeDefined();
+  const { fileUrl } = document!;
   // Фоновая подготовка кладёт PDF в Cache Storage.
   await expect
     .poll(
       () =>
         page.evaluate(
           async (url) => (await (await caches.open("kompas-docs")).match(url)) !== undefined,
-          docs.items[0]!.fileUrl,
+          fileUrl,
         ),
       // Параллельные тесты Ани упираются в лимит PDF (20 в минуту): подготовка повторит через минуту.
       { timeout: 80_000 },
@@ -128,8 +156,11 @@ test("AC-13.1: без сети открываются «Сегодня», рас
   await expect(page.getByTestId("request-row").first()).toBeVisible();
 
   await page.goto("/documents");
-  await expect(page.getByTestId("document-row").first()).toBeVisible();
-  await expect(page.getByTestId("saved-offline").first()).toBeVisible();
+  const row = page.getByTestId("document-row").filter({
+    has: page.locator(`a[href="/requests/${id}"]`),
+  });
+  await expect(row).toBeVisible();
+  await expect(row.getByTestId("saved-offline")).toBeVisible();
   const pdf = await page.evaluate(async (url) => {
     const r = await fetch(url);
     const bytes = new Uint8Array(await r.arrayBuffer());
@@ -138,10 +169,10 @@ test("AC-13.1: без сети открываются «Сегодня», рас
       type: r.headers.get("content-type"),
       head: String.fromCharCode(...bytes.slice(0, 5)),
     };
-  }, docs.items[0]!.fileUrl);
+  }, fileUrl);
   expect(pdf).toEqual({ status: 200, type: "application/pdf", head: "%PDF-" });
   const download = page.waitForEvent("download");
-  await page.getByRole("link", { name: "Скачать PDF" }).first().click();
+  await row.getByRole("link", { name: "Скачать PDF" }).click();
   expect((await download).suggestedFilename()).toMatch(/\.pdf$/);
 
   // Раздел без офлайна — честное сообщение, а не белый экран.

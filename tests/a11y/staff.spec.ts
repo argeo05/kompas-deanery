@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { seedDates } from "../../db/seed/dates";
 import { loginAs } from "../e2e/support/auth";
 
 // WCAG 2.2 AA на экранах кабинета сотрудника (C6) в светлой и тёмной теме, данные Елены.
@@ -32,6 +33,10 @@ for (const scheme of ["light", "dark"] as const) {
         await page.waitForLoadState("load");
         await expect(page.locator("[aria-busy=true]")).toHaveCount(0);
         if (route === "SCHEDULE_SHEET") {
+          const dates = seedDates();
+          await page
+            .getByLabel("День", { exact: true })
+            .fill(dates.day(dates.nextStudyDayOffset()));
           await page
             .getByRole("button", { name: /Изменить/ })
             .first()
