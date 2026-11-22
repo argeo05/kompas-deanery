@@ -59,3 +59,6 @@ next-env.d.ts
 
 # снимки Playwright MCP (локальные артефакты агентов)
 /.playwright-mcp/
+
+# Служебные вложения Codex/OpenCode
+.codex-attachments/
