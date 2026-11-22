@@ -4,7 +4,13 @@ import { describe, expect, it, vi } from "vitest";
 import { MAX_ANSWER_WORDS, answerFromKb, detectRefusal } from "@/lib/assistant/engine";
 import { readKbFiles } from "../../db/seed/kb";
 import { isSafeProviderUrl, readAssistantConfig } from "@/server/services/assistant-config";
-import { askProvider, buildMessages, NO_ANSWER_MARK } from "@/server/services/assistant-llm";
+import {
+  askProvider,
+  buildMessages,
+  NO_ANSWER_MARK,
+  plainAnswer,
+  trimWords,
+} from "@/server/services/assistant-llm";
 
 const docs = readKbFiles();
 type Case = { id: string; kind: "kb" | "off_topic" | "provocation"; q: string; expect?: string };
@@ -136,6 +142,29 @@ describe("настройки и провайдер", () => {
     expect(await askProvider(provider, "q", [], reply(msg(NO_ANSWER_MARK)))).toBe("");
     const long = await askProvider(provider, "q", [], reply(msg("слово ".repeat(300))));
     expect(long!.split(/\s+/).length).toBeLessThanOrEqual(MAX_ANSWER_WORDS);
+  });
+
+  it("ответ без разметки Markdown, шаги остаются на своих строках", async () => {
+    const md =
+      "Чтобы заказать справку:\n1. В разделе [«Заявки»](/requests) нажмите **«Заказать»**.\n2. Выберите `В банк`.\n\n\n- Срок — один день.";
+    expect(plainAnswer(md)).toBe(
+      "Чтобы заказать справку:\n1. В разделе «Заявки» нажмите «Заказать».\n2. Выберите В банк.\n\n• Срок — один день.",
+    );
+    const reply = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ choices: [{ message: { content: md } }] })),
+      ) as unknown as typeof fetch;
+    const out = await askProvider(provider, "q", [], reply);
+    expect(out).not.toContain("](");
+    expect(out!.split("\n")[1]).toBe("1. В разделе «Заявки» нажмите «Заказать».");
+    expect(trimWords("раз два\nтри четыре", 3)).toBe("раз два\nтри…");
+    const onlyMarkup = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ choices: [{ message: { content: "# " } }] })),
+      ) as unknown as typeof fetch;
+    expect(await askProvider(provider, "q", [], onlyMarkup)).toBeNull();
   });
 
   it("запрос: ключ только в заголовке, статьи помечены как данные", async () => {

@@ -41,7 +41,8 @@ Font.registerHyphenationCallback((word) => [word]);
 const styles = StyleSheet.create({
   page: { padding: 48, fontFamily: "Onest", fontSize: 11, color: INK, lineHeight: 1.5 },
   brand: { fontSize: 9, color: INK_2, marginBottom: 28 },
-  title: { fontSize: 22, fontWeight: 600, marginBottom: 4 },
+  // Высота строки задана явно: lineHeight страницы наследуется в пунктах (11 × 1,5) и крупный текст налезал на соседние строки.
+  title: { fontSize: 22, fontWeight: 600, lineHeight: 1.25, marginBottom: 4 },
   meta: { fontSize: 10, color: INK_2, marginBottom: 20 },
   lead: { marginBottom: 14 },
   row: {
@@ -74,8 +75,8 @@ const styles = StyleSheet.create({
     transform: "rotate(-35deg)",
     color: MARK,
   },
-  markBig: { fontSize: 42, fontWeight: 600 },
-  markSmall: { fontSize: 20, fontWeight: 600 },
+  markBig: { fontSize: 42, fontWeight: 600, lineHeight: 1.2 },
+  markSmall: { fontSize: 20, fontWeight: 600, lineHeight: 1.3 },
 });
 
 export interface DocumentPdfData {
