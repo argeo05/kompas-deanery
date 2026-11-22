@@ -49,7 +49,7 @@ function HeroActions({ cls, openLabel = "Открыть" }: { cls: ClassDTO; ope
   // Кнопки переносятся на вторую строку, а не вылезают за карточку: 320 px, крупный текст (1.4.10).
   // Узкие отступы держат обе кнопки в одной строке на 360 px (AC-2.1: две пары над сгибом).
   return (
-    <CardFooter className="*:max-w-full *:min-w-0 *:flex-auto *:gap-1.5 *:px-2.5 *:whitespace-normal @max-[14rem]:*:w-full @max-[14rem]:*:gap-0 @max-[14rem]:*:px-[8px] @max-[14rem]:[&_svg]:hidden">
+    <CardFooter className="*:max-w-full *:min-w-0 *:flex-auto *:gap-1.5 *:px-2.5 *:whitespace-normal @max-[14rem]:*:w-full @max-[14rem]:*:gap-0 @max-[14rem]:*:px-2 @max-[14rem]:[&_svg]:hidden">
       <Link
         href={openHref(cls)}
         className={cn(buttonVariants({ size: "md" }), "whitespace-normal")}
@@ -80,7 +80,7 @@ function nearestClass(classes: ClassDTO[], now: Date): ClassDTO | null {
 
 /** Тетрадная линовка (§7.2a п.4); текст отступает от «поля» в 24 px. */
 const HERO_PAPER =
-  "paper-ruled min-w-0 pl-9 [overflow-wrap:anywhere] @max-[14rem]:bg-none @max-[14rem]:p-[12px]";
+  "paper-ruled min-w-0 pl-9 [overflow-wrap:anywhere] @max-[14rem]:bg-none @max-[14rem]:p-3";
 const WEEK_LINK = cn(
   buttonVariants({ variant: "secondary" }),
   "min-w-0 max-w-full whitespace-normal",
@@ -156,7 +156,7 @@ function HeroContent({ today, now }: { today: TodayDTO; now: Date }) {
       >
         <CardHeader>
           <ChangeNote cls={cls} />
-          <h2 className={cn(other ? "type-h3" : "type-h2", "break-words hyphens-auto")}>
+          <h2 className={cn(other ? "type-h3" : "type-h2", "wrap-anywhere hyphens-auto")}>
             {other ? (
               <Link
                 href={openHref(cls)}

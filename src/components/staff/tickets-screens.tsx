@@ -160,7 +160,7 @@ function Detail({ t, reload }: { t: StaffTicketDetailDTO; reload: () => void }) 
         <h1 className="type-h1">{TOPIC[t.topic]}</h1>
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone={STATUS[t.status].tone}>{STATUS[t.status].label}</Badge>
-          <span className="type-caption text-ink-2">
+          <span className="type-caption wrap-anywhere text-ink-2">
             {t.student.fullName}, {t.student.group}
           </span>
         </div>

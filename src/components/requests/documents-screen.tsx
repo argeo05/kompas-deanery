@@ -23,7 +23,7 @@ export function DocumentsScreen() {
     <>
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="type-h1">Документы</h1>
-        <Button asChild>
+        <Button asChild className="max-w-full py-2 whitespace-normal">
           <Link href="/requests/new">
             <Plus aria-hidden />
             Заказать справку
@@ -58,7 +58,11 @@ export function DocumentsScreen() {
                     <SavedOfflineBadge url={d.fileUrl} />
                     <div className="flex flex-wrap gap-2">
                       <DocumentDownload url={d.fileUrl} fileName={`${d.typeTitle}.pdf`} />
-                      <Button asChild variant="secondary">
+                      <Button
+                        asChild
+                        variant="secondary"
+                        className="max-w-full py-2 whitespace-normal"
+                      >
                         <Link href={d.verifyUrl}>
                           <ShieldCheck aria-hidden />
                           Проверить подлинность

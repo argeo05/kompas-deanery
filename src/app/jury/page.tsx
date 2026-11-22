@@ -93,9 +93,15 @@ export default function JuryPage() {
       <main
         id="content"
         tabIndex={-1}
-        className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-12 outline-none"
+        className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-8 outline-none sm:py-12"
       >
         <header className="flex flex-col gap-2">
+          <Link
+            href="/"
+            className="inline-flex min-h-11 items-center self-start underline underline-offset-4"
+          >
+            На главную
+          </Link>
           <h1 className="type-h1">Для жюри</h1>
           <p className="type-body text-ink-2">
             Компас — концепт для MGIMO AI Challenge 2026. Все аккаунты и данные вымышленные, поэтому
@@ -117,7 +123,12 @@ export default function JuryPage() {
                 Открыть вход в новой вкладке
               </Link>
             </Button>
-            <Link href="#accounts-title">Логины и пароли</Link>
+            <Link
+              href="#accounts-title"
+              className="inline-flex min-h-11 items-center underline underline-offset-4"
+            >
+              Логины и пароли
+            </Link>
           </div>
           <ol className="mt-2 list-decimal space-y-3 pl-6 marker:font-semibold">
             {ROUTE.map((step) => (

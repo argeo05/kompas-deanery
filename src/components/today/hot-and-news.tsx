@@ -32,7 +32,9 @@ export function HotList({ items, now }: { items: HotItem[]; now: Date }) {
                 <p className="flex flex-wrap items-center gap-x-2 gap-y-1 type-caption text-ink-2">
                   <CalendarClock aria-hidden className="size-4" />
                   <span>{formatWhen(item.deadline.dueAt, now)}</span>
-                  {item.deadline.courseTitle && <span>· {item.deadline.courseTitle}</span>}
+                  {item.deadline.courseTitle && (
+                    <span className="wrap-anywhere">· {item.deadline.courseTitle}</span>
+                  )}
                   {item.deadline.risk && (
                     <Badge tone="warn" icon={TriangleAlert}>
                       Важно для итога

@@ -16,7 +16,7 @@ export function CourseRow({ course }: { course: Course }) {
   const isCredit = course.credit !== null;
   return (
     <Card variant="interactive" className="gap-2">
-      <div className="flex items-start gap-3">
+      <div className="flex flex-wrap items-start gap-3">
         {!isCredit && (
           <ProgressRing
             value={course.total}
@@ -24,7 +24,7 @@ export function CourseRow({ course }: { course: Course }) {
             label={`Набрано ${formatScore(course.total)} из ${formatScore(course.maxSoFar)} баллов, доступных на сегодня`}
           />
         )}
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex min-w-0 flex-[1_1_8rem] flex-col gap-1">
           <CardLink
             href={`/study/subjects/${course.courseId}`}
             className="type-h3 break-words hyphens-auto"
@@ -45,7 +45,9 @@ export function CourseRow({ course }: { course: Course }) {
             </p>
           )}
         </div>
-        {course.mark && <GradeScale total={course.total} mark={course.mark} className="shrink-0" />}
+        {course.mark && (
+          <GradeScale total={course.total} mark={course.mark} className="ml-auto shrink-0" />
+        )}
       </div>
       {course.credit && (
         <div className="flex flex-col gap-1.5">
@@ -64,7 +66,7 @@ export function CourseRow({ course }: { course: Course }) {
                 ) : (
                   <X aria-hidden className="mt-0.5 size-4 shrink-0 text-ink-2" />
                 )}
-                <span>
+                <span className="wrap-anywhere">
                   {c.label}
                   <span className="sr-only">{c.met ? ": выполнено" : ": пока не выполнено"}</span>
                 </span>

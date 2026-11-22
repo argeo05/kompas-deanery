@@ -53,7 +53,7 @@ export function SupportScreen() {
     <>
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="type-h1">Связь с деканатом</h1>
-        <Button asChild>
+        <Button asChild className="max-w-full py-2 whitespace-normal">
           <Link href="/support/new">
             <Plus aria-hidden />
             Написать в деканат
@@ -79,7 +79,7 @@ export function SupportScreen() {
               illustration="no-requests"
               title="Обращений пока нет"
               action={
-                <Button asChild>
+                <Button asChild className="max-w-full py-2 whitespace-normal">
                   <Link href="/support/new">Написать в деканат</Link>
                 </Button>
               }
@@ -319,7 +319,7 @@ export function TicketScreen({ id }: { id: string }) {
                       data-testid="message"
                       className={
                         m.author === "student"
-                          ? "self-end rounded-card bg-surface-2 p-3"
+                          ? "max-w-full self-end rounded-card bg-surface-2 p-3"
                           : "rounded-card border border-line bg-surface p-3"
                       }
                     >

@@ -117,7 +117,7 @@ function Messages({ request, onSent }: { request: RequestDetailDTO; onSent: () =
               data-testid="message"
               className={
                 m.author === "student"
-                  ? "self-end rounded-card bg-surface-2 p-3"
+                  ? "max-w-full self-end rounded-card bg-surface-2 p-3"
                   : "rounded-card border border-line bg-surface p-3"
               }
             >
@@ -136,7 +136,7 @@ function Messages({ request, onSent }: { request: RequestDetailDTO; onSent: () =
             <li
               key={m.id}
               data-testid="queued-message"
-              className="flex flex-col gap-2 self-end rounded-card bg-surface-2 p-3"
+              className="flex max-w-full flex-col gap-2 self-end rounded-card bg-surface-2 p-3"
             >
               <p className="type-caption text-ink-2">Вы</p>
               <p className="whitespace-pre-wrap">{(m.body as { body: string }).body}</p>

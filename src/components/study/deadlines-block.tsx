@@ -23,7 +23,7 @@ function Item({ d, now }: { d: DeadlineDTO; now: Date }) {
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 type-caption text-ink-2">
           <CalendarClock aria-hidden className="size-4" />
           <span>{formatWhen(d.dueAt, now)}</span>
-          {d.courseTitle && <span>· {d.courseTitle}</span>}
+          {d.courseTitle && <span className="wrap-anywhere">· {d.courseTitle}</span>}
           {d.risk && (
             <Badge tone="warn" icon={TriangleAlert}>
               Важно для итога

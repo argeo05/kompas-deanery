@@ -279,7 +279,7 @@ function DeadlineCard({
       <p className="flex flex-wrap items-center gap-x-2 gap-y-1 type-caption text-ink-2">
         <CalendarClock aria-hidden className="size-4" />
         <span>{formatWhen(d.dueAt, now)}</span>
-        {d.courseTitle && <span>· {d.courseTitle}</span>}
+        {d.courseTitle && <span className="wrap-anywhere">· {d.courseTitle}</span>}
         {d.risk && (
           <Badge tone="warn" icon={TriangleAlert}>
             Важно для итога
@@ -300,6 +300,7 @@ function DeadlineCard({
             aria-pressed={d.starred}
             loading={busy}
             onClick={() => onAct(d, d.starred ? "unstar" : "star")}
+            className="max-w-full py-2 whitespace-normal"
           >
             <Star aria-hidden className="size-4" fill={d.starred ? "currentColor" : "none"} />
             {d.starred ? "Важное" : "Отметить важным"}

@@ -60,7 +60,7 @@ export function ChangeNote({ cls }: { cls: ClassDTO }) {
       <Badge tone={meta.tone} icon={meta.icon}>
         {meta.label}
       </Badge>
-      {detail && <span className="type-caption text-ink">{detail}</span>}
+      {detail && <span className="type-caption wrap-anywhere text-ink">{detail}</span>}
     </div>
   );
 }
@@ -106,7 +106,12 @@ export function ClassCard({
           <time className="type-num text-ink">{timeRange(cls)}</time>
           <span>{CLASS_TYPE_LABEL[cls.type]}</span>
           {compact && (
-            <span className={cn(cls.change?.type === "room_changed" && "font-semibold text-ink")}>
+            <span
+              className={cn(
+                "wrap-anywhere",
+                cls.change?.type === "room_changed" && "font-semibold text-ink",
+              )}
+            >
               · {roomText(cls.room)}
             </span>
           )}

@@ -54,7 +54,11 @@ export function DayView({
         headingLevel="h2"
         action={
           nextDate ? (
-            <Button variant="secondary" onClick={() => onJump(nextDate)}>
+            <Button
+              variant="secondary"
+              className="max-w-full whitespace-normal"
+              onClick={() => onJump(nextDate)}
+            >
               Перейти к: {formatWeekdayLong(startOfDayMsk(nextDate))},{" "}
               {formatDayMonthFull(startOfDayMsk(nextDate))}
             </Button>

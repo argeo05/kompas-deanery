@@ -226,7 +226,7 @@ function ChangeSheet({
             {errors.form}
           </p>
         )}
-        <Button type="submit" loading={busy}>
+        <Button type="submit" loading={busy} className="py-2 whitespace-normal">
           <Users aria-hidden />
           Сохранить и уведомить {n} {plural(n, ["студента", "студентов", "студентов"])}
         </Button>

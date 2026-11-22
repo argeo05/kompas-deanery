@@ -57,7 +57,7 @@ export function CommandPalette({
   let index = -1;
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title="Поиск" className="lg:max-w-xl">
-      <div className="flex flex-col gap-3 px-4 pb-4">
+      <div className="flex flex-col gap-3 px-4 pb-4 wrap-anywhere">
         <div className="relative flex items-center">
           <label htmlFor={`${listId}-q`} className="sr-only">
             Что найти

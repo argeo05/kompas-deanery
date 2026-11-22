@@ -95,7 +95,7 @@ export function Sheet({
             className="mx-auto mb-2 block h-1 w-10 rounded-full bg-line-strong lg:hidden"
           />
           <div className="flex items-start justify-between gap-2">
-            <h2 id={titleId} className="pt-2 type-h2">
+            <h2 id={titleId} className="min-w-0 pt-2 type-h2 wrap-anywhere">
               {title}
             </h2>
             <button

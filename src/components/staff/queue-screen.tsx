@@ -70,7 +70,7 @@ function Counter({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className="flex min-h-11 flex-1 flex-col items-start gap-0.5 rounded-card border border-line-strong bg-surface px-3 py-2 text-left hover:bg-surface-2 aria-pressed:border-2 aria-pressed:border-accent"
+      className="flex min-h-11 flex-1 flex-col items-start gap-0.5 rounded-card border border-line-strong bg-surface px-2 py-2 text-left hover:bg-surface-2 aria-pressed:border-2 aria-pressed:border-accent sm:px-3"
     >
       <span className="type-caption text-ink-2">{label}</span>
       <span className="text-2xl type-num">{value}</span>
@@ -215,7 +215,7 @@ export function QueueScreen() {
           const next = extra?.key === url ? extra.next : page.nextCursor;
           return (
             <>
-              <div role="group" aria-label="Счётчики очереди" className="flex gap-2">
+              <div role="group" aria-label="Счётчики очереди" className="flex flex-wrap gap-2">
                 <Counter
                   label="Отправлены"
                   value={page.counters.submitted}

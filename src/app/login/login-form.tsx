@@ -106,15 +106,22 @@ export function LoginForm({ next, accounts }: { next?: string; accounts: QuickAc
         Войти
       </Button>
       <section
-        aria-labelledby="jury-quick"
+        aria-labelledby="demo-quick"
         className="flex flex-col gap-3 border-t border-line pt-4"
       >
-        <h2 id="jury-quick" className="type-h3">
-          Вы из жюри?
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-x-4">
+          <h2 id="demo-quick" className="type-h3">
+            Демо-вход
+          </h2>
+          <Link
+            href="/jury"
+            className="inline-flex min-h-11 items-center underline underline-offset-4"
+          >
+            Для жюри
+          </Link>
+        </div>
         <p className="type-caption text-ink-2">
-          Войдите в один клик — логины и пароли вымышленных аккаунтов открыты на странице{" "}
-          <Link href="/jury">«Для жюри»</Link>.
+          Выберите вымышленный аккаунт, чтобы посмотреть, как работает Компас.
         </p>
         <ul className="flex flex-col gap-2">
           {accounts.map((a) => (

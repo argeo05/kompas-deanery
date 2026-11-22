@@ -41,11 +41,11 @@ const MESSAGE_OPEN = new Set(["submitted", "in_progress", "needs_info", "ready"]
 
 function Dl({ rows }: { rows: [string, React.ReactNode][] }) {
   return (
-    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+    <dl className="grid grid-cols-[fit-content(45%)_minmax(0,1fr)] gap-x-4 gap-y-1">
       {rows.map(([k, v]) => (
         <React.Fragment key={k}>
-          <dt className="text-ink-2">{k}</dt>
-          <dd className="min-w-0 break-words">{v}</dd>
+          <dt className="wrap-anywhere text-ink-2">{k}</dt>
+          <dd className="wrap-anywhere">{v}</dd>
         </React.Fragment>
       ))}
     </dl>
@@ -255,7 +255,7 @@ function Screen({ r, reload }: { r: StaffRequestDTO; reload: () => void }) {
         </div>
       </header>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_20rem] lg:items-start lg:gap-6">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-6">
         <div className="flex min-w-0 flex-col gap-4 lg:order-1">
           <Card>
             <h2 className="type-h2">Студент</h2>
@@ -361,7 +361,12 @@ function Screen({ r, reload }: { r: StaffRequestDTO; reload: () => void }) {
                     />
                   )}
                 </Field>
-                <Button type="submit" variant="secondary" loading={sending} className="self-start">
+                <Button
+                  type="submit"
+                  variant="secondary"
+                  loading={sending}
+                  className="max-w-full self-start py-2 whitespace-normal"
+                >
                   <Send aria-hidden />
                   Отправить сообщение
                 </Button>
@@ -372,7 +377,10 @@ function Screen({ r, reload }: { r: StaffRequestDTO; reload: () => void }) {
           </section>
         </div>
 
-        <Card className="gap-3 lg:sticky lg:top-24 lg:order-2" data-testid="actions">
+        <Card
+          className="min-w-0 gap-3 wrap-anywhere lg:sticky lg:top-24 lg:order-2 [&_button]:max-w-full [&_button]:whitespace-normal"
+          data-testid="actions"
+        >
           <h2 className="type-h2">Действия</h2>
           {noActions && <p className="text-ink-2">Для этого статуса действий нет.</p>}
           {can("take") && (

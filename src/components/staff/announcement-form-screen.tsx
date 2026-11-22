@@ -164,7 +164,7 @@ function Form({ reference }: { reference: StaffReferenceDTO }) {
     <form
       onSubmit={submit}
       noValidate
-      className="grid gap-6 lg:grid-cols-2 lg:items-start"
+      className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start"
       aria-label="Новое объявление"
     >
       <div className="flex flex-col gap-4">
@@ -199,7 +199,10 @@ function Form({ reference }: { reference: StaffReferenceDTO }) {
           )}
         </Field>
 
-        <fieldset className="flex flex-col gap-1" aria-describedby="audience-count">
+        <fieldset
+          className="flex min-w-0 flex-col gap-1 wrap-anywhere"
+          aria-describedby="audience-count"
+        >
           <legend className="type-h3">Кому показать</legend>
           {multiFaculty && (
             <div className="flex flex-col">
@@ -317,7 +320,11 @@ function Form({ reference }: { reference: StaffReferenceDTO }) {
             {errors.form}
           </p>
         )}
-        <Button type="submit" loading={busy} className="self-start whitespace-normal">
+        <Button
+          type="submit"
+          loading={busy}
+          className="max-w-full self-start py-2 whitespace-normal"
+        >
           <Send aria-hidden />
           {verb}
           {forWhom}

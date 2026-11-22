@@ -295,7 +295,7 @@ function Feed({ tab }: { tab: Exclude<NotificationsTab, "announcements"> }) {
           byDay.set(dayKey(n.deliverAt), [...(byDay.get(dayKey(n.deliverAt)) ?? []), n]);
         return (
           <>
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="type-caption text-ink-2" role="status">
                 {unread > 0 ? `Непрочитанных: ${unread}` : "Всё прочитано"}
               </p>
@@ -303,6 +303,7 @@ function Feed({ tab }: { tab: Exclude<NotificationsTab, "announcements"> }) {
                 variant="secondary"
                 size="sm"
                 loading={marking}
+                className="max-w-full py-2 whitespace-normal"
                 disabled={unread === 0 || loadingMore}
                 onClick={() => markAllRead(all.map((n) => n.id))}
               >

@@ -81,7 +81,7 @@ export function StatusBadge({ kind, status, label, className, ...props }: BadgeP
       {...props}
     >
       <Icon aria-hidden strokeWidth={2} />
-      <span className="min-w-0">{label ?? meta.label}</span>
+      <span className="min-w-0 wrap-anywhere">{label ?? meta.label}</span>
     </span>
   );
 }
@@ -97,7 +97,7 @@ export function Badge({
   return (
     <span data-slot="badge" className={cn(badgeVariants({ tone }), className)} {...props}>
       {Icon && <Icon aria-hidden strokeWidth={2} />}
-      <span className="min-w-0">{children}</span>
+      <span className="min-w-0 wrap-anywhere">{children}</span>
     </span>
   );
 }

@@ -127,7 +127,7 @@ export function AskScreen({ mode }: { mode: AssistantMode }) {
               <li key={ex}>
                 <Button
                   variant="secondary"
-                  className="w-full justify-start text-left"
+                  className="w-full justify-start py-2 text-left whitespace-normal"
                   onClick={() => {
                     setQuestion(ex);
                     void ask(ex);
