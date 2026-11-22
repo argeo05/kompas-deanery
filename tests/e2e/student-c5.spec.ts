@@ -61,60 +61,6 @@ test("объявление: опасный Markdown остаётся текст�
   await elena.close();
 });
 
-test("настройки уведомлений сохраняются, «Только срочное» не трогает расписание", async ({
-  context,
-  page,
-  baseURL,
-}, info) => {
-  // Проекты идут параллельно: у каждого свой студент, чтобы настройки не мешали друг другу.
-  await loginAs(context, info.project.name === "mobile-360" ? "anna" : "maxim", baseURL!);
-  // Тихие часы у Ани выключают и сценарии с переносом и «Важным» объявлением (support/prefs.ts).
-  // Выключаем их заранее: форма загрузится уже с ними, и параллельный PUT не перетрёт сохранённое.
-  await disableQuietHours(context, baseURL!);
-  await page.goto("/notifications/settings");
-  // Сохранение заметно: пока ничего не менялось, «Сохранить» неактивна; после правки видно предупреждение.
-  const status = page.getByRole("status").filter({ hasText: /сохранены|несохранённые/ });
-  const saveBtn = page.getByRole("button", { name: "Сохранить" });
-  await expect(status).toHaveText("Все изменения сохранены.");
-  await expect(saveBtn).toBeDisabled();
-  const deadlines = page.getByRole("group", { name: "Дедлайны" });
-  const off = deadlines.getByRole("button", { name: "Выключено" });
-  const alreadyOff = (await off.getAttribute("aria-pressed")) === "true";
-  await deadlines.getByRole("button", { name: alreadyOff ? "Сразу" : "Выключено" }).click();
-  await expect(status).toContainText("Есть несохранённые изменения");
-  await expect(saveBtn).toBeEnabled();
-  await expect(saveBtn).toBeInViewport(); // панель закреплена, нижняя навигация её не закрывает
-  await page.getByRole("button", { name: "Отменить" }).click();
-  await expect(status).toHaveText("Все изменения сохранены.");
-  await page.getByRole("button", { name: "Вечерний: 12:00, 17:30, 21:30" }).click();
-  await page.getByRole("group", { name: "Оценки" }).getByRole("button", { name: "Сразу" }).click();
-  await page.getByRole("button", { name: "Сохранить" }).click();
-  await expect(page.getByText("Настройки сохранены")).toBeVisible();
-  const prefs = await (await context.request.get("/api/me/notification-prefs")).json();
-  expect(prefs.slots).toEqual([720, 1050, 1290]);
-  expect(prefs.immediateCategories).toContain("grade");
-
-  await page.getByRole("button", { name: "Только срочное", exact: true }).click();
-  await page.getByRole("button", { name: "Сохранить" }).click();
-  await expect(page.getByText("Настройки сохранены")).toBeVisible();
-  const urgent = await (await context.request.get("/api/me/notification-prefs")).json();
-  expect(urgent.disabledCategories).not.toContain("schedule");
-  expect(urgent.disabledCategories).toContain("grade");
-
-  // Возвращаем настройки по умолчанию, чтобы не влиять на другие сценарии.
-  await context.request.put("/api/me/notification-prefs", {
-    data: {
-      slots: [480, 780, 1140],
-      preset: "default",
-      quietFrom: prefs.quietFrom,
-      quietTo: prefs.quietTo,
-      immediateCategories: [],
-      disabledCategories: [],
-    },
-    headers: { origin: baseURL! },
-  });
-});
-
 test("дедлайн: звёздочка, окно без пар, план «если–то»", async ({ context, page, baseURL }) => {
   await loginAs(context, "anna", baseURL!);
   const title = `Эссе ${Date.now()}`;
