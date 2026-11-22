@@ -506,10 +506,17 @@ export async function seedPopulation(db: SeedDb, d: SeedDates) {
   const requestInserts: Array<typeof schema.requests.$inferInsert> = [];
   const eventValues: Array<typeof schema.requestEvents.$inferInsert> = [];
   const documentValues: Array<typeof schema.documents.$inferInsert> = [];
-  const documentTypes = REQUEST_TYPES.filter((type) => type.deliveryOptions.length > 0);
+  // Справки об обучении остаются на своих местах в общей ротации типов.
+  const alternateDocumentTypes = REQUEST_TYPES.filter(
+    (type) => type.deliveryOptions.length > 0 && type.code !== "study_cert",
+  );
   for (let i = 0; i < REQUESTS_COUNT; i++) {
     const status = REQUEST_STATUS_PLAN[i]!;
-    const type = pick(status === "issued" ? documentTypes : REQUEST_TYPES, i);
+    const plannedType = pick(REQUEST_TYPES, i);
+    const type =
+      status === "issued" && plannedType.deliveryOptions.length === 0
+        ? pick(alternateDocumentTypes, i)
+        : plannedType;
     // Последняя выдача приходится самое позднее на вчера, в том числе при ночном пересеве.
     const createdOffset = -(i % 24) - 3;
     const createdAt = d.at(createdOffset, pick(DAY_TIMES, i));
